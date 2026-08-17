@@ -8,9 +8,11 @@ have a kit binary.
 | Stunt | What it is | Open in Solipsist as |
 |-------|------------|----------------------|
 | `happy/` | `boris init` shape: 3 pages, theme, `boris.json` | the **folder** (project root) |
+| `broken-duplicate-id/` | two pages share an `id` → `EDUPLICATEID` | the folder |
 | `broken-frontmatter/` | unknown key `category` → `EFRONTMATTER` | the folder (content root) |
 | `broken-parent/` | `parent: does-not-exist` → `EPARENTMISSING` | the folder |
 | `broken-textile/` | incomplete `"link":` → `ETEXTILE` | the folder |
+| `broken-wikilink/` | `[[missing-page]]` → `EREFERENCEMISSING` | the folder |
 | `cook-one/` | one `.cook` recipe | the folder; needs `--cooklang` later |
 | `happy-textile/` | 2 `.textile` pages (`input_format: "textile"`) | the folder (project root) |
 
