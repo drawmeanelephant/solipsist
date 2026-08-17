@@ -51,3 +51,9 @@ Same worktree + five agents = they will fight over `git status` and
 `make generate` even when the cards are disjoint. Clone or
 `git worktree add` per card. Merge M4 before the inspector can show
 real completion/profile fields.
+
+## Parallel lane (external agent)
+
+Background pile that must not touch Play / Inspector / Engine /
+Models / Spike / `MainWindow`. PR cop + Boris issue filing + the
+cards under [`parallel/`](parallel/README.md).

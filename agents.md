@@ -33,7 +33,8 @@ pin; bump when we vendor a newer kit.
 | [`docs/MISSION.md`](docs/MISSION.md) | One-page why |
 | [`docs/BORIS-CAPABILITIES.md`](docs/BORIS-CAPABILITIES.md) | What the engine can do |
 | [`docs/ENGINE-CONTRACTS.md`](docs/ENGINE-CONTRACTS.md) | Probed machine contracts |
-| [`docs/cards/`](docs/cards/) | Session briefs — pick one |
+| [`docs/cards/`](docs/cards/) | Grind-lane briefs |
+| [`docs/cards/parallel/`](docs/cards/parallel/) | External agent — PR cop, Boris issues, busy cards off the grind paths |
 | [`docs/issues/`](docs/issues/) | Ready-to-paste boris issues |
 
 ## Build
