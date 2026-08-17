@@ -30,6 +30,7 @@ great CLI with JSON outputs" and "a compiler with a process ABI."
 | [A6](boris-A6-completion-signal.md) | `.boris-cache/manifest.json` as documented completion contract | Atomicity made observable for HTML builds — completion marker + fingerprint-diff change detection | S |
 | [A7](boris-A7-workspace-rule.md) | Decide + document the containment boundary | Safety claim made coherent — HTML is cwd-confined, the other outputs aren't; pick the posture on purpose | XS |
 | [A12](boris-A12-signal-contract.md) | Signal/cancellation contract for watch mode | "Can I kill it?" answered as a documented, test-pinned guarantee | XS |
+| [A5](boris-A5-check-watch-rfc.md) | RFC: `check --watch` — live diagnostics as a daemon | The validate-only half of the compiler-daemon story: recompile in memory, emit events, never touch outputs | L (RFC) |
 
 ## Why each stands on its own
 
@@ -50,8 +51,9 @@ great CLI with JSON outputs" and "a compiler with a process ABI."
 2. **A1** — the flagship; engage with the concrete schema in the body.
 3. **A3 + A6 + A7 + A12** — the consistency + contract batch.
 
-A5 (watch diagnostics for non-HTML modes) is deliberately *not* in this batch
-— it's a design RFC touching watch-mode's conflict rules, and should be filed
-as a discussion after A1 lands. A8/A9/A10 (init scaffold, exit-code
-granularity, library mode) are noted in the source audit as either
-nice-to-have or explicitly not recommended.
+A5 is drafted as the RFC companion ([boris-A5-check-watch-rfc.md](boris-A5-check-watch-rfc.md))
+and should be filed as a discussion *after* A1 lands — it consumes A1's event
+protocol, and it's the one issue that changes what `--watch` can mean (it
+redefines today's `check --watch` usage error into a defined mode).
+A8/A9/A10 (init scaffold, exit-code granularity, library mode) are noted in
+the source audit as either nice-to-have or explicitly not recommended.

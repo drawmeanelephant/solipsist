@@ -153,11 +153,13 @@ Drafted and ready to paste: **A1** (NDJSON watch events — flagship P0),
 **A2** (`--version` — P0), **A3** (`compiler` in build-report — P1), **A4**
 (stream docs + fix `--report` help text — P1), **A6** (completion signal —
 P1), **A7** (workspace-rule docs — P1), **A12** (signal/cancellation docs —
-P1). The 🔴 blockers per the audit: A1/A5 (watch prose), A6 (HTML has no
-result artifact), A2/A3 (no version identity).
+P1). **A5** is drafted as the RFC companion (check --watch diagnostics
+daemon) and should be filed as a discussion after A1 lands. The 🔴 blockers
+per the audit: A1/A5 (watch prose), A6 (HTML has no result artifact), A2/A3
+(no version identity).
 
 Filing order: A2 + A4 first (XS, unblocks us), then A1, then A3 + A6 + A7 +
-A12.
+A12, then the A5 RFC as a discussion.
 Not yet drafted: **A5** (watch diagnostics for non-HTML — the one that would
 simplify our architecture the most; write it as an RFC), A8 (`boris init`),
 A9/A10 (we recommend *not* doing — see doc).

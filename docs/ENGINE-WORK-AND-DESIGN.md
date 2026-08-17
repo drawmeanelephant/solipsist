@@ -138,11 +138,21 @@ mode doesn't publish.
 
 **Proposal (the interesting one).** A watch variant that recompiles in
 memory and emits only diagnostics/events *without touching the output tree* —
-call it `boris check --watch` or `boris --watch-diagnostics`. The compile
-pipeline already runs (scan → parse → validate) before rendering; rendering
-is the part we'd skip. Events streamed via A1; failed files get structured
-diagnostics. This gives the app a live "problems panel" with zero artifact
-churn.
+`boris check --watch` (RFC drafted:
+[boris-A5-check-watch-rfc.md](issues/boris-A5-check-watch-rfc.md)). Fact-checked
+findings that shaped the RFC:
+
+- The seam already exists: `check`/`impact` (`runIntelligence`) calls
+  `pipeline.compile` read-only (`.quiet = true`) then `intelligence.analyze`
+  — "recompile in memory without writing" is today's one-shot code.
+- The watch coordinator already owns debounce/coalescing/ignore-rules/
+  signals — only the rebuild *action* changes (HTML publish → validate +
+  emit A1 events).
+- `boris check --watch` is **currently a usage error** (exit 2,
+  `error: conflicting options` — verified) — the RFC redefines it.
+- Honest scope: v1 = the `check` surface (scan/parse/graph/IR); the full
+  HTML surface (includes/wiki-links/assets) requires factoring validate from
+  render in the HTML pipeline — real refactoring, deferred.
 
 **Why it's not a compromise.** The compile/validate path is the same
 deterministic pipeline; we just opt into not writing outputs. It needs a
