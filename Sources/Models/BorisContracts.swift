@@ -102,7 +102,8 @@ public struct PageSummary: Codable, Sendable {
     /// Trunk id for satellites; null for trunks.
     public var parent: String?
     public var title: String
-    public var status: String
+    /// Omitted in starter frontmatter; Boris emits JSON null.
+    public var status: String?
 
     public var isTrunk: Bool { role == .trunk }
 }
@@ -128,7 +129,8 @@ public struct GraphNode: Codable, Sendable {
     public var parent: String?
     public var parentIndex: Int?
     public var title: String
-    public var status: String
+    /// Omitted in starter frontmatter; Boris emits JSON null.
+    public var status: String?
     public var tags: [String]?
     /// Byte offset of the body start in the source file (IR has no bodies).
     public var bodyOffset: Int?

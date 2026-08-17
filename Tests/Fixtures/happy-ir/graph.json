@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "0.3.0",
+  "frozen": true,
+  "nodes": [
+    {
+      "index": 0,
+      "id": "guides/getting-started",
+      "sourcePath": "guides/getting-started.md",
+      "role": "satellite",
+      "parent": "index",
+      "parentIndex": 2,
+      "title": "Getting Started",
+      "status": null,
+      "tags": ["guides"],
+      "bodyOffset": 60
+    },
+    {
+      "index": 1,
+      "id": "guides/publishing",
+      "sourcePath": "guides/publishing.md",
+      "role": "satellite",
+      "parent": "index",
+      "parentIndex": 2,
+      "title": "Publishing",
+      "status": null,
+      "tags": ["guides"],
+      "bodyOffset": 102
+    },
+    {
+      "index": 2,
+      "id": "index",
+      "sourcePath": "index.md",
+      "role": "trunk",
+      "parent": null,
+      "parentIndex": null,
+      "title": "My Boris Site",
+      "status": null,
+      "tags": ["home"],
+      "bodyOffset": 42
+    }
+  ],
+  "edges": [
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/getting-started"
+      },
+      "to": {
+        "type": "page",
+        "value": "index"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/publishing"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/getting-started"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/publishing"
+      },
+      "to": {
+        "type": "page",
+        "value": "index"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "index"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/getting-started"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "index"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/publishing"
+      },
+      "kind": "reference"
+    }
+  ],
+  "reverseIndex": [
+    {
+      "target": {
+        "type": "page",
+        "value": "guides/getting-started"
+      },
+      "incomingEdges": [1, 3]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "guides/publishing"
+      },
+      "incomingEdges": [4]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "index"
+      },
+      "incomingEdges": [0, 2]
+    }
+  ],
+  "nav": [
+    {
+      "index": 0,
+      "id": "guides/getting-started",
+      "breadcrumb": [2, 0],
+      "children": [],
+      "siblings": [1]
+    },
+    {
+      "index": 1,
+      "id": "guides/publishing",
+      "breadcrumb": [2, 1],
+      "children": [],
+      "siblings": [0]
+    },
+    {
+      "index": 2,
+      "id": "index",
+      "breadcrumb": [2],
+      "children": [0, 1],
+      "siblings": []
+    }
+  ],
+  "relations": [
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/publishing"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/getting-started"
+      },
+      "kind": "relates_to"
+    }
+  ]
+}

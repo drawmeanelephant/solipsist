@@ -1,0 +1,38 @@
+{
+  "format": "boris-completion-index",
+  "schema_version": 1,
+  "compiler_id": "boris/0.8.1+semantic-relations",
+  "frozen": true,
+  "entities": [
+    {
+      "id": "guides/getting-started",
+      "title": "Getting Started",
+      "parent": "index",
+      "role": "satellite",
+      "status": null,
+      "tags": ["guides"],
+      "relations": []
+    },
+    {
+      "id": "guides/publishing",
+      "title": "Publishing",
+      "parent": "index",
+      "role": "satellite",
+      "status": null,
+      "tags": ["guides"],
+      "relations": [{"kind": "relates_to", "target": "guides/getting-started"}]
+    },
+    {
+      "id": "index",
+      "title": "My Boris Site",
+      "parent": null,
+      "role": "trunk",
+      "status": null,
+      "tags": ["home"],
+      "relations": []
+    }
+  ],
+  "relation_kinds": ["depends_on", "implements", "relates_to", "supersedes"],
+  "parent_targets": ["index"],
+  "layout_slots": ["backlinks", "breadcrumb", "children", "content", "footer", "metadata", "nav", "relations", "title", "toc"]
+}

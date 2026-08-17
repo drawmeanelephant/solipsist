@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "0.3.0",
+  "compiler": "boris/0.8.1+semantic-relations",
+  "contentRoot": "content",
+  "pageCount": 3,
+  "pages": [
+    {
+      "index": 0,
+      "id": "guides/getting-started",
+      "sourcePath": "guides/getting-started.md",
+      "role": "satellite",
+      "parent": "index",
+      "title": "Getting Started",
+      "status": null
+    },
+    {
+      "index": 1,
+      "id": "guides/publishing",
+      "sourcePath": "guides/publishing.md",
+      "role": "satellite",
+      "parent": "index",
+      "title": "Publishing",
+      "status": null
+    },
+    {
+      "index": 2,
+      "id": "index",
+      "sourcePath": "index.md",
+      "role": "trunk",
+      "parent": null,
+      "title": "My Boris Site",
+      "status": null
+    }
+  ]
+}

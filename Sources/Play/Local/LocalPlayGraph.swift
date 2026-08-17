@@ -32,7 +32,7 @@ enum LocalPlayGraph {
                 PlayPage(
                     id: node.id,
                     title: node.title,
-                    status: node.status,
+                    status: node.status ?? "",
                     role: node.role,
                     depth: depth
                 )

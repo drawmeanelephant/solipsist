@@ -35,3 +35,6 @@ zig-out/
 SUPPORT-NOT-FOR-GITHUB/
 /boris-agent-kit/
 *.tar.gz
+
+# Stunt harvest leftovers
+.stunt-harvest/

@@ -6,7 +6,7 @@
 XCODEGEN := .tools/xcodegen/xcodegen/bin/xcodegen
 PROJECT  := Solipsist.xcodeproj
 
-.PHONY: tools generate build spike run-spike clean fart
+.PHONY: tools generate build spike run-spike test harvest-fixtures clean fart
 
 tools:
 	@mkdir -p .tools
@@ -33,6 +33,13 @@ spike: generate
 
 run-spike: spike
 	build/Build/Products/Debug/boris-spike
+
+test: generate
+	xcodebuild -project $(PROJECT) -scheme ContractTests -configuration Debug \
+		-derivedDataPath build -destination 'platform=macOS' test
+
+harvest-fixtures:
+	bash scripts/harvest-stunt-fixtures.sh
 
 clean:
 	rm -rf build Solipsist.xcodeproj

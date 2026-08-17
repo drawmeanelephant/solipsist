@@ -8,9 +8,10 @@ Radio UserLand’s job in Mail’s body: sources on the left, play in the
 middle, inspector drawer on the right. Preview and the Svelte editor
 are companion windows we host. We do not invent a second compiler.
 
-**Status:** M2 chassis. File → Open… adds a local folder as a source.
-Next work is cards in [`docs/cards/`](docs/cards/README.md). Goals:
-[`docs/ROADMAP.md`](docs/ROADMAP.md).
+**Status:** M2 chassis + play list. File → Open… a folder under
+[`Stunts/`](Stunts/) (start with `happy/`). `make test` decodes
+checked-in fixtures (no boris binary). Delegation queue:
+[`docs/cards/queue/`](docs/cards/queue/README.md).
 
 ## Layout
 
