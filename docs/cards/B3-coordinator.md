@@ -25,7 +25,9 @@ branch suggestion `coord/m4-state-machine`.
    Build executes (roadmap M4 gate: "Watch is paused for the build
    lane"); hang/timeout recovery.
 3. Land the design doc with the implementation in `Coordinator` /
-   `Engine`.
+   `Engine`. A draft exists at
+   [`docs/COORDINATOR.md`](../COORDINATOR.md) — refine it, don't
+   start from zero.
 
 ## Do not
 
