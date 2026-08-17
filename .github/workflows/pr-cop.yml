@@ -1,0 +1,30 @@
+name: pr-cop
+
+on:
+  schedule:
+    # Every 6 hours, offset from the top of the hour.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run pr-cop
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          out="$RUNNER_TEMP/pr-cop.txt"
+          bash scripts/pr-cop.sh > "$out"
+          cat "$out"
+      - name: Post summary to tracking issue
+        if: vars.PR_COP_ISSUE != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_COP_ISSUE: ${{ vars.PR_COP_ISSUE }}
+        run: |
+          gh issue comment "$PR_COP_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/pr-cop.txt"
