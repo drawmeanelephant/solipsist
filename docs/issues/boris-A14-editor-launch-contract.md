@@ -1,6 +1,6 @@
 # A14 — Pin the `boris-editor` subprocess launch contract
 
-> **Ready-to-paste GitHub issue for the boris repo.**
+> **Filed:** [boris#645](https://github.com/drawmeanelephant/boris/issues/645).
 > Priority: P1. Size: S. Mostly docs + a test pin; one small behavior add
 > (SIGTERM/SIGINT) matching watch.
 > **Fact-checked against afterparty `editor/src/{main,server}.zig`.** The

@@ -1,6 +1,6 @@
 # A7 — Document the workspace-containment rule (uniform now) + the IR absolute-path rule
 
-> **Ready-to-paste GitHub issue for the boris repo.**
+> **Filed:** [boris#646](https://github.com/drawmeanelephant/boris/issues/646).
 > Priority: P1. Size: XS. Documentation + one clarifying question.
 > **Rebaselined against afterparty v0.8.1.** The asymmetry that motivated
 > this issue is **resolved**: all output trees are now cwd-contained
