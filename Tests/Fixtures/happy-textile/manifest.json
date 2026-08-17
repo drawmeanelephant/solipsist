@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "0.3.0",
+  "compiler": "boris/0.8.1",
+  "contentRoot": "content",
+  "pageCount": 2,
+  "pages": [
+    {
+      "index": 0,
+      "id": "guides/intro",
+      "sourcePath": "guides/intro.textile",
+      "role": "satellite",
+      "parent": "index",
+      "title": "Introduction",
+      "status": "published"
+    },
+    {
+      "index": 1,
+      "id": "index",
+      "sourcePath": "index.textile",
+      "role": "trunk",
+      "parent": null,
+      "title": "Textile Tribute",
+      "status": "published"
+    }
+  ]
+}

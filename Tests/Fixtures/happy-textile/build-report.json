@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.3.0",
+  "compiler": "boris/0.8.1",
+  "ok": true,
+  "contentRoot": "content",
+  "outDir": ".boris",
+  "pageCount": 2,
+  "errorCount": 0,
+  "diagnostics": []
+}

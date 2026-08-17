@@ -1,0 +1,7 @@
+{
+  "format": "boris-publication-profile",
+  "schema_version": 1,
+  "input": "content",
+  "input_format": "textile",
+  "site": { "title": "Textile Tribute" }
+}

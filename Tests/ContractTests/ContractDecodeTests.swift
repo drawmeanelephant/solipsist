@@ -66,6 +66,42 @@ final class ContractDecodeTests: XCTestCase {
         XCTAssertTrue(report.diagnostics.contains { $0.code == "EREFERENCEMISSING" })
     }
 
+    func testHappyTextileBuildReport() throws {
+        let report = try decode(BuildReport.self, "happy-textile", "build-report.json")
+        XCTAssertTrue(report.ok)
+        XCTAssertEqual(report.pageCount, 2)
+        XCTAssertEqual(report.errorCount, 0)
+        XCTAssertTrue(report.diagnostics.isEmpty)
+    }
+
+    func testHappyTextileManifest() throws {
+        let manifest = try decode(Manifest.self, "happy-textile", "manifest.json")
+        XCTAssertEqual(manifest.pages.count, 2)
+        XCTAssertEqual(manifest.pages.filter(\.isTrunk).count, 1)
+        XCTAssertTrue(manifest.pages.allSatisfy { $0.sourcePath.hasSuffix(".textile") })
+    }
+
+    func testHappyTextileGraph() throws {
+        let graph = try decode(Graph.self, "happy-textile", "graph.json")
+        XCTAssertTrue(graph.frozen)
+        XCTAssertEqual(graph.nodes.count, 2)
+        XCTAssertTrue(graph.nodes.allSatisfy { $0.sourcePath.hasSuffix(".textile") })
+        XCTAssertEqual(graph.edges.count, 1)
+        XCTAssertEqual(graph.edges.first?.kind, "parent")
+    }
+
+    func testHappyTextileCompletion() throws {
+        let completion = try decode(Completion.self, "happy-textile", "completion.json")
+        XCTAssertEqual(completion.format, "boris-completion-index")
+        XCTAssertEqual(completion.entities.count, 2)
+    }
+
+    func testBrokenTextileReport() throws {
+        let report = try decode(BuildReport.self, "broken-textile", "build-report.json")
+        XCTAssertFalse(report.ok)
+        XCTAssertTrue(report.diagnostics.contains { $0.code == "ETEXTILE" })
+    }
+
     func testHappyCheck() throws {
         let report = try decode(AnalysisReport.self, "check-happy", "analysis-report.json")
         XCTAssertEqual(report.format, "boris-analysis-report")
