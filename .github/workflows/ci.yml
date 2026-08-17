@@ -10,6 +10,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: lint
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install swiftformat & swiftlint
+        run: brew install swiftformat swiftlint
+      - name: Run SwiftFormat
+        run: swiftformat --lint .
+      - name: Run SwiftLint
+        run: swiftlint --strict
+
   spike:
     name: spike
     runs-on: macos-15
