@@ -9,13 +9,54 @@ struct InspectorDrawer: View {
         Group {
             if store.selection.sourceID == nil {
                 drawerNote("Select a source to inspect its options.")
-            } else if store.selection.noun == nil {
-                drawerNote("Select something in the play place to inspect it.")
             } else {
-                drawerNote("Inspector sections arrive with the Inspector lane.")
+                let snapshot = InspectorSnapshot(
+                    sourceKind: store.selectedSource?.kind,
+                    nounKind: store.selection.noun?.kind
+                )
+                if snapshot.inspectorSections.isEmpty {
+                    drawerNote("Select a source to inspect its options.")
+                } else {
+                    Form {
+                        ForEach(snapshot.inspectorSections) { section in
+                            Section(section.title) {
+                                sectionBody(section)
+                            }
+                        }
+                    }
+                    .formStyle(.grouped)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func sectionBody(_ section: InspectorSection) -> some View {
+        switch section.id {
+        case InspectorSectionID.profile:
+            if let item = store.selectedSource, case .local(let source) = item {
+                ProfileSection(source: source)
+            } else {
+                Text("Profile is available for local sources.")
+                    .foregroundStyle(.secondary)
+            }
+        case InspectorSectionID.page:
+            if let item = store.selectedSource,
+               case .local(let source) = item,
+               let noun = store.selection.noun,
+               noun.kind == InspectorNounKind.page
+            {
+                PageSection(source: source, noun: noun)
+            } else {
+                Text("Select a page in the play place.")
+                    .foregroundStyle(.secondary)
+            }
+        case InspectorSectionID.execution:
+            ExecutionSection()
+        default:
+            EmptyView()
+        }
     }
 
     private func drawerNote(_ message: String) -> some View {
