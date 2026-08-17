@@ -48,6 +48,10 @@ Engine search order: `SOLIPSIST_BORIS_BIN` → app bundle →
 `SUPPORT-NOT-FOR-GITHUB/…/bin/boris` (local only) →
 `../boris/zig-out/bin/boris`.
 
+## Stunts & Contract Tests
+
+Dogfood corpora live in [`Stunts/`](Stunts/) (e.g. `happy`, `cook-one`, `broken-frontmatter`, `broken-parent`, `broken-duplicate-id`, `broken-wikilink`). Run `make test` to execute contract decode tests against checked-in fixtures without requiring a local Boris binary.
+
 ## CI
 
 PRs to `main` run GitHub Actions (`spike` compile + `app` compile).

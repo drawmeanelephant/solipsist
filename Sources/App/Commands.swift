@@ -86,9 +86,30 @@ struct SolipsistCommands: Commands {
             }
             .keyboardShortcut("e", modifiers: [.command, .shift])
         }
+
+        CommandGroup(replacing: .appInfo) {
+            Button("About Solipsist") {
+                openWindow(id: "about")
+            }
+        }
+
+        CommandGroup(replacing: .help) {
+            Button("Solipsist Help") {
+                openHelp()
+            }
+            .keyboardShortcut("?", modifiers: .command)
+        }
     }
 
     private var hasSource: Bool { store.selectedSource != nil }
 
     private var hasPage: Bool { store.selection.noun?.kind == "page" }
+
+    private func openHelp() {
+        let helpURL = Bundle.main.url(forResource: "help", withExtension: "md")
+            ?? URL(fileURLWithPath: "docs/help.md")
+        if FileManager.default.fileExists(atPath: helpURL.path) {
+            NSWorkspace.shared.open(helpURL)
+        }
+    }
 }

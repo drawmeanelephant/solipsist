@@ -10,6 +10,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: lint
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run lint checks
+        run: make lint
+
   spike:
     name: spike
     runs-on: macos-15

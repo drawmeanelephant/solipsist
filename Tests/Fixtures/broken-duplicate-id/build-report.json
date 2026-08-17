@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.2.0",
+  "ok": false,
+  "contentRoot": "broken-duplicate-id",
+  "outDir": "_ir-broken-duplicate-id",
+  "pageCount": 1,
+  "errorCount": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "EDUPLICATEID",
+      "message": "duplicate page id \"shared\"",
+      "remediation": "Change the id in frontmatter so every page is unique",
+      "sourcePath": "b.md",
+      "line": 3,
+      "column": 1,
+      "id": "shared"
+    }
+  ]
+}

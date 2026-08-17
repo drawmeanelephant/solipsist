@@ -6,18 +6,30 @@
 XCODEGEN := .tools/xcodegen/xcodegen/bin/xcodegen
 PROJECT  := Solipsist.xcodeproj
 
-.PHONY: tools generate build spike run-spike test harvest-fixtures clean fart
+.PHONY: tools generate build spike run-spike test lint harvest-fixtures clean fart
 
 tools:
 	@mkdir -p .tools
 	@if [ ! -x "$(XCODEGEN)" ]; then \
 		echo "==> Vendoring XcodeGen 2.46.0 into .tools/"; \
-		curl -sL -o /tmp/xcodegen.zip \
+		/usr/bin/curl -sL -o /tmp/xcodegen.zip \
 			https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip && \
 		rm -rf .tools/xcodegen && unzip -q /tmp/xcodegen.zip -d .tools/xcodegen && \
 		"$(XCODEGEN)" --version; \
 	else \
 		echo "==> XcodeGen already vendored"; \
+	fi
+
+lint:
+	@if command -v swiftlint >/dev/null 2>&1; then \
+		echo "==> Running swiftlint"; \
+		swiftlint lint; \
+	elif command -v swiftformat >/dev/null 2>&1; then \
+		echo "==> Running swiftformat --lint"; \
+		swiftformat --lint .; \
+	else \
+		echo "==> swiftlint / swiftformat not installed locally; checking format configs exist"; \
+		test -f .swiftformat && test -f .swiftlint.yml && echo "==> Lint configs OK"; \
 	fi
 
 generate: tools

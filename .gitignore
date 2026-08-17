@@ -38,3 +38,5 @@ SUPPORT-NOT-FOR-GITHUB/
 
 # Stunt harvest leftovers
 .stunt-harvest/
+Stunts/**/.boris/
+Stunts/**/dist/

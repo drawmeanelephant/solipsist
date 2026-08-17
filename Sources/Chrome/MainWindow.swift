@@ -91,6 +91,14 @@ struct MainWindow: View {
                 Text("No source")
             }
             Spacer()
+            if let exitCode = runtime.coordinator.exitCode {
+                Circle()
+                    .fill(exitColor(for: exitCode))
+                    .frame(width: 7, height: 7)
+                Text("exit \(exitCode)")
+                    .foregroundStyle(exitColor(for: exitCode))
+                Text("·")
+            }
             Text(runtime.statusLine)
         }
         .font(.caption)
@@ -99,6 +107,17 @@ struct MainWindow: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 5)
         .background(.bar)
+    }
+
+    private func exitColor(for code: Int32) -> Color {
+        switch code {
+        case 0:
+            return .green
+        case 2:
+            return .orange
+        default:
+            return .red
+        }
     }
 
     private var errorPresented: Binding<Bool> {

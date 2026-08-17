@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # Copies the Boris engine binary into the app bundle's Resources so the
 # app can find it at runtime (BorisBinary.locate checks

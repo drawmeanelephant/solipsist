@@ -1,0 +1,34 @@
+# Solipsist SwiftLint Configuration
+included:
+  - Sources
+  - Tests
+excluded:
+  - .tools
+  - build
+  - Sources/Play
+  - Sources/Inspector
+  - Sources/Engine
+  - Sources/Models
+  - Spike
+  - Tests/Fixtures
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - fatal_error_message
+  - overridden_super_call
+
+disabled_rules:
+  - force_unwrap
+  - force_try
+  - trailing_comma
+  - line_length
+
+indentation_width: 4
+line_length: 140
+file_length:
+  warning: 500
+  error: 1200
+type_body_length:
+  warning: 350
+  error: 600

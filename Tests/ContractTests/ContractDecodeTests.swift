@@ -54,6 +54,26 @@ final class ContractDecodeTests: XCTestCase {
         XCTAssertTrue(report.diagnostics.contains { $0.code == "EPARENTMISSING" })
     }
 
+    func testBrokenDuplicateIDReport() throws {
+        let report = try decode(BuildReport.self, "broken-duplicate-id", "build-report.json")
+        XCTAssertFalse(report.ok)
+        XCTAssertTrue(report.diagnostics.contains { $0.code == "EDUPLICATEID" })
+    }
+
+    func testBrokenWikilinkReport() throws {
+        let report = try decode(BuildReport.self, "broken-wikilink", "build-report.json")
+        XCTAssertFalse(report.ok)
+        XCTAssertTrue(report.diagnostics.contains { $0.code == "EREFERENCEMISSING" })
+    }
+
+    func testHappyCheck() throws {
+        let report = try decode(AnalysisReport.self, "check-happy", "analysis-report.json")
+        XCTAssertEqual(report.format, "boris-analysis-report")
+        XCTAssertEqual(report.summary.pages, 45)
+        XCTAssertEqual(report.summary.roots, 7)
+        XCTAssertTrue(report.findings.contains { $0.code == "WUNREFERENCED" })
+    }
+
     private func decode<T: Decodable>(_ type: T.Type, _ folder: String, _ name: String) throws -> T {
         let url = try fixture(folder, name)
         let data = try Data(contentsOf: url)
