@@ -1,0 +1,24 @@
+{
+  "format": "boris-publication-profile",
+  "schema_version": 1,
+  "input": "content",
+  "input_format": "markdown",
+  "site": {
+    "title": "Solipsist",
+    "url": "https://solipsist.drawmeanelephant.dev",
+    "description": "A native macOS harness for Boris, the deterministic Zig publication compiler."
+  },
+  "publication": {
+    "target": "site",
+    "base_url": "https://solipsist.drawmeanelephant.dev",
+    "origin": "https://solipsist.drawmeanelephant.dev",
+    "base_path": "/"
+  },
+  "targets": [
+    {
+      "name": "site",
+      "output": "dist",
+      "public": true
+    }
+  ]
+}
