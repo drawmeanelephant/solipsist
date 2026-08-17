@@ -21,6 +21,7 @@ settings:
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "-"
     ENABLE_HARDENED_RUNTIME: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 targets:
   Solipsist:
@@ -35,6 +36,7 @@ targets:
       - path: Sources/Companions
       - path: Sources/Models
       - path: Sources/Engine
+      - path: Sources/Security
       - path: Solipsist/Assets.xcassets
       - path: docs/help.md
         buildPhase: resources
@@ -62,7 +64,7 @@ targets:
         basedOnDependencyAnalysis: false
         script: |
           set -euo pipefail
-          "${SRCROOT}/scripts/embed-boris.sh" "${SRCROOT}" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+          /bin/bash "${SRCROOT}/scripts/embed-boris.sh" "${SRCROOT}" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
 
   # M1 engine spike: a headless CLI that runs the bundled boris binary and
   # decodes its JSON contracts. Shares Sources/Models and Sources/Engine
@@ -87,6 +89,7 @@ targets:
       - path: Tests/Fixtures
         type: folder
       - path: Sources/Models
+      - path: Sources/Security
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
     settings:
