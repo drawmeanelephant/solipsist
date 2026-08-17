@@ -146,7 +146,7 @@ Gate: empty chrome is Mail-shaped; Open adds a source; spike unchanged.
 ### P — Project subdomain (parallel, plenty early) — ⛔ **withdrawn (2026-08-17)**
 
 **Decision:** not building the Worker/Wasm subdomain host. The public site
-ships via Cloudflare Pages (`solipsist.pages.dev` — see `site/` and
+ships via Cloudflare Pages (`https://solipsist.filed.fyi` — see `site/` and
 `.github/workflows/deploy-site.yml`); a separate Worker + R2 + Wasm host
 adds infra for no user-facing gain. The boris-side surfaces
 (`hosts/cloudflare-worker`, `compileBundle` Wasm) stay in the operator

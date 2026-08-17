@@ -1,6 +1,6 @@
 # Solipsist Project Site Content
 
-This directory contains the content and publication profile for the public Solipsist documentation and project site, hosted at `https://solipsist.pages.dev`.
+This directory contains the content and publication profile for the public Solipsist documentation and project site, hosted at `https://solipsist.filed.fyi`.
 
 ## Profile & Content
 
@@ -9,7 +9,7 @@ This directory contains the content and publication profile for the public Solip
 
 ## Deployment to Cloudflare Pages
 
-The site is built with Boris (`boris build --profile site/boris.json`) and published to Cloudflare Pages project `solipsist` (`solipsist.pages.dev`).
+The site is built with Boris (`boris build --profile site/boris.json`) and published to Cloudflare Pages project `solipsist`, served at the custom domain **`https://solipsist.filed.fyi`** (Pages alias: `solipsist.pages.dev`).
 
 ### CI / GitHub Actions Deployment
 

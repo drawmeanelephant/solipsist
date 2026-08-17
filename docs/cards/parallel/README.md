@@ -67,7 +67,7 @@ the agent-pack, `plan --out`.
 | 3 | [editor-shell](editor-shell.md) | done (#23) |
 | 4 | [lint](lint.md) | done (#24) |
 | 5 | [assets](assets.md) | done (#27) |
-| 6 | [P-subdomain](../P-subdomain.md) | ⛔ withdrawn — published on Cloudflare Pages instead (`solipsist.pages.dev`); no Worker host |
+| 6 | [P-subdomain](../P-subdomain.md) | ⛔ withdrawn — published on Cloudflare Pages instead (`https://solipsist.filed.fyi`); no Worker host |
 | 7 | [help-sheet](help-sheet.md) | done (#29) |
 | 8 | [dependabot](dependabot.md) | done (#21) |
 | 9 | [issue-templates](issue-templates.md) | done (#22) |
