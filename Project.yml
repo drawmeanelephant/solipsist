@@ -35,6 +35,7 @@ targets:
       - path: Sources/Companions
       - path: Sources/Models
       - path: Sources/Engine
+      - path: Solipsist/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.drawmeanelephant.solipsist
