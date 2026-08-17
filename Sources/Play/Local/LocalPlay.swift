@@ -151,6 +151,10 @@ struct LocalPlay: PlaySurface {
             let build = try await engine.buildIR(contentRoot: contentRoot, outDir: outDir)
             guard !Task.isCancelled else { return }
             if let graph = build.graph, build.report.ok {
+                guard ContractSchema.status(ofIR: graph.schemaVersion) == .supported else {
+                    state = .failed(unknownSchemaMessage(graph.schemaVersion))
+                    return
+                }
                 apply(graph)
                 return
             }
@@ -165,8 +169,19 @@ struct LocalPlay: PlaySurface {
     }
 
     private func apply(_ graph: Graph) {
+        // D8: never trust an unknown/newer shape as truth.
+        guard ContractSchema.status(ofIR: graph.schemaVersion) == .supported else {
+            state = .failed(unknownSchemaMessage(graph.schemaVersion))
+            return
+        }
         let pages = LocalPlayGraph.pages(from: graph)
         state = pages.isEmpty ? .empty : .ready(pages)
+    }
+
+    private func unknownSchemaMessage(_ version: String) -> String {
+        "graph.json schemaVersion \"\(version)\" is not a known IR version "
+            + "(supported: \(ContractSchema.supportedIR.sorted().joined(separator: ", "))). "
+            + "Refusing to render an unknown shape."
     }
 
     private func decodeGraph(at url: URL) throws -> Graph {
