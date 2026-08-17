@@ -1,6 +1,6 @@
 {
   "format": "boris-analysis-report",
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "compiler": "boris/0.8.1",
   "input": "Stunts/happy",
   "summary": {
@@ -11,11 +11,80 @@
     "unreferencedPages": 1,
     "hotspots": 0
   },
-  "pages": [
+  "nodes": [
     {
-      "id": "orphan",
+      "type": "page",
+      "id": "guides/getting-started",
+      "sourcePath": "guides/getting-started.md",
+      "parent": "index"
+    },
+    {
+      "type": "page",
+      "id": "guides/publishing",
+      "sourcePath": "guides/publishing.md",
+      "parent": "index"
+    },
+    {
+      "type": "page",
+      "id": "guides/tips",
+      "sourcePath": "guides/tips.md",
+      "parent": "index"
+    },
+    {
+      "type": "page",
+      "id": "index",
+      "sourcePath": "index.md",
       "parent": null
+    },
+    {
+      "type": "page",
+      "id": "orphan",
+      "sourcePath": "orphan.md",
+      "parent": "index"
     }
+  ],
+  "edges": [
+    {
+      "from": { "type": "page", "value": "guides/getting-started" },
+      "to": { "type": "page", "value": "index" },
+      "kind": "parent"
+    },
+    {
+      "from": { "type": "page", "value": "guides/publishing" },
+      "to": { "type": "page", "value": "index" },
+      "kind": "parent"
+    },
+    {
+      "from": { "type": "page", "value": "guides/tips" },
+      "to": { "type": "page", "value": "index" },
+      "kind": "parent"
+    },
+    {
+      "from": { "type": "page", "value": "orphan" },
+      "to": { "type": "page", "value": "index" },
+      "kind": "parent"
+    },
+    {
+      "from": { "type": "page", "value": "guides/publishing" },
+      "to": { "type": "page", "value": "guides/getting-started" },
+      "kind": "reference"
+    }
+  ],
+  "sourceLocations": [
+    {
+      "type": "page",
+      "value": "orphan",
+      "sourcePath": "orphan.md",
+      "line": 1,
+      "column": 1
+    }
+  ],
+  "pages": [
+    { "id": "guides/getting-started", "parent": "index" },
+    { "id": "guides/publishing", "parent": "index" },
+    { "id": "guides/tips", "parent": "index" },
+    { "id": "index", "parent": null },
+    { "id": "orphan", "parent": "index" }
   ],
   "sources": [],
   "findings": [
@@ -25,5 +94,7 @@
       "value": "orphan",
       "count": 1
     }
-  ]
+  ],
+  "impact": null,
+  "diagnostics": []
 }

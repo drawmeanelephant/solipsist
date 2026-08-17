@@ -152,10 +152,88 @@ final class ContractDecodeTests: XCTestCase {
     func testHappyCheck() throws {
         let report = try decode(AnalysisReport.self, "check-happy", "analysis-report.json")
         XCTAssertEqual(report.format, "boris-analysis-report")
-        XCTAssertEqual(report.schemaVersion, "0.1.0")
+        XCTAssertEqual(report.schemaVersion, "0.2.0")
         XCTAssertEqual(report.summary.pages, 5)
         XCTAssertEqual(report.summary.unreferencedPages, 1)
         XCTAssertTrue(report.findings.contains { $0.code == "WUNREFERENCED" })
+    }
+
+    func testGraphDecodesRelations() throws {
+        let graph = try decode(Graph.self, "happy-ir", "graph.json")
+        XCTAssertEqual(graph.schemaVersion, "0.3.0")
+        XCTAssertEqual(graph.relations?.count, 1)
+        XCTAssertEqual(graph.relations?.first?.kind, "relates_to")
+        XCTAssertEqual(graph.relations?.first?.to.value, "guides/getting-started")
+    }
+
+    func testGraphNodeDecodesRecipe() throws {
+        // Synthetic IR 0.4.0 node carrying a Cooklang recipe (recipe facet).
+        let json = """
+        {
+          "index": 0,
+          "id": "soup",
+          "sourcePath": "soup.cook",
+          "role": "trunk",
+          "parent": null,
+          "parentIndex": null,
+          "title": "Soup",
+          "status": "published",
+          "tags": ["recipe"],
+          "bodyOffset": 60,
+          "recipe": {
+            "ingredients": [
+              { "name": "water", "quantity": { "amount": "2", "unit": "cups" }, "preparation": "", "recipeRef": null }
+            ],
+            "cookware": [
+              { "name": "skillet", "quantity": { "amount": "1", "unit": "" } }
+            ],
+            "timers": [
+              { "name": "", "quantity": { "amount": "10", "unit": "minutes" } }
+            ]
+          }
+        }
+        """
+        let node = try JSONDecoder().decode(GraphNode.self, from: Data(json.utf8))
+        let recipe = try XCTUnwrap(node.recipe)
+        XCTAssertEqual(recipe.ingredients.first?.name, "water")
+        XCTAssertEqual(recipe.ingredients.first?.quantity.amount, "2")
+        XCTAssertEqual(recipe.cookware.first?.name, "skillet")
+        XCTAssertEqual(recipe.timers.first?.quantity.amount, "10")
+    }
+
+    func testAnalysisReport02FullShape() throws {
+        let report = try decode(AnalysisReport.self, "check-happy", "analysis-report.json")
+        XCTAssertEqual(report.schemaVersion, "0.2.0")
+        XCTAssertEqual(report.summary.pages, 5)
+        XCTAssertEqual(report.nodes?.count, 5)
+        XCTAssertEqual(report.edges?.count, 5)
+        XCTAssertEqual(report.sourceLocations?.first?.value, "orphan")
+        XCTAssertEqual(report.sourceLocations?.first?.sourcePath, "orphan.md")
+        XCTAssertEqual(report.diagnostics?.isEmpty, true)
+    }
+
+    func testSchemaPolicyUnknownVersion() throws {
+        // D8: known IR versions classify as supported; unknown/newer degrade.
+        XCTAssertEqual(ContractSchema.status(ofIR: "0.2.0"), .supported)
+        XCTAssertEqual(ContractSchema.status(ofIR: "0.3.0"), .supported)
+        XCTAssertEqual(ContractSchema.status(ofIR: "0.4.0"), .supported)
+        XCTAssertEqual(ContractSchema.status(ofIR: "0.9.9"), .unknown("0.9.9"))
+        XCTAssertEqual(ContractSchema.status(ofIR: nil), .unknown("missing"))
+
+        // A synthetic unknown-version graph still decodes (fields optional)
+        // but classifies as unknown so consumers refuse to render it.
+        let json = """
+        {
+          "schemaVersion": "0.9.9",
+          "frozen": true,
+          "nodes": [],
+          "edges": [],
+          "reverseIndex": [],
+          "nav": []
+        }
+        """
+        let graph = try JSONDecoder().decode(Graph.self, from: Data(json.utf8))
+        XCTAssertEqual(ContractSchema.status(ofIR: graph.schemaVersion), .unknown("0.9.9"))
     }
 
     private func decode<T: Decodable>(_ type: T.Type, _ folder: String, _ name: String) throws -> T {

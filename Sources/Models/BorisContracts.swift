@@ -1,6 +1,7 @@
 import Foundation
 
-/// Codable mirrors of the Boris JSON output contracts (IR schemaVersion 0.2.0).
+/// Codable mirrors of the Boris JSON output contracts (IR schemaVersion
+/// 0.2.0–0.4.0; the app's happy fixtures carry 0.3.0).
 ///
 /// These shapes are normative in the Boris repo:
 ///   boris/docs/contracts/ir-schema.md      (manifest / graph / build-report)
@@ -119,6 +120,10 @@ public struct Graph: Codable, Sendable {
     public var edges: [GraphEdge]
     public var reverseIndex: [ReverseIndexEntry]
     public var nav: [NavEntry]
+    /// Author semantic relations (IR 0.3 facet), reshaped as edges. Same
+    /// shape as `edges`; never used for build dependency walks. Present
+    /// only when the corpus carries relations.
+    public var relations: [GraphEdge]?
 }
 
 public struct GraphNode: Codable, Sendable {
@@ -134,6 +139,43 @@ public struct GraphNode: Codable, Sendable {
     public var tags: [String]?
     /// Byte offset of the body start in the source file (IR has no bodies).
     public var bodyOffset: Int?
+    /// Cooklang recipe (IR 0.4 facet). `nil` for a page that carries no
+    /// recipe; present on every node once any page in the corpus does.
+    public var recipe: CookRecipe?
+}
+
+// MARK: - Cooklang recipes (IR 0.4 facet)
+
+/// `recipe` on a graph node (`ir-graph-0.4.0.schema.json`).
+public struct CookRecipe: Codable, Sendable {
+    public var ingredients: [CookIngredient]
+    public var cookware: [CookCookware]
+    public var timers: [CookTimer]
+}
+
+public struct CookIngredient: Codable, Sendable {
+    public var name: String
+    public var quantity: CookQuantity
+    /// Short-hand preparation from `(...)`; empty when absent.
+    public var preparation: String
+    /// Entity id of the referenced recipe when the author wrote `@./path`.
+    public var recipeRef: String?
+}
+
+public struct CookCookware: Codable, Sendable {
+    public var name: String
+    public var quantity: CookQuantity
+}
+
+public struct CookTimer: Codable, Sendable {
+    /// Empty for an anonymous timer.
+    public var name: String
+    public var quantity: CookQuantity
+}
+
+public struct CookQuantity: Codable, Sendable {
+    public var amount: String
+    public var unit: String
 }
 
 public struct GraphEndpoint: Codable, Sendable {
@@ -178,6 +220,31 @@ public struct AnalysisReport: Codable, Sendable {
     public var findings: [AnalysisFinding]
     /// Populated by `impact`; null for `check`.
     public var impact: [AnalysisImpact]?
+    /// Documentation-intelligence 0.2.0 additions. Optional so a 0.1.0
+    /// report still decodes: older shapes degrade (D8), never crash.
+    public var nodes: [AnalysisNode]?
+    public var edges: [GraphEdge]?
+    public var sourceLocations: [AnalysisLocation]?
+    public var diagnostics: [Diagnostic]?
+}
+
+/// 0.2.0: one entry per page node in the validated graph.
+public struct AnalysisNode: Codable, Sendable {
+    /// Const "page" in the schema.
+    public var type: String
+    public var id: String
+    public var sourcePath: String
+    public var parent: String?
+}
+
+/// 0.2.0: a source location the report points at.
+public struct AnalysisLocation: Codable, Sendable {
+    /// "page" or "source".
+    public var type: String
+    public var value: String
+    public var sourcePath: String
+    public var line: Int
+    public var column: Int
 }
 
 public struct AnalysisSummary: Codable, Sendable {
@@ -368,4 +435,28 @@ public struct TimingsCounters: Codable, Sendable {
     public var hash_bytes: Int?
     public var link_resolutions: Int?
     public var fast_path_hits: Int?
+}
+
+// MARK: - Schema version policy (D8)
+
+/// D8: unknown/newer `schemaVersion` degrades visibly, never crashes.
+/// Consumers must classify an IR document before trusting its shape; the
+/// mirrors knowingly decode these versions:
+///   0.2.0 — typed dependency edges (v0.2 IR)
+///   0.3.0 — semantic-relations facet (what the happy fixtures carry)
+///   0.4.0 — Cooklang recipe facet
+public enum ContractSchema {
+    public static let supportedIR: Set<String> = ["0.2.0", "0.3.0", "0.4.0"]
+
+    public enum Status: Equatable, Sendable {
+        case supported
+        case unknown(String)
+    }
+
+    public static func status(ofIR version: String?) -> Status {
+        guard let version, supportedIR.contains(version) else {
+            return .unknown(version ?? "missing")
+        }
+        return .supported
+    }
 }
