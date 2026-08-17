@@ -24,7 +24,7 @@ fastlane/test_output
 
 # Generated / local
 *.xcodeproj
-.tools/
+.tools
 build/
 Resources/boris
 .boris/
