@@ -1,0 +1,29 @@
+{
+  "format": "boris-analysis-report",
+  "schemaVersion": "0.1.0",
+  "compiler": "boris/0.8.1",
+  "input": "Stunts/happy",
+  "summary": {
+    "pages": 5,
+    "roots": 1,
+    "satellites": 4,
+    "sourceEndpoints": 0,
+    "unreferencedPages": 1,
+    "hotspots": 0
+  },
+  "pages": [
+    {
+      "id": "orphan",
+      "parent": null
+    }
+  ],
+  "sources": [],
+  "findings": [
+    {
+      "code": "WUNREFERENCED",
+      "type": "page",
+      "value": "orphan",
+      "count": 1
+    }
+  ]
+}

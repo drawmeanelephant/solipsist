@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.2.0",
+  "ok": false,
+  "contentRoot": "broken-wikilink",
+  "outDir": "_ir-broken-link",
+  "pageCount": 0,
+  "errorCount": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "EREFERENCEMISSING",
+      "message": "Referenced target 'non-existent-page-target' not found",
+      "remediation": "Create the target page or fix the wikilink syntax",
+      "sourcePath": "page.md",
+      "line": 6,
+      "column": 23,
+      "id": "broken-link-page"
+    }
+  ]
+}
