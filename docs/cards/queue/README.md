@@ -62,4 +62,7 @@ Status legend: **open** · **in flight** (PR open) · **done** (merged — do no
 |----|------|-----|
 | Q14 | statusbar-exit-color | Owns `Sources/Chrome/MainWindow.swift`, which is on this queue's own forbidden list. Grind lane owns the status bar — do not pick. |
 
-No open batch-2 cards remain — batch 2 is fully landed. Check batch 3 in the issue tracker before picking.
+No open batch-2 cards remain — batch 2 is fully landed. Batch 3
+lives in the issue tracker (#58–#61; briefs in
+`docs/cards/B3-*.md`) — those own grind-lane paths, so they are not
+queue cards.
