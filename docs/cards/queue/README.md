@@ -25,7 +25,7 @@ Status legend: **open** · **in flight** (PR open) · **done** (merged — do no
 | Q1 | [stunt-smoke-script](stunt-smoke-script.md) | `scripts/stunt-smoke.sh` | done (#26) |
 | Q2 | [preview-shell](../parallel/preview-shell.md) | `Companions/Preview/` | done (#9) |
 | Q3 | [editor-shell](../parallel/editor-shell.md) | `Companions/Editor/` | done (#23) |
-| Q4 | [lint](../parallel/lint.md) | lint configs + CI job | in flight — PR #24 |
+| Q4 | [lint](../parallel/lint.md) | lint configs + CI job | done (#24) |
 | Q5 | [assets](../parallel/assets.md) | asset catalog | done (#27) |
 | Q6 | [help-sheet](../parallel/help-sheet.md) | `docs/help.md` | done (#29) |
 | Q7 | [dependabot](../parallel/dependabot.md) | `.github/dependabot.yml` | done (#21) |
