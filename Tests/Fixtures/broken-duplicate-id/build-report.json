@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.2.0",
+  "ok": false,
+  "contentRoot": "broken-duplicate-id",
+  "outDir": "_ir-broken-dup",
+  "pageCount": 0,
+  "errorCount": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "EDUPLICATEID",
+      "message": "Duplicate ID 'duplicate-id-page' detected",
+      "remediation": "Ensure all documents have unique explicit or derived IDs",
+      "sourcePath": "b.md",
+      "line": 1,
+      "column": 1,
+      "id": "duplicate-id-page"
+    }
+  ]
+}

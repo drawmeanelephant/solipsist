@@ -21,7 +21,9 @@ Sources/
   Models/     Codable mirrors of Boris JSON contracts
   Engine/     locate, run, actor — the only Process owner
 Spike/        M1 CLI spike (`make run-spike`)
-scripts/      embed-boris.sh
+scripts/      embed-boris.sh, stunt-smoke.sh, stunt-from-testdata.sh
+Stunts/       dogfood corpora (happy, broken-*, cook-one)
+Tests/        Contract decode tests and JSON fixtures
 vendor/boris-agent-kit/   pin only (no binaries)
 docs/         ROADMAP · HARNESS · MISSION · cards · issues
 ```
@@ -41,6 +43,7 @@ Never commit `SUPPORT-NOT-FOR-GITHUB/` or engine binaries.
 make tools
 make generate
 make build
+make test
 SOLIPSIST_BORIS_BIN=/path/to/boris make run-spike
 ```
 
@@ -48,9 +51,21 @@ Engine search order: `SOLIPSIST_BORIS_BIN` → app bundle →
 `SUPPORT-NOT-FOR-GITHUB/…/bin/boris` (local only) →
 `../boris/zig-out/bin/boris`.
 
+## Stunts & Contract Testing
+
+Solipsist includes a suite of test corpora under [`Stunts/`](Stunts/):
+- `happy/`: Valid 3-page publication.
+- `broken-frontmatter/`: Invalid YAML frontmatter (`EFRONTMATTER`).
+- `broken-parent/`: Missing trunk/parent node (`EPARENTMISSING`).
+- `broken-duplicate-id/`: Duplicate page IDs (`EDUPLICATEID`).
+- `broken-wikilink/`: Unresolved wikilink references (`EREFERENCEMISSING`).
+- `cook-one/`: Recipe markup in Cooklang format.
+
+Run `make test` to execute contract decoding tests against checked-in fixtures, or run `scripts/stunt-smoke.sh` to smoke test against a live Boris engine.
+
 ## CI
 
-PRs to `main` run GitHub Actions (`spike` compile + `app` compile).
+PRs to `main` run GitHub Actions (`spike` compile, `app` compile, `fixtures` contract tests, and `lint`).
 There is no boris binary in CI, so the spike is compile-only and the
 app embeds nothing. A `fart` job is reserved and disabled.
 
