@@ -1,6 +1,7 @@
 # A1 — `--watch-json`: structured NDJSON event stream for watch mode
 
 > **Filed:** [boris#644](https://github.com/drawmeanelephant/boris/issues/644).
+> **Fixed by:** [boris#648](https://github.com/drawmeanelephant/boris/pull/648) (merged into `afterparty` 2026-08-17).
 > Priority: P0 (flagship). Size: M. Additive, opt-in — no behavior change without the flag.
 > **Rebaselined against afterparty v0.8.1.** Afterparty added `watch --serve`
 > (an SSE `reload` channel for *browsers*) and `--timings` (one-shot machine

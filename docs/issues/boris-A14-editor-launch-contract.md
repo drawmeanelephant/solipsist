@@ -1,6 +1,7 @@
 # A14 — Pin the `boris-editor` subprocess launch contract
 
 > **Filed:** [boris#645](https://github.com/drawmeanelephant/boris/issues/645).
+> **Fixed by:** [boris#648](https://github.com/drawmeanelephant/boris/pull/648) (merged into `afterparty` 2026-08-17).
 > Priority: P1. Size: S. Mostly docs + a test pin; one small behavior add
 > (SIGTERM/SIGINT) matching watch.
 > **Fact-checked against afterparty `editor/src/{main,server}.zig`.** The
