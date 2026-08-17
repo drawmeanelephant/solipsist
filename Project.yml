@@ -85,6 +85,8 @@ targets:
       - path: Tests/Fixtures
         type: folder
       - path: Sources/Models
+      - path: Sources/Companions/Editor/EditorURL.swift
+      - path: Sources/Companions/Preview/PreviewURL.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.drawmeanelephant.solipsist.contracttests
