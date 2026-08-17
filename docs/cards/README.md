@@ -17,6 +17,27 @@ These cards win on *what to do now*; those docs win on *what we are*.
 | [M3-inspector](M3-inspector.md) | `Sources/Inspector/`, `Chrome/InspectorDrawer.swift` | P, M3-play, M4 (do not edit `Models/`) | select a page → drawer shows fields; profile writes `boris.json` |
 | [ISSUES-file](ISSUES-file-A1-A14-A7.md) | `docs/issues/` | everything | A1, A14, A7 pasted when GitHub is back |
 
+## Batch 3 (production readiness)
+
+From the roadmap audit — issues
+[#58](https://github.com/drawmeanelephant/solipsist/issues/58) –
+[#61](https://github.com/drawmeanelephant/solipsist/issues/61). These
+own grind-lane paths (`Engine/`, `Coordinator.swift`, `Workspace/`,
+`embed-boris.sh`), so they are **not** queue cards; one card = one
+worktree = one PR. Dispatch is recorded in the comments on each issue.
+
+| Card | Issue | Lane | Parallel with | Gate |
+|------|-------|------|----------------|------|
+| [B3-1](B3-coordinator.md) | #58 | coordinator (grind) | B3-2, B3-3, B3-4 | state-machine spec, zero subprocess leak |
+| [B3-2](B3-workspace.md) | #59 | workspace | B3-1, B3-3, B3-4 | restart → source persists; stale → non-blocking warning |
+| [B3-3](B3-publish-security.md) | #60 | publish-security (uncle-gravity) | B3-1, B3-2, B3-4 | secrets on stdin, zeroed, never persisted |
+| [B3-4](B3-ship.md) | #61 | ship/build (uncle-gravity) | B3-1, B3-2, B3-3 | universal app spawns boris, `spctl` clean |
+
+Sequencing: `Sources/Engine/**` is single-owner under B3-1; B3-3's
+stdin wiring merges after B3-1. B3-4 must keep
+`files.user-selected.read-write` (B3-2) and `network.server` (M5
+preview) in the entitlements matrix.
+
 ## Do not start yet
 
 Preview companion, Editor companion, GitHub-as-source, publication
