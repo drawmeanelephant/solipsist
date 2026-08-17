@@ -110,8 +110,10 @@ struct EditorWindow: View {
         ContentUnavailableView {
             Label("Editor Host Not Running", systemImage: "square.and.pencil")
         } description: {
-            Text("The Boris editor for “\(source.title)” will connect when the host process is running. " +
-                 "Paste a BORIS_EDITOR_URL= line above to connect manually.")
+            Text(
+                "The Boris editor for “\(source.title)” will connect when the host process is running. "
+                    + "Paste a BORIS_EDITOR_URL= line above to connect manually."
+            )
         }
     }
 
