@@ -134,6 +134,14 @@ review-first, source-confined), `source-rag` (pack-by-tool), `content-audit`
 handoff), `job-runner` (hosted container runner). Standalone Zig binaries,
 each with its own test lane.
 
+**The agent kit makes them consumable as binaries.** `boris-agent-kit/`
+(sibling folder) ships 10 SHA256-verified Darwin-arm64 binaries of our
+pinned commit — the engine plus `boris-package` (Proof Pack archive),
+`boris-search-index` (`boris-rendered-search-index` v1), `boris-content-audit`,
+`boris-source-rag`, `boris-testdata` (deterministic fixtures + evidence
+runner), and the migration/scale/docs/gh-pages tools. All probed live;
+results in [`AGENT-KIT-REVIEW.md`](AGENT-KIT-REVIEW.md).
+
 ## 10. Security posture (part of the product)
 
 Unicode ingest policy (`EUNICODE`: controls, bidi overrides, tag chars —

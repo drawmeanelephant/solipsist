@@ -64,6 +64,7 @@ than shipping slowly.
 | [`docs/PLAN-MAC-APP.md`](docs/PLAN-MAC-APP.md) | Architecture + the full 9-milestone plan (M0–M8) |
 | [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) | Boris work items (Part A: issues) + our design decisions (Part B: D1–D11); **issue-batch reconciliation at the top** |
 | [`docs/CONTRACT-AUDIT.md`](docs/CONTRACT-AUDIT.md) | Consumer-driven audit of the boris boundary, bucketed 🟢/🟡/🔴 (largely superseded by the afterparty reconciliation) |
+| [`docs/AGENT-KIT-REVIEW.md`](docs/AGENT-KIT-REVIEW.md) | **The prebuilt binary kit (`boris-agent-kit/`)** — 10 verified Darwin-arm64 binaries of our pinned commit; the canonical work-against-binaries reference |
 | [`docs/issues/`](docs/issues/) | Issue drafts with afterparty status (✅ withdraw / 🟡 reframe / 🔵 reformulate) |
 
 If you are new: PLANNING-HANDOFF → MISSION → BORIS-CAPABILITIES →
@@ -103,8 +104,11 @@ make run-spike  # M1 spike against ../boris/content — the CI-able gate
 ```
 
 The engine is located in this order: `SOLIPSIST_BORIS_BIN` env → app bundle
-(`Resources/boris`) → `../boris/zig-out/bin/boris`. `make build` runs the
+(`Resources/boris`) → `../boris-agent-kit/bin/boris` (verified kit binary)
+→ `../boris/zig-out/bin/boris` (source build). `make build` runs the
 pre-build embed script, so the app bundle always carries its own engine.
+`SOLIPSIST_BORIS_BIN` is the tested drop-in for the kit binary — the M1
+spike passes against it unchanged.
 
 ## Engine contract facts (verified — don't re-derive)
 
@@ -132,6 +136,13 @@ docs over assumptions:
 - **`--version` / `-V`** prints `boris/0.8.1` (exit 0). **`--timings`**
   prints phase timings JSON on stdout. **`completion.json`** ships with IR
   builds (editor completion surface).
+- **The toolchain binaries** (all in the kit, all verified): `boris-package`
+  (Proof Pack — IR+RAG archive with MACHINE-READABLE-VERSION),
+  `boris-search-index` (`boris-rendered-search-index` v1 from rendered
+  HTML), `boris-content-audit` (editorial audit, JSON out),
+  `boris-testdata` (deterministic fixtures + evidence runner), and the
+  migration/scale/docs/gh-pages tools. Full review + probe results in
+  [`docs/AGENT-KIT-REVIEW.md`](docs/AGENT-KIT-REVIEW.md).
 - **Completion signal:** for `--incremental`/`--watch` HTML builds,
   `<dist>/.boris-cache/manifest.json` is written **atomically on success
   only** (a failed build leaves it untouched). Its fingerprint diff between
@@ -158,7 +169,7 @@ From [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) §Part B
 | D4 | Editor scope — boris now ships `boris-editor` + `completion.json`; Solipsist = native ergonomics + problems panel | ⏳ biggest scope lever, re-decide |
 | D5 | Preview: **engine-owned `watch --serve`** (loopback + SSE) — app-side HTTP server obsolete | 🔁 changed by afterparty |
 | D6 | Stay sandboxed | ✅ decided |
-| D7 | Bundle engine; **pin the boris commit** tested against | ⏳ pin note TODO |
+| D7 | Bundle engine; **pin the boris commit** tested against | ✅ pinned via the agent kit — `boris-agent-kit` is 10 SHA256-verified binaries of b82e9e2 (`boris/0.8.1`); vendor-from-kit recommended (see [`AGENT-KIT-REVIEW.md`](docs/AGENT-KIT-REVIEW.md)) |
 | D8 | `schemaVersion` gating: unknown/newer → degrade, never crash | ✅ decided — write decoders defensively from day one |
 | D9 | Any-folder project detection | ✅ decided |
 | D10 | Watch-stderr stopgap parser, JSON artifacts as ground truth | ⏳ not built yet |

@@ -15,8 +15,8 @@ All drafts in `docs/issues/` are re-written against the afterparty binary; statu
 |-------|---------------------------|-------|
 | A2 `--version` | ⛔ **withdrawn** | Shipped on afterparty: `boris --version` → `boris/0.8.1`, exit 0, test-pinned; A8 `init` and A9 (`--fail-on-unreferenced`) too — evidence in `boris-A2-version-flag.md` |
 | A1 watch events | ✅ **ready** | Typed events for subprocess consumers; cites `watch --serve`'s SSE channel as the browser sibling; `mode` field future-proofs A5 |
-| A3 compiler in IR build-report | ✅ **ready** | The naming zoo: `manifest`=`compiler`, `completion`=`compiler_id`, `html-build-report`=`compilerId`, IR build-report=absent — the sharpest consistency gap |
-| A4 stream docs + `--report` help | ✅ **ready** | Help still says `--report … instead of stdout` (verified); stdout is now a machine payload surface (`--version`, `--timings`, plans) — document the rule |
+| A3 compiler in IR build-report | ✅ **filed [boris#638](https://github.com/drawmeanelephant/boris/issues/638)** | The naming zoo: `manifest`=`compiler`, `completion`=`compiler_id`, `html-build-report`=`compilerId`, IR build-report=absent — the sharpest consistency gap |
+| A4 stream docs + `--report` help | ✅ **filed [boris#639](https://github.com/drawmeanelephant/boris/issues/639)** | Help still says `--report … instead of stdout` (verified); stdout is now a machine payload surface (`--version`, `--timings`, plans) — document the rule |
 | A6 completion signal | ✅ **ready (P2)** | `build --report` solved the original ask; reduced to documenting the cache-manifest changed-page contract, with an honest won't-do option |
 | A7 workspace rule | ✅ **ready** | Containment now uniform (HTML/IR/RAG/context verified); docs ask + the IR absolute-output-path quirk (`--out /abs` inside cwd escapes, HTML doesn't) |
 | A12 signal contract | ✅ **ready** | Graceful SIGTERM/SIGINT verified on afterparty (exit 0, ≤500ms); C06 pins exit classes; remaining: docs + shutdown-latch test |
@@ -426,6 +426,14 @@ combination (D5) proves painful.
 **Decision needed:** A. Related policy: **pin the boris commit** we test
 against, record it in the repo, and gate app features on IR `schemaVersion`
 (D8) rather than assuming compatibility.
+
+**Status (2026-08-17): pin is now concrete.** The `boris-agent-kit` sibling
+folder ships 10 SHA256-verified binaries of our exact pinned commit
+(`b82e9e2`, `boris/0.8.1`) — the engine behaves identically to the
+afterparty build on every probed contract (M1 spike passes via
+`SOLIPSIST_BORIS_BIN`). Recommended: vendor-from-kit for the app bundle
+(hash-checkable, no Zig toolchain at build time), keep the source build as
+fallback. See [`AGENT-KIT-REVIEW.md`](AGENT-KIT-REVIEW.md).
 
 ### D8. SchemaVersion gating policy
 
