@@ -6,10 +6,13 @@ import Foundation
 ///   boris/docs/contracts/ir-schema.md      (manifest / graph / build-report)
 ///   boris/docs/contracts/diagnostics.md    (diagnostic objects + codes)
 ///   boris/docs/contracts/                  (documentation-intelligence reports)
+///   boris/docs/contracts/publication-profile.md
+///   boris/docs/contracts/schemas/          (completion, HTML report, profile)
 ///
 /// All structs are `Sendable` so they can cross actor boundaries freely.
 /// Decode defensively: fields the contracts mark nullable are `Optional`, and
-/// consumers must branch on `schemaVersion` before trusting a shape.
+/// consumers must branch on `schemaVersion` / `schema_version` before trusting
+/// a shape (D8: unknown/newer degrades, never crashes).
 /// If a required field is missing, decoding fails loudly — never guess.
 
 // MARK: - Diagnostics
@@ -42,12 +45,31 @@ public struct Diagnostic: Codable, Sendable {
 /// published and any prior copies are removed.
 public struct BuildReport: Codable, Sendable {
     public var schemaVersion: String
-    /// Present on success paths (e.g. "boris/0.8.0").
+    /// IR artifacts may name the compiler as `compiler`, `compiler_id`, or
+    /// `compilerId` (A3). Accept all three; do not unify them.
     public var compiler: String?
+    public var compiler_id: String?
+    public var compilerId: String?
     public var ok: Bool
     public var contentRoot: String?
     public var outDir: String?
     public var pageCount: Int?
+    public var errorCount: Int?
+    public var diagnostics: [Diagnostic]
+
+    public var errors: [Diagnostic] { diagnostics.filter(\.isError) }
+}
+
+// MARK: - HTML build report (`html-build-report-0.1.0`)
+
+/// Written by `boris build --report PATH` and `boris validate --report PATH`
+/// on success and failure. No `pageCount` — only errors/diagnostics.
+public struct HTMLBuildReport: Codable, Sendable {
+    public var schemaVersion: String
+    public var compilerId: String?
+    public var ok: Bool
+    public var contentRoot: String?
+    public var outDir: String?
     public var errorCount: Int?
     public var diagnostics: [Diagnostic]
 
@@ -180,4 +202,168 @@ public struct AnalysisFinding: Codable, Sendable {
 public struct AnalysisImpact: Codable, Sendable {
     public var type: String
     public var value: String
+}
+
+// MARK: - Completion (`boris-completion-index`, schema_version integer 1)
+
+/// `completion.json` — editor completion surface published on a successful IR
+/// freeze. `schema_version` is an integer, unlike the IR string `schemaVersion`.
+public struct Completion: Codable, Sendable {
+    public var format: String
+    public var schema_version: Int?
+    public var compiler_id: String?
+    public var frozen: Bool?
+    public var entities: [CompletionEntity]
+    public var relation_kinds: [String]
+    public var parent_targets: [String]
+    public var layout_slots: [String]
+}
+
+public struct CompletionEntity: Codable, Sendable {
+    public var id: String
+    public var title: String?
+    public var parent: String?
+    public var role: String?
+    public var status: String?
+    public var tags: [String]
+    public var relations: [CompletionRelation]
+}
+
+public struct CompletionRelation: Codable, Sendable {
+    public var kind: String
+    public var target: String
+}
+
+// MARK: - Publication profile (`boris-publication-profile`, schema v1)
+
+/// Strict mirror of profile schema v1. Unknown keys are ignored on decode
+/// (D8); do not invent keys when encoding.
+public struct PublicationProfile: Codable, Sendable {
+    public var format: String
+    public var schema_version: Int?
+    public var input: String?
+    public var input_format: String?
+    public var site: PublicationSite?
+    public var publication: PublicationDeclaration?
+    public var targets: [PublicationTarget]?
+    public var editions: PublicationEditions?
+}
+
+public struct PublicationSite: Codable, Sendable {
+    public var url: String?
+    public var title: String?
+    public var description: String?
+}
+
+public struct PublicationDeclaration: Codable, Sendable {
+    public var target: String
+    public var base_url: String
+    public var origin: String
+    public var base_path: String
+    public var site_kind: String?
+    public var did: String?
+    public var pds: String?
+    public var pds_origin: String?
+    public var name: String?
+    public var description: String?
+    public var show_in_discover: Bool?
+    public var include: [String]?
+    public var exclude: [String]?
+    public var prune: Bool?
+}
+
+public struct PublicationLayoutRule: Codable, Sendable {
+    public var selector: String
+    public var layout: String
+}
+
+public struct PublicationPathOutput: Codable, Sendable {
+    public var path: String
+    public var limit: Int?
+}
+
+public struct PublicationTarget: Codable, Sendable {
+    public var name: String
+    public var output: String
+    public var `public`: Bool?
+    public var theme: String?
+    public var layout: String?
+    public var layout_rules: [PublicationLayoutRule]?
+    public var sitemap: PublicationPathOutput?
+    public var rss: PublicationPathOutput?
+    public var llms: PublicationPathOutput?
+}
+
+public struct PublicationEdition: Codable, Sendable {
+    public var output: String
+}
+
+public struct PublicationRagEdition: Codable, Sendable {
+    public var output: String
+    public var scope: String?
+    public var split_size: Int?
+    public var bundles_only: Bool?
+}
+
+public struct PublicationContextEdition: Codable, Sendable {
+    public var output: String
+    public var scope: String?
+    public var split_size: Int?
+}
+
+public struct PublicationEditions: Codable, Sendable {
+    public var ir: PublicationEdition?
+    public var rag: PublicationRagEdition?
+    public var context: PublicationContextEdition?
+}
+
+// MARK: - Publication plan (`boris-publication-plan`, schema v1)
+
+/// Normalized declaration emitted on stdout by `boris plan --profile PATH`.
+public struct PublicationPlan: Codable, Sendable {
+    public var format: String
+    public var schema_version: Int?
+    public var input: String?
+    public var input_format: String?
+    public var site: PublicationSite?
+    public var publication: PublicationDeclaration?
+    public var targets: [PublicationPlanTarget]?
+    public var editions: PublicationEditions?
+}
+
+public struct PublicationPlanTarget: Codable, Sendable {
+    public var name: String
+    public var output: String
+    public var `public`: Bool?
+    public var theme: String?
+    public var layout: String?
+    public var layout_rules: [PublicationLayoutRule]?
+    public var projections: PublicationProjections?
+}
+
+public struct PublicationProjections: Codable, Sendable {
+    public var html: Bool?
+    public var sitemap: PublicationPathOutput?
+    public var rss: PublicationPathOutput?
+    public var llms: PublicationPathOutput?
+}
+
+// MARK: - Timings (`boris-timings`)
+
+/// Optional observational report printed on stdout when `--timings` is set.
+public struct TimingsReport: Codable, Sendable {
+    public var format: String
+    public var schemaVersion: String?
+    public var mode: String?
+    public var phases: [String: Int]?
+    public var counters: TimingsCounters?
+    public var totalNs: Int?
+}
+
+public struct TimingsCounters: Codable, Sendable {
+    public var page_reads: Int?
+    public var include_reads: Int?
+    public var hash_bytes: Int?
+    public var link_resolutions: Int?
+    public var fast_path_hits: Int?
 }

@@ -1,12 +1,15 @@
 import Foundation
 
 /// Result of a Boris IR build: exit code, decoded `build-report.json`, and —
-/// when the build succeeded — the decoded `manifest.json` / `graph.json`.
+/// when the build succeeded — the decoded `manifest.json` / `graph.json` /
+/// `completion.json`. `--timings` (when requested) is optional stdout JSON.
 public struct BorisBuild: Sendable {
     public let exitCode: Int32
     public let report: BuildReport
     public let manifest: Manifest?
     public let graph: Graph?
+    public let completion: Completion?
+    public let timings: TimingsReport?
     public let stderr: String
 }
 
@@ -21,6 +24,29 @@ public struct BorisHTMLBuild: Sendable {
 public struct BorisAnalysis: Sendable {
     public let exitCode: Int32
     public let report: AnalysisReport
+}
+
+/// Result of `boris --version`.
+public struct BorisVersion: Sendable {
+    public let exitCode: Int32
+    public let line: String
+}
+
+/// Result of `boris plan --profile`. Exit 2/3 when the profile is missing or
+/// invalid; `plan` is then nil and stdout/stderr carry the engine's output.
+public struct BorisPlan: Sendable {
+    public let exitCode: Int32
+    public let plan: PublicationPlan?
+    public let stdout: String
+    public let stderr: String
+}
+
+/// Result of `boris validate --report`. The report is written on success and
+/// content/I/O failure; usage errors may produce no file.
+public struct BorisValidate: Sendable {
+    public let exitCode: Int32
+    public let report: HTMLBuildReport?
+    public let stderr: String
 }
 
 public enum BorisEngineError: Error, Sendable, CustomStringConvertible {
@@ -60,8 +86,8 @@ public actor BorisEngine {
 
     /// Runs `boris --out <dir> --input <root> --quiet` (IR mode) and decodes
     /// the published artifacts (`build-report.json` always; `manifest.json` /
-    /// `graph.json` only on success — Boris deletes them on content failure;
-    /// `completion.json` exists on afterparty but is not yet modeled).
+    /// `graph.json` / `completion.json` only on success — Boris deletes them
+    /// on content failure).
     ///
     /// Afterparty constrains **output trees** to the process workspace and
     /// rejects absolute output paths in IR mode (verified: `--out /abs/…`
@@ -69,17 +95,28 @@ public actor BorisEngine {
     /// The input root may live anywhere. So we run from the output's parent
     /// and pass a **relative** output path. For the app this means
     /// `cwd = project folder`, `--out .boris` — the D1 defaults.
-    public func buildIR(contentRoot: URL, outDir: URL) throws -> BorisBuild {
+    ///
+    /// Pass `timings: true` to add `--timings` and optionally decode the
+    /// `boris-timings` JSON on stdout.
+    public func buildIR(
+        contentRoot: URL,
+        outDir: URL,
+        timings: Bool = false
+    ) throws -> BorisBuild {
         try FileManager.default.createDirectory(
             at: outDir, withIntermediateDirectories: true
         )
+        var arguments = [
+            "--out", outDir.lastPathComponent,
+            "--input", contentRoot.path,
+            "--quiet",
+        ]
+        if timings {
+            arguments.append("--timings")
+        }
         let out = try BorisRunner.run(
             binary: binaryURL,
-            arguments: [
-                "--out", outDir.lastPathComponent,
-                "--input", contentRoot.path,
-                "--quiet",
-            ],
+            arguments: arguments,
             workingDirectory: outDir.deletingLastPathComponent()
         )
         let report = try decode(
@@ -89,6 +126,7 @@ public actor BorisEngine {
         )
         var manifest: Manifest?
         var graph: Graph?
+        var completion: Completion?
         if report.ok {
             manifest = try? decode(
                 Manifest.self,
@@ -100,12 +138,25 @@ public actor BorisEngine {
                 from: outDir.appendingPathComponent("graph.json"),
                 artifact: "graph.json"
             )
+            completion = try? decode(
+                Completion.self,
+                from: outDir.appendingPathComponent("completion.json"),
+                artifact: "completion.json"
+            )
+        }
+        let timingsReport: TimingsReport?
+        if timings {
+            timingsReport = decodeJSON(TimingsReport.self, from: out.stdout)
+        } else {
+            timingsReport = nil
         }
         return BorisBuild(
             exitCode: out.exitCode,
             report: report,
             manifest: manifest,
             graph: graph,
+            completion: completion,
+            timings: timingsReport,
             stderr: out.stderrText
         )
     }
@@ -172,6 +223,54 @@ public actor BorisEngine {
         return BorisAnalysis(exitCode: out.exitCode, report: report)
     }
 
+    // MARK: Version / plan / validate
+
+    /// Runs `boris --version` and returns the stdout line (e.g. `boris/0.8.1`).
+    public func version() throws -> BorisVersion {
+        let out = try BorisRunner.run(binary: binaryURL, arguments: ["--version"])
+        let line = out.stdoutText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return BorisVersion(exitCode: out.exitCode, line: line)
+    }
+
+    /// Runs `boris plan --profile PATH` with cwd = the profile's parent
+    /// (the publication workspace). Does not invent a profile.
+    public func plan(profileURL: URL) throws -> BorisPlan {
+        let out = try BorisRunner.run(
+            binary: binaryURL,
+            arguments: ["plan", "--profile", profileURL.lastPathComponent],
+            workingDirectory: profileURL.deletingLastPathComponent()
+        )
+        return BorisPlan(
+            exitCode: out.exitCode,
+            plan: decodeJSON(PublicationPlan.self, from: out.stdout),
+            stdout: out.stdoutText,
+            stderr: out.stderrText
+        )
+    }
+
+    /// Runs `boris validate --input … --report PATH` and decodes the
+    /// `html-build-report-0.1.0` file when written. `--report` may be absolute.
+    public func validate(contentRoot: URL, reportURL: URL) throws -> BorisValidate {
+        let out = try BorisRunner.run(binary: binaryURL, arguments: [
+            "validate",
+            "--input", contentRoot.path,
+            "--report", reportURL.path,
+        ])
+        var report: HTMLBuildReport?
+        if FileManager.default.fileExists(atPath: reportURL.path) {
+            report = try decode(
+                HTMLBuildReport.self,
+                from: reportURL,
+                artifact: "validate report"
+            )
+        }
+        return BorisValidate(
+            exitCode: out.exitCode,
+            report: report,
+            stderr: out.stderrText
+        )
+    }
+
     // MARK: Probe
 
     /// Sanity probe: runs `boris --help` and returns the first lines.
@@ -198,5 +297,12 @@ public actor BorisEngine {
         } catch {
             throw BorisEngineError.decodeFailed(artifact: artifact, reason: String(describing: error))
         }
+    }
+
+    /// Optional stdout decode (plan / timings). Empty or unknown shape → nil
+    /// rather than a crash (D8).
+    private func decodeJSON<T: Decodable>(_ type: T.Type, from data: Data) -> T? {
+        guard !data.isEmpty else { return nil }
+        return try? JSONDecoder().decode(type, from: data)
     }
 }

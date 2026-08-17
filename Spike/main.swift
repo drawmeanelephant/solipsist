@@ -1,13 +1,15 @@
 import Foundation
 
-// Solipsist M1 engine spike.
+// Solipsist M1 / M4-S0 engine spike.
 //
 //   1. locate the `boris` binary (SOLIPSIST_BORIS_BIN, app bundle, or the
 //      dev checkout at ../boris)
-//   2. run an IR build on the Boris sample content
-//   3. decode build-report.json / manifest.json / graph.json
-//   4. run `boris check` and `boris impact`, decode the reports
-//   5. print a human-readable summary
+//   2. print `boris --version`
+//   3. attempt `boris plan --profile` (do not invent a profile)
+//   4. run `boris validate --report` and decode html-build-report-0.1.0
+//   5. run an IR build (with --timings); decode IR artifacts + completion
+//   6. run `boris check` and `boris impact`, decode the reports
+//   7. print a human-readable summary
 //
 // Usage:
 //   boris-spike [content-root]
@@ -42,12 +44,78 @@ let engine = try BorisEngine(binaryURL: binary)
 print("boris binary : \(binary.path)")
 print("content root : \(contentRoot.path)")
 
+// --- 0. version -----------------------------------------------------------
+print("\n== boris --version ==")
+let version = try await engine.version()
+print("version      : \(version.line)")
+print("exit code    : \(version.exitCode)")
+
+// --- 0b. plan -------------------------------------------------------------
+// Use a real profile if one sits next to (or inside) the content root.
+// Dogfood may have none — still invoke plan and surface the exit; never
+// write a fake boris.json.
+let profileURL: URL
+if fm.fileExists(atPath: contentRoot.appendingPathComponent("boris.json").path) {
+    profileURL = contentRoot.appendingPathComponent("boris.json")
+} else if fm.fileExists(atPath: contentRoot.deletingLastPathComponent().appendingPathComponent("boris.json").path) {
+    profileURL = contentRoot.deletingLastPathComponent().appendingPathComponent("boris.json")
+} else {
+    profileURL = contentRoot.appendingPathComponent("boris.json")
+}
+print("\n== boris plan --profile \(profileURL.lastPathComponent) ==")
+print("profile      : \(profileURL.path) (exists: \(fm.fileExists(atPath: profileURL.path)))")
+let planned = try await engine.plan(profileURL: profileURL)
+print("exit code    : \(planned.exitCode)")
+if let plan = planned.plan {
+    print("format       : \(plan.format)")
+    print("schema       : \(plan.schema_version.map(String.init) ?? "n/a")")
+    print("input        : \(plan.input ?? "n/a")")
+    print("input_format : \(plan.input_format ?? "n/a")")
+    print("targets      : \(plan.targets?.count ?? 0)")
+} else {
+    let err = planned.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !err.isEmpty {
+        print("stderr       : \(err)")
+    }
+    let out = planned.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !out.isEmpty {
+        print("stdout       : \(out)")
+    }
+}
+
+// --- 0c. validate --report ------------------------------------------------
+let validateReportURL = fm.temporaryDirectory
+    .appendingPathComponent("solipsist-spike-validate-\(UUID().uuidString).json")
+defer { try? fm.removeItem(at: validateReportURL) }
+print("\n== boris validate --input … --report ==")
+let validated = try await engine.validate(
+    contentRoot: contentRoot,
+    reportURL: validateReportURL
+)
+print("exit code    : \(validated.exitCode)")
+if let report = validated.report {
+    print("ok           : \(report.ok)")
+    print("schema       : \(report.schemaVersion)")
+    print("compilerId   : \(report.compilerId ?? "n/a")")
+    print("errors       : \(report.errorCount ?? -1)")
+    for d in report.diagnostics {
+        let loc = "\(d.sourcePath ?? "-"):\(d.line.map(String.init) ?? "-"):\(d.column.map(String.init) ?? "-")"
+        print("  [\(d.severity)] \(d.code) \(loc) \(d.message)")
+    }
+} else {
+    print("report       : not written")
+    let err = validated.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !err.isEmpty {
+        print("stderr       : \(err)")
+    }
+}
+
 // --- 1. IR build ----------------------------------------------------------
 let outDir = fm.temporaryDirectory.appendingPathComponent("solipsist-spike-\(UUID().uuidString)")
 defer { try? fm.removeItem(at: outDir) }
 
-print("\n== IR build (boris --out … --input … --quiet) ==")
-let build = try await engine.buildIR(contentRoot: contentRoot, outDir: outDir)
+print("\n== IR build (boris --out … --input … --quiet --timings) ==")
+let build = try await engine.buildIR(contentRoot: contentRoot, outDir: outDir, timings: true)
 print("exit code    : \(build.exitCode)")
 print("ok           : \(build.report.ok)")
 print("schema       : \(build.report.schemaVersion)")
@@ -86,6 +154,30 @@ if let graph = build.graph {
     print("nav          : \(graph.nav.count) entries")
     if let first = graph.edges.first {
         print("sample edge  : \(first.from.value) -(\(first.kind))-> \(first.to.value)")
+    }
+}
+
+if let completion = build.completion {
+    print("\n== completion.json ==")
+    print("format       : \(completion.format)")
+    print("schema       : \(completion.schema_version.map(String.init) ?? "n/a")")
+    print("compiler_id  : \(completion.compiler_id ?? "n/a")")
+    print("frozen       : \(completion.frozen.map { $0 ? "true" : "false" } ?? "n/a")")
+    print("entities     : \(completion.entities.count)")
+    print("relation_kinds: \(completion.relation_kinds.joined(separator: ", "))")
+    print("parent_targets: \(completion.parent_targets.count)")
+    print("layout_slots : \(completion.layout_slots.count)")
+}
+
+if let timings = build.timings {
+    print("\n== boris-timings ==")
+    print("format       : \(timings.format)")
+    print("schema       : \(timings.schemaVersion ?? "n/a")")
+    print("mode         : \(timings.mode ?? "n/a")")
+    print("totalNs      : \(timings.totalNs.map(String.init) ?? "n/a")")
+    if let phases = timings.phases {
+        let names = phases.keys.sorted().joined(separator: ", ")
+        print("phases       : \(names)")
     }
 }
 
