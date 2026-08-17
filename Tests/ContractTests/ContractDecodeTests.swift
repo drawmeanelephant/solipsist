@@ -102,6 +102,53 @@ final class ContractDecodeTests: XCTestCase {
         XCTAssertTrue(report.diagnostics.contains { $0.code == "ETEXTILE" })
     }
 
+    func testBrokenNullLocationsReport() throws {
+        let report = try decode(BuildReport.self, "broken-null-locations", "build-report.json")
+        XCTAssertFalse(report.ok)
+        XCTAssertEqual(report.errorCount, 4)
+        XCTAssertEqual(report.diagnostics.count, 5)
+
+        // Diagnostic 0: ECONFIG with all null location fields
+        let d0 = report.diagnostics[0]
+        XCTAssertEqual(d0.code, "ECONFIG")
+        XCTAssertNil(d0.sourcePath)
+        XCTAssertNil(d0.line)
+        XCTAssertNil(d0.column)
+        XCTAssertNil(d0.id)
+
+        // Diagnostic 1: EFILEACCESS with sourcePath present, null line and column
+        let d1 = report.diagnostics[1]
+        XCTAssertEqual(d1.code, "EFILEACCESS")
+        XCTAssertEqual(d1.sourcePath, "unreadable.md")
+        XCTAssertNil(d1.line)
+        XCTAssertNil(d1.column)
+        XCTAssertEqual(d1.id, "unreadable")
+
+        // Diagnostic 2: ELINEFORMAT with sourcePath and line present, null column
+        let d2 = report.diagnostics[2]
+        XCTAssertEqual(d2.code, "ELINEFORMAT")
+        XCTAssertEqual(d2.sourcePath, "pages/overview.md")
+        XCTAssertEqual(d2.line, 12)
+        XCTAssertNil(d2.column)
+        XCTAssertEqual(d2.id, "overview")
+
+        // Diagnostic 3: EDUPLICATEID with id present, null sourcePath/line/column
+        let d3 = report.diagnostics[3]
+        XCTAssertEqual(d3.code, "EDUPLICATEID")
+        XCTAssertNil(d3.sourcePath)
+        XCTAssertNil(d3.line)
+        XCTAssertNil(d3.column)
+        XCTAssertEqual(d3.id, "intro")
+
+        // Diagnostic 4: WUNREFERENCED with full location
+        let d4 = report.diagnostics[4]
+        XCTAssertEqual(d4.code, "WUNREFERENCED")
+        XCTAssertEqual(d4.sourcePath, "orphan.md")
+        XCTAssertEqual(d4.line, 1)
+        XCTAssertEqual(d4.column, 1)
+        XCTAssertEqual(d4.id, "orphan")
+    }
+
     func testHappyCheck() throws {
         let report = try decode(AnalysisReport.self, "check-happy", "analysis-report.json")
         XCTAssertEqual(report.format, "boris-analysis-report")

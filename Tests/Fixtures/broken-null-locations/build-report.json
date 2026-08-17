@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "0.2.0",
+  "ok": false,
+  "contentRoot": "broken-null-locations",
+  "outDir": "_ir-broken-null-locations",
+  "pageCount": 3,
+  "errorCount": 4,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "ECONFIG",
+      "message": "global publication config error without file location",
+      "remediation": "Check boris.json configuration",
+      "sourcePath": null,
+      "line": null,
+      "column": null,
+      "id": null
+    },
+    {
+      "severity": "error",
+      "code": "EFILEACCESS",
+      "message": "file level error without line or column",
+      "remediation": "Check file permissions for document",
+      "sourcePath": "unreadable.md",
+      "line": null,
+      "column": null,
+      "id": "unreadable"
+    },
+    {
+      "severity": "error",
+      "code": "ELINEFORMAT",
+      "message": "line level error without column",
+      "remediation": "Check formatting on the indicated line",
+      "sourcePath": "pages/overview.md",
+      "line": 12,
+      "column": null,
+      "id": "overview"
+    },
+    {
+      "severity": "error",
+      "code": "EDUPLICATEID",
+      "message": "duplicate entity id without line or column",
+      "remediation": "Ensure all entity IDs are unique across pages",
+      "sourcePath": null,
+      "line": null,
+      "column": null,
+      "id": "intro"
+    },
+    {
+      "severity": "warning",
+      "code": "WUNREFERENCED",
+      "message": "unreferenced page with full location details",
+      "remediation": "Add an incoming wikilink or nav reference",
+      "sourcePath": "orphan.md",
+      "line": 1,
+      "column": 1,
+      "id": "orphan"
+    }
+  ]
+}
