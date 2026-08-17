@@ -90,16 +90,16 @@ final class CompanionURLTests: XCTestCase {
     // MARK: - PreviewURL Tests
 
     func testPreviewURLLoopbackRules() throws {
-        let v4 = try XCTUnwrap(URL(string: "http://127.0.0.1:8080/__boris/"))
+        let ipv4 = try XCTUnwrap(URL(string: "http://127.0.0.1:8080/__boris/"))
         let localhost = try XCTUnwrap(URL(string: "http://localhost:3000/"))
-        let v6 = try XCTUnwrap(URL(string: "http://[::1]:9000/preview"))
+        let ipv6 = try XCTUnwrap(URL(string: "http://[::1]:9000/preview"))
 
-        XCTAssertTrue(PreviewURL.isLoopback(v4))
+        XCTAssertTrue(PreviewURL.isLoopback(ipv4))
         XCTAssertTrue(PreviewURL.isLoopback(localhost))
-        XCTAssertTrue(PreviewURL.isLoopback(v6))
-        XCTAssertTrue(PreviewURL.isAllowed(v4))
+        XCTAssertTrue(PreviewURL.isLoopback(ipv6))
+        XCTAssertTrue(PreviewURL.isAllowed(ipv4))
         XCTAssertTrue(PreviewURL.isAllowed(localhost))
-        XCTAssertTrue(PreviewURL.isAllowed(v6))
+        XCTAssertTrue(PreviewURL.isAllowed(ipv6))
     }
 
     func testPreviewURLBlankAllowed() throws {
