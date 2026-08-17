@@ -23,7 +23,7 @@ Execute compiler tasks directly from the menu:
 
 ## Companion Windows
 
-- **Preview Companion (`⌥⌘P`)**: Live preview powered by `watch --serve` with loopback URL validation.
-- **Editor Companion (`⌥⌘E`)**: Token-isolated companion host for `boris-editor`.
+- **Preview Companion (`⌘⇧P`)**: Live preview powered by `watch --serve` with loopback URL validation.
+- **Editor Companion (`⌘⇧E`)**: Token-isolated companion host for `boris-editor`.
 
 For architecture and roadmap details, see [ROADMAP.md](https://github.com/drawmeanelephant/solipsist/blob/main/docs/ROADMAP.md).
