@@ -29,12 +29,36 @@ public enum BorisRunnerError: Error, Sendable, CustomStringConvertible {
 /// files cannot deadlock (OS pipe buffers cap at ~64 KB and Boris JSON
 /// reports can exceed that) and need no concurrent reader threads. The
 /// child inherits the file descriptors; after exit we read the files back.
+/// Lets the engine interrupt an in-flight `Process` (Stop). Additive —
+/// capture/wait behavior is unchanged.
+public final class RunHandle: @unchecked Sendable {
+    private let lock = NSLock()
+    private var process: Process?
+
+    public init() {}
+
+    func attach(_ process: Process) {
+        lock.lock()
+        self.process = process
+        lock.unlock()
+    }
+
+    public func terminate() {
+        lock.lock()
+        let process = self.process
+        lock.unlock()
+        guard let process, process.isRunning else { return }
+        process.terminate()
+    }
+}
+
 public enum BorisRunner {
 
     public static func run(
         binary: URL,
         arguments: [String],
-        workingDirectory: URL? = nil
+        workingDirectory: URL? = nil,
+        handle: RunHandle? = nil
     ) throws -> RunOutput {
         let fm = FileManager.default
         let tmpDir = fm.temporaryDirectory
@@ -66,6 +90,7 @@ public enum BorisRunner {
         process.standardOutput = stdoutHandle
         process.standardError = stderrHandle
 
+        handle?.attach(process)
         do {
             try process.run()
         } catch {

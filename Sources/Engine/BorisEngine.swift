@@ -13,10 +13,11 @@ public struct BorisBuild: Sendable {
     public let stderr: String
 }
 
-/// Result of a Boris HTML build (exit code + stderr; HTML mode publishes no
-/// JSON artifacts).
+/// Result of a Boris HTML build. Optional `--report` decodes
+/// `html-build-report-0.1.0` when the file is written.
 public struct BorisHTMLBuild: Sendable {
     public let exitCode: Int32
+    public let report: HTMLBuildReport?
     public let stderr: String
 }
 
@@ -71,6 +72,7 @@ public enum BorisEngineError: Error, Sendable, CustomStringConvertible {
 /// builds in one process; we serialize across processes too).
 public actor BorisEngine {
     public let binaryURL: URL
+    private let runHandle = RunHandle()
 
     public init(binaryURL: URL? = nil) throws {
         if let binaryURL {
@@ -114,8 +116,7 @@ public actor BorisEngine {
         if timings {
             arguments.append("--timings")
         }
-        let out = try BorisRunner.run(
-            binary: binaryURL,
+        let out = try run(
             arguments: arguments,
             workingDirectory: outDir.deletingLastPathComponent()
         )
@@ -164,21 +165,44 @@ public actor BorisEngine {
     /// Runs an HTML site build: `boris --input <root> --html-dir <dir> --quiet`.
     ///
     /// Same afterparty containment rule as `buildIR`: run from the output's
-    /// parent and pass a relative path.
-    public func buildHTML(contentRoot: URL, htmlDir: URL) throws -> BorisHTMLBuild {
+    /// parent and pass a relative path. Optional `--report` is a single file
+    /// (absolute allowed).
+    public func buildHTML(
+        contentRoot: URL,
+        htmlDir: URL,
+        reportURL: URL? = nil
+    ) throws -> BorisHTMLBuild {
         try FileManager.default.createDirectory(
             at: htmlDir, withIntermediateDirectories: true
         )
-        let out = try BorisRunner.run(
-            binary: binaryURL,
-            arguments: [
-                "--input", contentRoot.path,
-                "--html-dir", htmlDir.lastPathComponent,
-                "--quiet",
-            ],
+        var arguments = [
+            "--input", contentRoot.path,
+            "--html-dir", htmlDir.lastPathComponent,
+            "--quiet",
+        ]
+        if let reportURL {
+            arguments += ["--report", reportURL.path]
+        }
+        let out = try run(
+            arguments: arguments,
             workingDirectory: htmlDir.deletingLastPathComponent()
         )
-        return BorisHTMLBuild(exitCode: out.exitCode, stderr: out.stderrText)
+        var report: HTMLBuildReport?
+        if let reportURL, FileManager.default.fileExists(atPath: reportURL.path) {
+            report = try? decode(
+                HTMLBuildReport.self,
+                from: reportURL,
+                artifact: "html-build-report"
+            )
+        }
+        return BorisHTMLBuild(exitCode: out.exitCode, report: report, stderr: out.stderrText)
+    }
+
+    /// SIGTERM the in-flight process, if any. One-shot builds die; watch
+    /// exits 0. The app treats `terminationReason == .uncaughtSignal` as
+    /// cancel when we inspect it; here we surface the resulting exit.
+    public func interrupt() {
+        runHandle.terminate()
     }
 
     // MARK: Analysis
@@ -194,7 +218,7 @@ public actor BorisEngine {
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-check-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
-        let out = try BorisRunner.run(binary: binaryURL, arguments: [
+        let out = try run(arguments: [
             "check",
             "--input", contentRoot.path,
             "--format", "json",
@@ -212,7 +236,7 @@ public actor BorisEngine {
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-impact-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
-        let out = try BorisRunner.run(binary: binaryURL, arguments: [
+        let out = try run(arguments: [
             "impact", pageID,
             "--input", contentRoot.path,
             "--format", "json",
@@ -227,7 +251,7 @@ public actor BorisEngine {
 
     /// Runs `boris --version` and returns the stdout line (e.g. `boris/0.8.1`).
     public func version() throws -> BorisVersion {
-        let out = try BorisRunner.run(binary: binaryURL, arguments: ["--version"])
+        let out = try run(arguments: ["--version"])
         let line = out.stdoutText.trimmingCharacters(in: .whitespacesAndNewlines)
         return BorisVersion(exitCode: out.exitCode, line: line)
     }
@@ -235,8 +259,7 @@ public actor BorisEngine {
     /// Runs `boris plan --profile PATH` with cwd = the profile's parent
     /// (the publication workspace). Does not invent a profile.
     public func plan(profileURL: URL) throws -> BorisPlan {
-        let out = try BorisRunner.run(
-            binary: binaryURL,
+        let out = try run(
             arguments: ["plan", "--profile", profileURL.lastPathComponent],
             workingDirectory: profileURL.deletingLastPathComponent()
         )
@@ -251,7 +274,7 @@ public actor BorisEngine {
     /// Runs `boris validate --input … --report PATH` and decodes the
     /// `html-build-report-0.1.0` file when written. `--report` may be absolute.
     public func validate(contentRoot: URL, reportURL: URL) throws -> BorisValidate {
-        let out = try BorisRunner.run(binary: binaryURL, arguments: [
+        let out = try run(arguments: [
             "validate",
             "--input", contentRoot.path,
             "--report", reportURL.path,
@@ -275,7 +298,7 @@ public actor BorisEngine {
 
     /// Sanity probe: runs `boris --help` and returns the first lines.
     public func probe() throws -> String {
-        let out = try BorisRunner.run(binary: binaryURL, arguments: ["--help"])
+        let out = try run(arguments: ["--help"])
         let head = out.stdoutText
             .split(separator: "\n")
             .prefix(3)
@@ -284,6 +307,18 @@ public actor BorisEngine {
     }
 
     // MARK: Helpers
+
+    private func run(
+        arguments: [String],
+        workingDirectory: URL? = nil
+    ) throws -> RunOutput {
+        try BorisRunner.run(
+            binary: binaryURL,
+            arguments: arguments,
+            workingDirectory: workingDirectory,
+            handle: runHandle
+        )
+    }
 
     private func decode<T: Decodable>(_ type: T.Type, from url: URL, artifact: String) throws -> T {
         let data: Data

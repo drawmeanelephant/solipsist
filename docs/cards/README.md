@@ -13,6 +13,7 @@ These cards win on *what to do now*; those docs win on *what we are*.
 | [P-subdomain](P-subdomain.md) | project site (`site/`) | everything | `https://<subdomain>` serves a Boris-built Solipsist page |
 | [M3-local-play](M3-local-play.md) | `Sources/Play/Local/`, `Workspace/Local/` | P, M4 | Open dogfood content → graph list → select a page |
 | [M4-engine-s0](M4-engine-s0.md) | `Sources/Engine/`, `Sources/Models/`, `Spike/` | P, M3-play | spike runs `plan` + `validate` + `--report` + `--timings` |
+| [M4-coordinate](M4-coordinate.md) | `App/Coordinator`, Play problems, menu verbs | after engine S0 | Plan / Validate / Build / Check / Impact / Stop |
 | [M3-inspector](M3-inspector.md) | `Sources/Inspector/`, `Chrome/InspectorDrawer.swift` | P, M3-play, M4 (do not edit `Models/`) | select a page → drawer shows fields; profile writes `boris.json` |
 | [ISSUES-file](ISSUES-file-A1-A14-A7.md) | `docs/issues/` | everything | A1, A14, A7 pasted when GitHub is back |
 

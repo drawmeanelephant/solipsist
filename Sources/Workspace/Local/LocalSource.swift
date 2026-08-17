@@ -49,4 +49,37 @@ struct LocalSource: PublicationSource, Hashable, Sendable, Codable {
         next.id = id
         return next
     }
+
+    /// Folder the bookmark points at.
+    func workspaceRoot() throws -> URL {
+        try resolve().url.standardizedFileURL
+    }
+
+    /// `content/` when this looks like a project root (`content/` + `boris.json`).
+    func contentRoot() throws -> URL {
+        let root = try workspaceRoot()
+        return Self.isProjectRoot(root)
+            ? root.appendingPathComponent("content", isDirectory: true)
+            : root
+    }
+
+    func profileURL() -> URL? {
+        guard let root = try? workspaceRoot() else { return nil }
+        let url = root.appendingPathComponent("boris.json")
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    func artifactDirectory(named name: String) throws -> URL {
+        try workspaceRoot().appendingPathComponent(name, isDirectory: true)
+    }
+
+    static func isProjectRoot(_ root: URL) -> Bool {
+        let fm = FileManager.default
+        var isDirectory: ObjCBool = false
+        let content = root.appendingPathComponent("content", isDirectory: true)
+        let profile = root.appendingPathComponent("boris.json")
+        let hasContent = fm.fileExists(atPath: content.path, isDirectory: &isDirectory)
+            && isDirectory.boolValue
+        return hasContent && fm.fileExists(atPath: profile.path)
+    }
 }

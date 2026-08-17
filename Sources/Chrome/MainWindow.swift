@@ -26,6 +26,30 @@ struct MainWindow: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
+                    runtime.coordinator.run(.validate, store: store, runtime: runtime)
+                } label: {
+                    Label("Validate", systemImage: "checkmark.circle")
+                }
+                .help("Validate")
+                .disabled(store.selectedSource == nil || runtime.coordinator.isRunning)
+
+                Button {
+                    runtime.coordinator.run(.buildIR, store: store, runtime: runtime)
+                } label: {
+                    Label("Build IR", systemImage: "hammer")
+                }
+                .help("Build IR")
+                .disabled(store.selectedSource == nil || runtime.coordinator.isRunning)
+
+                Button {
+                    runtime.coordinator.stop(runtime: runtime)
+                } label: {
+                    Label("Stop", systemImage: "stop.fill")
+                }
+                .help("Stop")
+                .disabled(!runtime.coordinator.isRunning)
+
+                Button {
                     openWindow(id: CompanionID.preview)
                 } label: {
                     Label("Preview", systemImage: "safari")
