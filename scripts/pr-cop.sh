@@ -16,6 +16,9 @@
 #
 # Env:
 #   PR_COP_BASE_BRANCH   base branch for the drift comparison (default: main)
+#   PR_COP_RETRIES       attempts for the open-PR list query before giving
+#                        up (default: 5, ~15s apart; transient GitHub API
+#                        503s are retried)
 #   PR_COP_TSV_FILE      read per-PR rows from FILE (same TSV columns the
 #                        script generates from `gh pr list`) instead of the
 #                        live repo. Testing aid only — drift still queries
@@ -31,17 +34,30 @@ trap 'rm -rf "$tmp"' EXIT
 
 # --- Collect one TSV row per open PR -------------------------------------
 # Columns: number, headRefName, title, baseRefName, isDraft, mergeable, checkStates
+# The list query can hit transient GitHub API failures (503s); retry a few
+# times before giving up so the watcher survives blips.
+collect_rows() {
+  local file="$1" attempts="${PR_COP_RETRIES:-5}" attempt=0
+  while (( attempt < attempts )); do
+    if gh pr list --repo "$REPO" --state open --json \
+        number,title,headRefName,baseRefName,isDraft,mergeable,statusCheckRollup \
+        --jq '.[] | [.number, .headRefName, (.title | gsub("[\r\n\t]";" ")), .baseRefName, (.isDraft|tostring), (.mergeable // "UNKNOWN"), ([.statusCheckRollup[]? | (.conclusion // .state)] | join(","))] | @tsv' \
+        > "$file"; then
+      return 0
+    fi
+    attempt=$((attempt + 1))
+    echo "pr-cop: gh pr list attempt $attempt/$attempts failed — retrying in 15s" >&2
+    sleep 15
+  done
+  echo "pr-cop: gh pr list failed for $REPO after $attempts attempts" >&2
+  return 1
+}
+
 if [[ -n "${PR_COP_TSV_FILE:-}" ]]; then
   rows_file="$PR_COP_TSV_FILE"
 else
   rows_file="$tmp/prs.tsv"
-  if ! gh pr list --repo "$REPO" --state open --json \
-      number,title,headRefName,baseRefName,isDraft,mergeable,statusCheckRollup \
-      --jq '.[] | [.number, .headRefName, (.title | gsub("[\r\n\t]";" ")), .baseRefName, (.isDraft|tostring), (.mergeable // "UNKNOWN"), ([.statusCheckRollup[]? | (.conclusion // .state)] | join(","))] | @tsv' \
-      > "$rows_file"; then
-    echo "pr-cop: gh pr list failed for $REPO" >&2
-    exit 1
-  fi
+  collect_rows "$rows_file" || exit 1
 fi
 
 rows=()
