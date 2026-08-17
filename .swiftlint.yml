@@ -5,6 +5,8 @@ excluded:
   - Sources/App
   - Sources/Chrome
   - Sources/Workspace
+  - Sources/Play
+  - Sources/Inspector
   - Sources/Engine
   - Sources/Models
   - Spike
