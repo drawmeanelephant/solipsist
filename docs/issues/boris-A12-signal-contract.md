@@ -1,10 +1,10 @@
-# A12 — Signal/cancellation contract for watch mode
+# A12 — Signal/cancellation contract for watch mode (moot — superseded by afterparty)
 
-> **Ready-to-paste GitHub issue for the boris repo.**
-> Priority: P1. Size: XS. Documentation + one test commitment.
-> **Rebaselined against afterparty v0.8.1.** The C06 conformance suite now
-> pins watch *failure/exit classes*; what remains is the explicit signal
-> contract and the shutdown-latch test.
+> **⛔ Moot / withdrawn.** afterparty's `docs/contracts/watch-mode.md` §6
+> already documents graceful SIGINT/SIGTERM shutdown, finish-rebuild-before-
+> shutdown, and staged-publish atomicity, and C06 pins the failure/exit
+> classes. The only residual (a shutdown-latch unit test) is nice-to-have,
+> not a blocker; the draft below is retained as evidence only.
 
 ---
 

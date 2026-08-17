@@ -1,14 +1,10 @@
-# A6 — The incremental changed-page contract: document `.boris-cache/manifest.json`
+# A6 — The incremental changed-page contract (moot — superseded by afterparty)
 
-> **Ready-to-paste GitHub issue for the boris repo.**
-> Priority: P2. Size: XS. Documentation only.
-> **Rebaselined against afterparty v0.8.1.** The original ask — "HTML builds
-> have no machine result artifact" — is **solved** by `build --report PATH`
-> (`html-build-report-0.1.0`, written on success and failure). What remains
-> is the narrower, still-open question below. If boris considers the cache
-> manifest an internal detail, this issue can be closed as won't-do; it is
-> filed because the manifest is already a public artifact (listed in
-> `--help`).
+> **⛔ Moot / withdrawn.** The original ask — "HTML builds have no machine
+> result artifact" — is **solved** by `build --report PATH`
+> (`html-build-report-0.1.0`, written on success and failure). The remaining
+> "document the cache-manifest fingerprint-diff" idea is P2 and
+> nice-to-have, not a blocker; the draft below is retained as evidence only.
 
 ---
 
