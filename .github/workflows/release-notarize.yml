@@ -1,0 +1,136 @@
+name: Release & Notarize
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      skip_notarize:
+        description: 'Skip Apple Notarization (build and package only)'
+        required: false
+        default: 'false'
+        type: boolean
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-notarize:
+    name: Build, Sign & Notarize Universal macOS App
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Install tools & generate project
+        run: |
+          make tools
+          make generate
+
+      - name: Set up Signing Keychain
+        if: ${{ env.APPLE_CERTIFICATE_BASE64 != '' }}
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'solipsist-build-keychain' }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -k "$KEYCHAIN_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed -e 's/^[[:space:]]*//' -e 's/"//g')
+
+      - name: Build Universal Release App
+        env:
+          SKIP_EMBED_BORIS: ${{ env.SOLIPSIST_BORIS_BIN == '' && '1' || '0' }}
+          CODE_SIGN_IDENTITY: ${{ secrets.CODE_SIGN_IDENTITY || '-' }}
+        run: |
+          xcodebuild -project Solipsist.xcodeproj -scheme Solipsist -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
+            ENABLE_HARDENED_RUNTIME=YES \
+            build
+
+      - name: Package DMG
+        run: |
+          mkdir -p dist
+          APP_PATH="build/Build/Products/Release/Solipsist.app"
+          DMG_PATH="dist/Solipsist.dmg"
+
+          echo "==> Creating DMG from $APP_PATH"
+          hdiutil create -volname "Solipsist" \
+            -srcfolder "$APP_PATH" \
+            -ov -format UDZO \
+            "$DMG_PATH"
+
+      - name: Sign DMG
+        if: ${{ env.CODE_SIGN_IDENTITY != '' && env.CODE_SIGN_IDENTITY != '-' }}
+        env:
+          CODE_SIGN_IDENTITY: ${{ secrets.CODE_SIGN_IDENTITY }}
+        run: |
+          codesign --force --sign "$CODE_SIGN_IDENTITY" --timestamp dist/Solipsist.dmg
+
+      - name: Notarize App & DMG
+        if: ${{ inputs.skip_notarize != true && env.APPLE_API_KEY_BASE64 != '' }}
+        env:
+          APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_ISSUER: ${{ secrets.APPLE_API_KEY_ISSUER }}
+        run: |
+          AUTH_KEY_PATH="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY_ID}.p8"
+          echo "$APPLE_API_KEY_BASE64" | base64 --decode > "$AUTH_KEY_PATH"
+
+          echo "==> Submitting dist/Solipsist.dmg to Apple Notary Service"
+          xcrun notarytool submit "dist/Solipsist.dmg" \
+            --key "$AUTH_KEY_PATH" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_KEY_ISSUER" \
+            --wait
+
+          echo "==> Stapling notarization ticket to DMG and App"
+          xcrun stapler staple "dist/Solipsist.dmg"
+          xcrun stapler staple "build/Build/Products/Release/Solipsist.app"
+
+      - name: Verify Gate Assessment
+        run: |
+          APP_PATH="build/Build/Products/Release/Solipsist.app"
+          echo "==> Inspecting Mach-O bundle structure:"
+          file "$APP_PATH/Contents/MacOS/Solipsist"
+          if [ -f "$APP_PATH/Contents/Resources/boris" ]; then
+            lipo -info "$APP_PATH/Contents/Resources/boris"
+          fi
+
+          echo "==> Assessing code signature and Gatekeeper evaluation:"
+          spctl --assess -vvv --type exec "$APP_PATH" || {
+            echo "notice: spctl assessment returned non-zero (expected for ad-hoc / local developer signatures without developer ID root)"
+          }
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Solipsist-macOS
+          path: |
+            dist/Solipsist.dmg
+            build/Build/Products/Release/Solipsist.app
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Solipsist.dmg
+          generate_release_notes: true

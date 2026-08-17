@@ -1,12 +1,16 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
-# Copies the Boris engine binary into the app bundle's Resources so the
-# app can find it at runtime (BorisBinary.locate checks
-# Bundle.main.resourceURL/boris).
+# Embeds the Boris engine binary into the app bundle's Resources directory.
+#
+# Supports:
+#   - Universal Mach-O fat binaries (arm64 + x86_64) or automatic lipo merging
+#     if discrete single-architecture binaries are available.
+#   - Matching codesign identity and hardened runtime options for App Sandbox
+#     execution compliance.
 #
 # Search order:
-#   1. SOLIPSIST_BORIS_BIN
-#   2. Prebuilt kit next to this repo (SUPPORT-NOT-FOR-GITHUB / sibling kit)
+#   1. Explicit env overrides: SOLIPSIST_BORIS_BIN, or SOLIPSIST_BORIS_ARM64_BIN + SOLIPSIST_BORIS_X86_64_BIN
+#   2. Prebuilt kits next to this repo (SUPPORT-NOT-FOR-GITHUB / sibling kit)
 #   3. Existing zig-out in a boris checkout
 #   4. Build from BORIS_REPO_DIR (default: ../boris)
 #
@@ -22,6 +26,7 @@ find_prebuilt() {
     echo "${SOLIPSIST_BORIS_BIN}"
     return 0
   fi
+
   local candidates=(
     "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/boris-agent-kit/bin/boris"
     "$SRCROOT/../boris-agent-kit/bin/boris"
@@ -39,16 +44,81 @@ find_prebuilt() {
   return 1
 }
 
-bundle_binary() {
-  local src="$1"
-  mkdir -p "$DEST_DIR"
-  cp "$src" "$DEST_DIR/boris"
-  chmod +x "$DEST_DIR/boris"
-  echo "embed-boris: bundled $DEST_DIR/boris ($(du -h "$DEST_DIR/boris" | cut -f1)) from $src"
+find_arch_binaries() {
+  local arm_cand=(
+    "${SOLIPSIST_BORIS_ARM64_BIN:-}"
+    "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin/aarch64-macos/boris"
+    "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin/arm64/boris"
+    "$SRCROOT/../boris/zig-out/bin/aarch64-macos/boris"
+  )
+  local x86_cand=(
+    "${SOLIPSIST_BORIS_X86_64_BIN:-}"
+    "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin/x86_64-macos/boris"
+    "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin/x86_64/boris"
+    "$SRCROOT/../boris/zig-out/bin/x86_64-macos/boris"
+  )
+
+  local arm_bin=""
+  local x86_bin=""
+
+  for c in "${arm_cand[@]}"; do
+    if [[ -n "$c" && -x "$c" ]]; then
+      arm_bin="$c"
+      break
+    fi
+  done
+
+  for c in "${x86_cand[@]}"; do
+    if [[ -n "$c" && -x "$c" ]]; then
+      x86_bin="$c"
+      break
+    fi
+  done
+
+  if [[ -n "$arm_bin" && -n "$x86_bin" ]]; then
+    echo "$arm_bin|$x86_bin"
+    return 0
+  fi
+  return 1
 }
 
+bundle_and_sign() {
+  local target="$DEST_DIR/boris"
+  chmod +x "$target"
+
+  local arch_info
+  arch_info="$(lipo -archs "$target" 2>/dev/null || echo "unknown")"
+  local size_info
+  size_info="$(du -h "$target" | cut -f1)"
+  echo "embed-boris: bundled $target (arch: $arch_info, size: $size_info)"
+
+  # Codesign matching host application identity & runtime options for App Sandbox execution
+  local sign_identity="${EXPANDED_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY:--}}"
+  if [[ -n "$sign_identity" ]]; then
+    echo "embed-boris: signing $target with identity '$sign_identity' (runtime hardened)"
+    codesign --force --options runtime --sign "$sign_identity" "$target" 2>/dev/null || {
+      echo "embed-boris: notice: ad-hoc signing fallback"
+      codesign --force --options runtime --sign - "$target" 2>/dev/null || true
+    }
+  fi
+}
+
+mkdir -p "$DEST_DIR"
+
+# 1. Check if discrete arm64 and x86_64 binaries are available for lipo
+if ARCH_PAIR="$(find_arch_binaries)"; then
+  ARM_BIN="${ARCH_PAIR%%|*}"
+  X86_BIN="${ARCH_PAIR##*|}"
+  echo "embed-boris: creating universal fat binary from $ARM_BIN and $X86_BIN"
+  lipo -create -output "$DEST_DIR/boris" "$ARM_BIN" "$X86_BIN"
+  bundle_and_sign
+  exit 0
+fi
+
+# 2. Check for prebuilt single or universal binary
 if BIN="$(find_prebuilt)"; then
-  bundle_binary "$BIN"
+  cp "$BIN" "$DEST_DIR/boris"
+  bundle_and_sign
   exit 0
 fi
 
@@ -56,7 +126,6 @@ fi
 # requires a kit or a boris checkout.
 if [[ "${SKIP_EMBED_BORIS:-}" == "1" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
   echo "embed-boris: no engine available — compiling without a bundle"
-  mkdir -p "$DEST_DIR"
   exit 0
 fi
 
@@ -72,4 +141,5 @@ if [[ ! -x "$BIN" ]]; then
   }
 fi
 
-bundle_binary "$BIN"
+cp "$BIN" "$DEST_DIR/boris"
+bundle_and_sign
