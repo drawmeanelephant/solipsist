@@ -89,10 +89,10 @@ final class CompanionURLTests: XCTestCase {
 
     // MARK: - PreviewURL Tests
 
-    func testPreviewURLLoopbackRules() {
-        let v4 = URL(string: "http://127.0.0.1:8080/__boris/")!
-        let localhost = URL(string: "http://localhost:3000/")!
-        let v6 = URL(string: "http://[::1]:9000/preview")!
+    func testPreviewURLLoopbackRules() throws {
+        let v4 = try XCTUnwrap(URL(string: "http://127.0.0.1:8080/__boris/"))
+        let localhost = try XCTUnwrap(URL(string: "http://localhost:3000/"))
+        let v6 = try XCTUnwrap(URL(string: "http://[::1]:9000/preview"))
 
         XCTAssertTrue(PreviewURL.isLoopback(v4))
         XCTAssertTrue(PreviewURL.isLoopback(localhost))
@@ -102,17 +102,17 @@ final class CompanionURLTests: XCTestCase {
         XCTAssertTrue(PreviewURL.isAllowed(v6))
     }
 
-    func testPreviewURLBlankAllowed() {
-        let blank = URL(string: "about:blank")!
+    func testPreviewURLBlankAllowed() throws {
+        let blank = try XCTUnwrap(URL(string: "about:blank"))
         XCTAssertTrue(PreviewURL.isAllowed(blank))
         XCTAssertFalse(PreviewURL.isLoopback(blank))
     }
 
-    func testPreviewURLNonLoopbackRejected() {
-        let remote = URL(string: "http://example.com:8080/")!
-        let lan = URL(string: "http://192.168.1.1:8080/")!
-        let secure = URL(string: "https://127.0.0.1:8080/")!
-        let file = URL(string: "file:///tmp/test.html")!
+    func testPreviewURLNonLoopbackRejected() throws {
+        let remote = try XCTUnwrap(URL(string: "http://example.com:8080/"))
+        let lan = try XCTUnwrap(URL(string: "http://192.168.1.1:8080/"))
+        let secure = try XCTUnwrap(URL(string: "https://127.0.0.1:8080/"))
+        let file = try XCTUnwrap(URL(string: "file:///tmp/test.html"))
 
         XCTAssertFalse(PreviewURL.isLoopback(remote))
         XCTAssertFalse(PreviewURL.isAllowed(remote))
