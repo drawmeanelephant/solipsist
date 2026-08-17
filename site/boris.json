@@ -8,12 +8,6 @@
     "url": "https://solipsist.pages.dev",
     "description": "A native macOS harness for Boris, the deterministic Zig publication compiler."
   },
-  "publication": {
-    "target": "site",
-    "base_url": "https://solipsist.pages.dev",
-    "origin": "https://solipsist.pages.dev",
-    "base_path": "/"
-  },
   "targets": [
     {
       "name": "site",
