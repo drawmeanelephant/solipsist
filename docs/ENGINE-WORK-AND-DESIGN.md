@@ -7,26 +7,22 @@
 boris checkout is on `afterparty`, and the bundled engine is built from it. Full capability map:
 [BORIS-CAPABILITIES.md](BORIS-CAPABILITIES.md). Mission: [MISSION.md](MISSION.md).
 
-## ⚠️ Issue-batch reconciliation (re-check before filing anything)
+## ✅ Issue-batch reconciliation — DRAFTS RE-BASELINED (2026-08-17)
 
-Fact-checked against the afterparty binary (2026-08-17). **Several drafted issues are already
-done — do not file them as-is:**
+All drafts in `docs/issues/` are re-written against the afterparty binary; statuses are final:
 
-| Issue | Status on afterparty | Evidence (verified) |
-|-------|----------------------|---------------------|
-| A2 `--version` | ✅ **DONE — withdraw** | `boris --version` → `boris/0.8.1`, exit 0, no content scan; pinned by `test-version-pin` |
-| A9 check exit | ✅ **DONE — withdraw** | `check` exits 0 with findings; `--fail-on-unreferenced` → 1 (the recommended opt-in) |
-| A8 `init` | ✅ **DONE — withdraw** | `boris init [DIR]` ships (starter site + profile) |
-| A3 compiler in IR build-report | 🟡 **STILL OPEN** | IR `build-report.json` lacks `compiler`; the new `html-build-report-0.1.0` **has** `compilerId` — the inconsistency is sharper; reframe as HTML/IR report parity |
-| A4 stream docs + `--report` help | 🟡 **PARTIAL** | `cli.md` documents version query; help still says `--report … instead of stdout`; `--timings` (new stdout surface) needs documenting |
-| A6 completion signal | 🟡 **MOSTLY DONE** | `build --report PATH` gives HTML a machine result artifact on success *and* failure; cache-manifest-as-contract ask drops to low priority |
-| A7 workspace rule | 🟡 **MOSTLY DONE** | All output trees now cwd-contained (verified: HTML/IR/RAG/context → `WorkspaceEscape`); `--report` free; the asymmetry is resolved — docs ask only |
-| A12 signal contract | 🟡 **PARTIAL** | C06 conformance pins watch exit classes; explicit signal docs + latch test still open |
-| A1 watch events | 🟡 **OPEN, reframed** | `watch --serve` has an SSE `reload` channel for browsers; typed build-lifecycle/diagnostic events for subprocess consumers still missing — A1 stands, cite `--serve` |
-| A5 `check --watch` RFC | 🔵 **REFORMULATE** | `boris validate` (artifact-free preflight + in-memory link audit) now exists; the RFC becomes `validate --watch` — joining validate + watch, far more tractable |
+| Issue | Status after re-baselining | Notes |
+|-------|---------------------------|-------|
+| A2 `--version` | ⛔ **withdrawn** | Shipped on afterparty: `boris --version` → `boris/0.8.1`, exit 0, test-pinned; A8 `init` and A9 (`--fail-on-unreferenced`) too — evidence in `boris-A2-version-flag.md` |
+| A1 watch events | ✅ **ready** | Typed events for subprocess consumers; cites `watch --serve`'s SSE channel as the browser sibling; `mode` field future-proofs A5 |
+| A3 compiler in IR build-report | ✅ **ready** | The naming zoo: `manifest`=`compiler`, `completion`=`compiler_id`, `html-build-report`=`compilerId`, IR build-report=absent — the sharpest consistency gap |
+| A4 stream docs + `--report` help | ✅ **ready** | Help still says `--report … instead of stdout` (verified); stdout is now a machine payload surface (`--version`, `--timings`, plans) — document the rule |
+| A6 completion signal | ✅ **ready (P2)** | `build --report` solved the original ask; reduced to documenting the cache-manifest changed-page contract, with an honest won't-do option |
+| A7 workspace rule | ✅ **ready** | Containment now uniform (HTML/IR/RAG/context verified); docs ask + the IR absolute-output-path quirk (`--out /abs` inside cwd escapes, HTML doesn't) |
+| A12 signal contract | ✅ **ready** | Graceful SIGTERM/SIGINT verified on afterparty (exit 0, ≤500ms); C06 pins exit classes; remaining: docs + shutdown-latch test |
+| A5 `check --watch` RFC | 🔵 **ready (reformulated)** | `boris validate` exists — the RFC is now `validate --watch` (join validate + watch, A1 events), far more tractable |
 
-**Action:** rewrite/withdraw the affected drafts (`docs/issues/`) before filing. The batch README
-will carry the same status table.
+**Filing order:** A3 → A4 → A1 → A12 → A6/A7 → A5 RFC. See `docs/issues/README.md`.
 
 This document lists (A) the work we should ask Boris to do — phrased as
 ready-to-file GitHub issues — and (B) the design decisions we need to make on

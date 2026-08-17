@@ -164,23 +164,20 @@ From [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) §Part B
 **D7's pin note is a known TODO** — record the exact afterparty commit
 (b82e9e2, `boris/0.8.1`) tested against, somewhere the build can read it.
 
-## Issue pipeline (boris) — reconciled against afterparty
+## Issue pipeline (boris) — re-baselined against afterparty
 
-Fact-checked status of the drafts (full table in
-[`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) and
+The drafts are re-baselined and ready to paste (statuses in
 [`docs/issues/README.md`](docs/issues/README.md)):
 
-- ✅ **Withdraw (already done on afterparty):** A2 (`--version`),
-  A8 (`init`), A9 (`--fail-on-unreferenced`).
-- 🟡 **Reframe before filing:** A1 (`--watch-json`; cite `--serve`'s SSE
-  channel), A3 (report parity — HTML report has `compilerId`, IR
-  build-report doesn't), A4 (trim: `--report` help text + `--timings`
-  docs), A6 (demote — `build --report` covers it), A7 (reduce to docs —
-  containment now uniform), A12 (trim — C06 pins exit classes).
-- 🔵 **Reformulate:** A5 RFC becomes `validate --watch` (the `validate`
-  command now exists).
+- ✅ **Ready:** A1 (`--watch-json`), A3 (IR build-report identity + the
+  `compiler`/`compiler_id`/`compilerId` naming zoo), A4 (`--report` help
+  bug + stdout surfaces), A6 (cache-manifest changed-page docs, P2),
+  A7 (containment docs + IR absolute-path quirk), A12 (signal contract).
+- 🔵 **RFC:** A5 (`validate --watch` — join validate + watch, A1 events).
+- ⛔ **Withdrawn (shipped on afterparty):** A2 (`--version`), A8 (`init`),
+  A9 (`--fail-on-unreferenced`). The A2 file holds the evidence.
 
-Filing order after re-baselining: A3 → A4 → A1 → A12 → A5 RFC.
+Filing order: A3 → A4 → A1 → A12 → A6/A7 → A5 RFC.
 
 Rule: every issue draft must be fact-checked against the **afterparty**
 source before it's filed — exact stderr lines, emission points, exit codes.

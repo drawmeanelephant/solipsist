@@ -1,207 +1,155 @@
-# A5 — RFC: `boris check --watch` — live diagnostics as a daemon
+# A5 — RFC: `boris validate --watch` — live, artifact-free validation as a daemon
 
 > **Design discussion for the boris repo.** Companion to A1
 > ([boris-A1-watch-events.md](boris-A1-watch-events.md)) — this mode consumes
 > A1's event protocol. Not a contract change; an RFC to decide whether boris
 > wants a validate-only watch mode at all.
-> Status: proposal. Priority: P1/P2. Size: L (if approved).
+> **Rebaselined against afterparty v0.8.1.** The original framing
+> (`check --watch`) is superseded: **`boris validate` now exists** — an
+> artifact-free HTML preflight with an in-memory link audit — so the ask
+> becomes *joining validate + watch*, which is far more tractable than
+> inventing a new mode.
+> Status: proposal. Priority: P1/P2. Size: M (if approved).
 
 ---
 
-**Title:** RFC: `boris check --watch` — recompile in memory, emit diagnostics as events, never touch outputs
+**Title:** RFC: `boris validate --watch` — join the artifact-free preflight with the watch daemon
 
 ## Summary
 
-Watch mode exists but is HTML-only: it rebuilds a site on every change and
-writes artifacts. `check` exists but is one-shot: it compiles read-only,
-analyzes graph health, prints a report, exits. Neither gives a consumer what
-an editor or live-dashboard actually wants — **continuous, artifact-free
-validation**: "is the tree healthy right now, and what broke the moment it
-did?" Today that consumer either (a) polls one-shot `check` runs, (b) runs
-HTML watch and scrapes stderr prose while churning `dist/` on every keystroke,
-or (c) reimplements a file watcher itself. All three are strictly worse than
-what boris could offer with two existing halves joined.
+Afterparty has two halves of a story that don't touch:
 
-## The key insight: the seam already exists
+- **`boris validate`** — artifact-free HTML source/configuration preflight:
+  canonical compiler semantics, in-memory output link audit
+  (`EROUTEMISSING`/`EROUTEESCAPE`/`EPUBLICATIONLOCATION` fail validation
+  exactly as they fail compilation), `--report PATH` for a machine
+  diagnostics report, zero writes to any output tree.
+- **`boris watch`** — the daemon half: debounced (100ms) + coalesced (2s
+  burst cap) rebuilds, ignore rules, graceful SIGTERM/SIGINT shutdown,
+  recoverable-failure persistence.
 
-- **`check` already compiles in memory and writes nothing.** `runIntelligence`
-  (`src/main.zig:165`) calls `pipeline.compile` with `.quiet = true`, runs
-  `intelligence.analyze` over the resulting pages/edges, and prints (or
-  `--report`s). It never touches `dist/`, `.boris/`, or any cache. The
-  "recompile in memory without touching outputs" behavior is *today's code*,
-  just run once.
-- **Watch mode already has all the machinery.** `WatchCoordinator`
-  (`src/watch.zig`) owns: polling watcher with ignore rules
-  (`.boris-cache`, `dist`), 100ms debounce, 2s coalescing burst cap, sorted
-  pending-path tracking, SIGINT/SIGTERM graceful shutdown, and per-target
-  fan-out. The only thing it does with a change is call
-  `compileHtmlSite`/`compileHtmlSiteMulti` and print prose.
-- **Today `boris check --watch` is a usage error** (exit 2,
-  `error: conflicting options` — verified). The conflict rule exists because
-  `--watch` promises HTML; this RFC redefines what `--watch` can promise.
-
-So the proposal is: let the watch coordinator drive the *check* action
-instead of the *HTML publish* action, and emit results over A1's event
-protocol instead of prose.
+Today **`boris validate --watch` is a usage error** (verified:
+`error: conflicting options`, exit 2). The consumer that wants "is the tree
+healthy *right now*, and what broke the moment it did" — an editor problems
+panel, a live dashboard, a GUI — must either poll one-shot `validate` runs
+(reimplementing debounce) or run full HTML watch (rendering `dist/` on every
+keystroke just to get diagnostics). Both are strictly worse than what boris
+could offer by joining the two halves it already has.
 
 ## Proposed design
 
 ### CLI
 
 ```
-boris check --watch [--input DIR] [--format json]
+boris validate --watch [--input DIR] [--report PATH]
 ```
 
-- Extends the existing `check` command; lifts the `--watch` conflict *for
-  the check command only*. `--watch` on HTML/IR/RAG/context modes keeps its
-  current meaning and rules.
-- `--format json` controls the *findings payload* shape inside events (see
-  below). Human prose is not emitted in this mode at all; A1's
-  `--watch-json`-style exclusivity applies (stderr = NDJSON only).
+- The `watch` command's daemon loop drives the `validate` action instead of
+  the HTML publish action. No new machinery: same polling watcher, same
+  debounce/coalescing, same ignore rules, same signal handlers.
+- `--report PATH` is **rewritten on every validation cycle** with the
+  current diagnostics (`html-build-report-0.1.0` shape — already what
+  one-shot `validate --report` emits) so a consumer can read the latest
+  report file without parsing the stream. This is a *replacement*, not an
+  append; stale-failure state cannot linger.
 - No output flags are accepted (`--html-dir`, `--out`, `--rag-dir`,
-  `--target`, `--report`): this mode writes nothing, and the conflict rules
-  should say so loudly (exit 2) rather than silently ignore.
+  `--target`, `--serve`): this mode writes nothing but the optional report
+  file. Conflicts stay exit 2.
+- Because the action writes nothing, self-trigger protection is trivially
+  satisfied and artifacts never churn.
 
-### Event protocol (reuses A1 verbatim where possible)
+### Events (consumes A1)
 
-The stream is A1's NDJSON with the same `hello` handshake
-(`watch_events_schema`, `compiler`) and the same lifecycle events. The only
-delta is what `build-*` events carry:
+When A1 (`--watch-json`) lands, `validate --watch` emits the same protocol
+with `mode: "validate"`:
 
 ```json
-{"event":"hello","watch_events_schema":1,"compiler":"boris/0.8.0"}
-{"event":"build-started","phase":"initial","mode":"check"}
-{"event":"build-succeeded","phase":"initial","mode":"check","errors":0,"findings":{"unreferenced_pages":1,"hotspots":0}}
-{"event":"build-started","phase":"rebuild","mode":"check","changed":["guides/overview.md"]}
-{"event":"build-failed","phase":"rebuild","mode":"check","changed":["guides/overview.md"],"errors":1,"diagnostics":[{"severity":"error","code":"EFRONTMATTER","message":"unknown key \"category\"","remediation":"","sourcePath":"guides/overview.md","line":2,"column":1,"id":null}]}
+{"event":"hello","watch_events_schema":1,"compiler":"boris/0.8.1"}
+{"event":"build-started","phase":"initial","mode":"validate"}
+{"event":"build-succeeded","phase":"initial","mode":"validate","errors":0}
+{"event":"build-started","phase":"rebuild","mode":"validate","changed":["guides/overview.md"]}
+{"event":"build-failed","phase":"rebuild","mode":"validate","changed":["guides/overview.md"],"errors":1,"diagnostics":[{"severity":"error","code":"EFRONTMATTER","message":"unknown key \"category\"","remediation":"","sourcePath":"guides/overview.md","line":2,"column":1,"id":null}]}
 {"event":"watch-error","message":"poll error (BrokenPipe)","recoverable":true}
 {"event":"watch-stopped","reason":"signal"}
 ```
 
-- `mode: "check"` distinguishes this from HTML-watch events (same schema, so
-  consumers gate on `watch_events_schema` and branch on `mode`).
-- `build-succeeded` carries the analysis summary (`findings`) when the
-  intelligence pass runs — the `unreferenced_pages` / `hotspots` numbers
-  consumers need for a graph-health indicator. Full findings payload (the
-  existing `renderAnalysisJson` shape) is available on request; open question
-  O2 below.
-- `build-failed` carries the full diagnostic objects — identical shape to
-  `build-report.json` — because the pipeline already holds them.
-- `pages_written` / `targets` are absent: nothing is written.
+Until A1 lands, the mode can ship with `--report`-file-only consumers and
+the existing prose, with A1's events added when the protocol exists.
 
-### What the coordinator does differently
-
-The delta in `WatchCoordinator` is one seam: the rebuild action becomes
-"run `pipeline.compile` (the check path) and emit events" instead of "run
-`compileHtmlSite` and print prose." Everything else — polling, ignore rules,
-debounce, burst cap, signal handlers, graceful shutdown — is reused
-verbatim. Because the action writes nothing:
-
-- **Self-trigger protection is trivially satisfied** (no own-writes to
-  ignore).
-- **Zero artifact churn** — no `dist/` writes, no cache-manifest updates,
-  no `.boris-stage`; a keystroke never costs a render.
-- **Determinism holds** — sorted paths, stable diagnostic order, no
-  timestamps in the payloads (duration/`at` stay optional metadata as in A1).
-
-### Exit codes and lifecycle
+### Lifecycle
 
 - Runs until signal; SIGINT/SIGTERM → graceful exit 0 (A12 semantics).
-- Findings are **events, not exit codes** — the one-shot `check` exit-1-on-
-  findings contract is untouched; this is a daemon, and a daemon has no
-  final exit code to signal findings with.
+- Recoverable content failures keep the watcher alive (same
+  `isRecoverableBuildError` rule as watch).
+- Determinism: sorted changed paths, stable diagnostic order, no timestamps.
 
 ## Why this is a strong decision for boris
 
 - It completes the "compiler as a daemon" story with the *validate-only*
-  half that editors and dashboards want, without asking consumers to render
-  sites to get diagnostics.
-- It reuses two battle-tested halves (read-only compile + watch machinery)
-  rather than inventing anything; the design work is a seam, not a rewrite.
-- It is strictly additive: one-shot `check`, HTML watch, IR/RAG/context, and
-  all artifacts are byte-identical when the flag isn't used.
-- It keeps the single-binary, no-server posture — a live diagnostics stream
-  on stderr, not IPC.
-
-## The real design work (honest scope)
-
-The pipeline surface question is the actual decision:
-
-- **v1 (recommended): the `check` surface.** `pipeline.compile` +
-  `intelligence.analyze` — scan, parse, frontmatter, graph topology, IR
-  dependency resolution. This is what `check` already validates, so the
-  semantics are defined today.
-- **Follow-up: the HTML surface.** Full HTML validation minus publish
-  (layout marker, includes, wiki-links, components, content-local assets —
-  the `EINCLUDEMISSING`/`EREFERENCEMISSING`/`EASSET` class). This is *not*
-  free: `compileHtmlSite` currently couples validation with rendering and
-  layout loading, so factoring "validate without render/publish" out of the
-  HTML pipeline is real refactoring. Worth its own issue if there's appetite.
-
-The RFC deliberately proposes v1 scope; the HTML surface is the extension
-path, not the first step.
+  half, using two battle-tested halves that already exist. The design work
+  is a seam (watch's rebuild action → validate), not a rewrite.
+- It gives editors and dashboards live diagnostics with **zero artifact
+  churn** — a keystroke never costs a render.
+- Strictly additive: one-shot `validate`, HTML `watch`, and all artifacts
+  are unchanged when the flag isn't used.
+- It reuses the `mode` field A1 already defines, so the protocol family
+  stays one.
 
 ## Alternatives considered
 
-1. **Poll one-shot `check`.** Works today with zero boris changes, but
-   reimplements debounce/coalescing in every consumer, has no incremental
-   cost savings, and produces no change attribution (which page broke it).
-2. **HTML watch + poll artifacts.** Renders on every keystroke, churns
-   `dist/`, publishes no `build-report.json`, and diagnostics only exist on
-   failure — no graph-health signal at all.
-3. **A1 only, no check-watch.** Consumers get typed events but still have to
-   choose between rendering HTML or polling one-shot checks; A1 makes the
-   prose pain go away but not the render-or-poll dilemma.
-4. **App-side watcher (status quo workaround).** Fine, but duplicates
-   machinery boris already owns and tests.
+1. **Poll one-shot `validate`.** Works today with zero boris changes, but
+   reimplements debounce/coalescing in every consumer and produces no
+   change attribution (which page broke it).
+2. **HTML `watch` + `build --report`.** Renders `dist/` on every keystroke
+   and churns artifacts to get diagnostics that `validate` computes without
+   writing anything.
+3. **`check --watch` instead.** Also viable (graph-health findings as
+   events), but `validate` already owns the no-publication HTML preflight
+   and its link audit; joining watch to validate is the smaller, more
+   obvious seam. `check --watch` can be a sibling mode later if the
+   findings-as-events story wants its own daemon.
 
 ## Open questions
 
-- **O1 — Validation surface:** confirm v1 = `check` surface (recommended)
-  vs HTML-full-minus-publish as v1.
-- **O2 — Findings in events:** emit full findings array, or just the summary
-  numbers? (Recommend summary in `build-succeeded` + full report via a
-  `--report`-style opt-in, keeping events lean.)
-- **O3 — State-change events:** add an explicit `diagnostics-clear` event
-  (or rely on `build-succeeded` with `errors: 0`)? (Recommend the latter —
-  fewer event types.)
-- **O4 — Naming:** `check --watch` (recommended; reuses an existing command)
-  vs `boris --diagnostics --watch` vs a new `doctor` command.
-- **O5 — Watch roots:** `--watch` for check should watch the content root +
-  nothing else (no layouts), since no layout is loaded in v1 scope.
+- **O1 — Report file vs events only:** is `--report` rewrite-on-cycle the
+  right companion, or should the mode be stream-only until A1 lands?
+- **O2 — Validation surface:** confirm v1 = `validate`'s existing surface
+  (HTML source/config + in-memory link audit), no IR/RAG.
+- **O3 — Name:** `validate --watch` (recommended) vs `watch --validate` vs
+  a dedicated `doctor --watch`.
 
 ## Compatibility
 
-Strictly additive. One-shot `check` (including its exit-1-on-findings CI
-contract), HTML watch, and all output modes are unchanged when the new flag
-combination isn't used. The only existing-surface change is that
-`check --watch` stops being a usage error and becomes a defined mode.
+Strictly additive. One-shot `validate` (including `--report`), HTML watch,
+and all output modes are unchanged when the new flag combination isn't used.
+The only existing-surface change: `validate --watch` stops being a usage
+error and becomes a defined mode.
 
 ## Implementation sketch
 
-- `src/cli.zig`: allow `--watch` for the `check` command; reject output
-  flags with it; extend the conflict-rule tests.
-- `src/main.zig`: `runCheckWatch(io, gpa, opts)` — the watch loop's rebuild
-  action calls the same `pipeline.compile` + `intelligence.analyze` path
-  `runIntelligence` uses, then emits events via the A1 NDJSON writer.
+- `src/cli.zig`: lift the `validate` × `--watch` conflict; reject output
+  flags with the combination; extend conflict-rule tests.
+- `src/main.zig`: `runValidateWatch` — the watch loop's rebuild action
+  calls the same code path one-shot `validate` uses, then emits events
+  (A1) / rewrites the report file.
 - `src/watch.zig`: parameterize the coordinator's rebuild action (enum:
-  `html` | `check`) rather than branching inside; reuse everything else.
-- `src/json_out.zig` / A1: the NDJSON event writer and schema land with A1;
-  check-watch is its first consumer.
+  `html` | `validate`) rather than branching inside; reuse everything else.
 
 ## Testing
 
 - `FakeWatcher`-driven tests asserting exact event sequences for: initial
-  success with findings summary; rebuild failure with a diagnostics array;
-  change-set attribution; graceful shutdown (A12 latch test applies).
-- CLI parse tests: `check --watch` valid; `check --watch --out x` usage
-  error; `check --watch --report x` usage error.
-- Golden: one-shot `check` output byte-identical with and without the new
-  code paths.
+  clean; rebuild failure with diagnostics; change-set attribution; graceful
+  shutdown.
+- `--report` file is replaced (not appended) across cycles; a failed cycle
+  leaves the previous report replaced with the new failure state.
+- CLI parse tests: `validate --watch` valid; `validate --watch --html-dir x`
+  usage error.
+- Golden: one-shot `validate` output byte-identical with and without the
+  new code paths.
 
 ## Acceptance criteria (for the decision)
 
-- [ ] Decision recorded on scope (O1), findings payload (O2/O3), and naming
-      (O4).
-- [ ] If approved: `check --watch` streams A1 events on stderr, writes
-      nothing, exits 0 on signal; one-shot `check` and HTML watch unchanged.
+- [ ] Decision recorded on O1/O2/O3.
+- [ ] If approved: `validate --watch` streams A1 events (or rewrites the
+      report), writes nothing else, exits 0 on signal; one-shot `validate`
+      and HTML watch unchanged.

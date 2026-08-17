@@ -1,80 +1,98 @@
-# A3 — `compiler` field in `build-report.json`
+# A3 — Compiler identity in the IR `build-report.json` (and the field-name zoo)
 
 > **Ready-to-paste GitHub issue for the boris repo.**
 > Priority: P1. Size: XS. Additive field — no shape changes.
+> **Rebaselined against afterparty v0.8.1.** The sharpening: afterparty's
+> new `html-build-report-0.1.0` **has** the field; the IR
+> `build-report.json` still **doesn't** — and the field has three different
+> names across artifacts.
 
 ---
 
-**Title:** Add `compiler` to `build-report.json` (artifact-identity consistency)
+**Title:** Add compiler identity to IR `build-report.json`; consider unifying the field name
 
 ## Summary
 
 Boris's machine artifacts are consistent about one thing: they say who made
-them. `manifest.json`, `graph.json`, and the `check`/`impact` analysis report
-all carry a `compiler` id. **`build-report.json` is the single exception** —
-and it's the artifact written on *every* build, including failures:
+them. On afterparty every artifact carries the compiler id — under three
+different field names:
 
-| Artifact | Has `compiler`? |
-|----------|-----------------|
-| `manifest.json` | ✅ `"compiler": "boris/0.8.0"` (field 2, after `schemaVersion`) |
-| `graph.json` | ✅ |
-| `check` / `impact` analysis report | ✅ |
-| `build-report.json` | ❌ |
+| Artifact | Field | Value (verified) |
+|----------|-------|------------------|
+| `manifest.json` | `compiler` | `boris/0.8.1` |
+| `graph.json` | `compiler` | `boris/0.8.1` |
+| `completion.json` | `compiler_id` | `boris/0.8.1` |
+| `html-build-report-0.1.0` (`build --report`) | `compilerId` | `boris/0.8.1` |
+| **IR `build-report.json`** | **—** | **absent (verified)** |
 
-The failure case is precisely where identity matters most: a build report
-with diagnostics is read by a tool that wants to know *which compiler
-produced this* — the engine it shipped, or a newer/older one that changed
-behavior between versions. Without the field, the report's `schemaVersion` is
-floating: the consumer has to guess whether the schema it's reading belongs
-to the compiler it expected. This is a one-field hole in an otherwise
-uniform identity contract.
+Two problems:
+
+1. **The IR build-report omits identity entirely** — and it is the artifact
+   written on *every* IR build, including failures, where identity matters
+   most: a tool reading diagnostics wants to know *which compiler produced
+   this* — the engine it shipped, or a newer/older one that changed behavior
+   between versions. Every other artifact answers; this one is mute.
+2. **The name is different everywhere it exists** — `compiler`,
+   `compiler_id`, `compilerId`. Consumers cannot write one path to the
+   identity; they must special-case per artifact. For a contract family that
+   prides itself on uniformity, that is the kind of drift that hardens into
+   a permanent ABI wart.
 
 ## Proposal
 
-Add one field to `renderBuildReport` (`src/ir_emit.zig`), immediately after
-`schemaVersion`, mirroring `manifest.json`'s field order:
+1. **Add the field to IR `build-report.json`**, immediately after
+   `schemaVersion`, using the same helper the other IR artifacts use
+   (`artifactCompilerId`), so it is *by construction identical* to
+   `manifest.json`'s value (including the `+`-suffixed semantic/Cooklang
+   variants when present):
 
-```json
-{
-  "schemaVersion": "0.2.0",
-  "compiler": "boris/0.8.0",
-  "ok": true,
-  "contentRoot": "content",
-  "outDir": ".boris",
-  "pageCount": 45,
-  "errorCount": 0,
-  "diagnostics": []
-}
-```
+   ```json
+   {
+     "schemaVersion": "0.2.0",
+     "compiler": "boris/0.8.1",
+     "ok": true,
+     "contentRoot": "content",
+     "outDir": ".boris",
+     "pageCount": 25,
+     "errorCount": 0,
+     "diagnostics": []
+   }
+   ```
 
-- Value comes from the existing `artifactCompilerId(result, versions)`
-  helper — the same call `renderManifest` and `renderGraph` use — so the
-  field is **by construction identical** to `manifest.json`'s `compiler`
-  (including the `boris/0.8.0+semantic-relations` variant when semantic
-  relations are present). Consumers can rely on the invariant
-  `build-report.compiler == manifest.compiler`.
-- `schemaVersion` bump: **recommend no bump.** The field is additive and the
-  IR shape is unchanged; consumers already parse with
-  `ignore_unknown_fields`-style tolerance (e.g. `ParsedCacheManifest` in
-  `src/compile.zig`). Final call is yours — an additive-field bump would be
-  defensible, just costly for every downstream consumer.
+2. **Decide the field name deliberately** — recommend unifying on
+   `compiler` (the name the two core IR artifacts already use) everywhere,
+   or on `compilerId` (the name the HTML report uses) everywhere. Either
+   choice is fine; the triplicate is not. If renaming existing fields is
+   too disruptive, at minimum document the per-artifact names as a table in
+   `docs/contracts/` so consumers can key off one lookup.
+
+3. **No `schemaVersion` bump** for the additive IR field (consumers already
+   parse with `ignore_unknown_fields` tolerance). A name unification that
+   *renames* existing fields would be a separate, versioned decision.
 
 ## Why this is a strong decision for boris
 
-One already-computed field, added in an existing renderer, restoring a
-uniform property across every machine artifact. No behavior, exit-code, or
-determinism change; the golden-output updates are mechanical. It hardens the
-identity contract at the exact point (failure reports) where version skew is
-most likely to be diagnosed.
+- The consistency argument is now sharper than ever: on a single build,
+  boris emits four identity-bearing artifacts and one mute one. Restoring
+  uniformity at the failure artifact is a one-field change in an existing
+  renderer; no behavior, exit-code, or determinism impact.
+- The naming zoo is exactly the kind of thing a contract-first project
+  should kill while it is still three artifacts wide, not thirty.
+- It hardens the version-skew story: a consumer can now assert
+  `build-report.compiler == manifest.compiler` on every run, including
+  failed ones.
 
 ## Testing
 
-- Update build-report goldens (success + failure) to include `compiler`.
+- Update build-report goldens (success + failure) to include the field.
 - Add an assertion that `build-report.compiler` equals `manifest.compiler`
-  on a shared run (the consistency invariant above).
+  on a shared run.
+- Extend the existing `test-version-pin` recipe to cover the IR
+  build-report (it already covers manifest + completion).
 
 ## Acceptance criteria
 
-- [ ] `build-report.json` (success and failure) contains `compiler` as field
-      2, matching `manifest.json`'s value on the same run.
+- [ ] IR `build-report.json` (success and failure) carries the compiler id,
+      matching `manifest.json`'s value on the same run.
+- [ ] A decision recorded on the field name (unify vs document-as-is).
 - [ ] Existing IR artifacts otherwise byte-identical.

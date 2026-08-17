@@ -1,72 +1,62 @@
-# A4 — Document stdout/stderr/exit behavior per mode
+# A4 — Stream contract: fix the `--report` help text; document the stdout machine surfaces
 
 > **Ready-to-paste GitHub issue for the boris repo.**
 > Priority: P1. Size: XS. Documentation only — no behavior change.
+> **Rebaselined against afterparty v0.8.1.** The per-mode stream tables are
+> largely documented now (`docs/contracts/cli.md`, `watch-mode.md`); this is
+> trimmed to the remaining factual/contract gaps.
 
 ---
 
-**Title:** Docs: specify stdout/stderr behavior for every mode (and fix the misleading `--report` help text)
+**Title:** Docs: fix the misleading `--report` help text and specify the stdout machine surfaces
 
 ## Summary
 
-Boris keeps a deliberate stream discipline — **stdout is sacred, everything
-human goes to stderr** — and it's a good one for a machine-consumed CLI. But
-it is almost entirely undocumented, and one piece of help text actively
-contradicts it:
+Two concrete gaps remain in the stream contract after the afterparty docs
+work:
 
-| Stream | Today's actual content |
-|--------|------------------------|
-| **stderr** | All progress lines (`ok: wrote IR under …`, `boris: …`); all diagnostics (text form); `--help` text; `check`/`impact` analysis reports in `human`/`json` format; all watch-mode lines (`watch: …`, `error: rebuild failed: …`, changed-path listings) |
-| **stdout** | Empty on every success path in every mode (deliberately reserved) |
-
-Two concrete problems:
-
-1. **The help text lies.** `--help` says
+1. **The help text still lies about `--report`.** `boris --help` says
    `--report PATH  Write an analysis report instead of stdout` — but the
-   default render target is **stderr**, not stdout. Any user reading the
-   help will point `--report` at a file thinking they're redirecting what
-   they already see, and will be confused about why stderr still shows the
-   report. This is a factual bug in the tool's own documentation of its
-   machine surface.
-2. **The stream contract is unspecified.** `docs/contracts/diagnostics.md`
-   has a two-row stub table; nothing states what goes where in each mode, or
-   what the watch-mode stderr line grammar is. A consumer of `--watch` (a
-   GUI, an editor plugin, a CI wrapper) cannot know that status lines,
-   changed-path listings, and rebuild errors all arrive on stderr, or how to
-   distinguish them.
+   default render target for `check`/`impact` is **stderr**, not stdout
+   (verified: the report prints to stderr with no `--report`; stdout stays
+   empty). A user reading the help will point `--report` at a file thinking
+   they are redirecting what they already see, and will be confused about
+   why stderr still shows the report. This is a factual bug in the tool's
+   own documentation of its machine surface, and it survived the afterparty
+   CLI rewrite.
+2. **stdout is now a real machine surface and it isn't specified.** The
+   old contract was "stdout is empty on success paths." Afterparty broke
+   that, deliberately and usefully: `--version` / `-V`, `--timings`,
+   `plan`/`standard-site plan`/`records`/`verify`, and `nostr sign` all
+   emit machine-readable documents on stdout. Nothing states the rule for
+   when stdout carries payloads vs when it stays clean — a consumer cannot
+   tell "stdout is empty because nothing was requested" from "stdout is
+   empty because I forgot a flag."
 
 ## Proposal
 
 1. **Fix the help text**: `--report PATH  Write the analysis report to PATH
-   (default: stderr, human format)`.
-2. **Extend `docs/contracts/diagnostics.md`** into a full per-mode table:
-   default HTML, `--out`/IR, `--rag`, `--context`, `--llms`, `check` /
-   `impact`, `--watch`, `package`, and `--help`. Columns: mode, stream,
-   content, machine path.
-3. **Document the watch-mode stderr line grammar** (the `watch:` / `error:`
-   prefixes and the changed-path listing format) so tooling can parse it with
-   confidence until structured events land (A1). Mark it explicitly as the
-   stopgap contract.
-4. **Optionally** add `--report -` as an explicit "stdout" target for
-   symmetry with shell conventions — flag as open question; not required.
-5. Note explicitly that `--help` on stderr is intentional (consistent with
-   `std.debug.print` usage); changing it is out of scope for this issue.
-
-`--quiet` interplay is already documented (diagnostics.md rule 7: suppresses
-progress + diagnostic text on stderr; exit codes and artifacts unchanged) —
-this issue extends, not rewrites, that contract.
+   (default: stderr, human format; rejected on watch and non-HTML modes)`.
+2. **Document the stdout contract** in `docs/contracts/cli.md`: the closed
+   list of commands/flags that emit on stdout (`--version`, `--timings`,
+   `plan`, `standard-site plan|records|verify`, `nostr plan|sign`), the
+   format each emits, and the rule that *everything else* keeps stdout
+   empty (progress/diagnostics/help stay on stderr, as today).
+3. **Note the per-mode `--report` semantics** in one table: `check`/`impact`
+   default to stderr; `build`/`validate --report PATH` write a file only
+   (no stderr default); `watch` rejects `--report`.
 
 ## Why this is a strong decision for boris
 
-Documentation of a discipline the tool already keeps. Making the stream
-contract explicit — and fixing the one place it's mis-stated — turns an
-implicit, empirically-discovered property into a promise any consumer can
-rely on. *Changing* any stream would be a breaking change and is explicitly
-out of scope; this is pure contract hygiene at zero behavior cost.
+Pure contract hygiene at zero behavior cost: one help-text bug fixed, one
+new machine surface specified. Afterparty already moved stdout from "sacred
+empty" to "machine payloads" — the docs should catch up with the
+implementation, or the next CLI writer will assume stdout is still sacred
+and break a consumer.
 
 ## Acceptance criteria
 
-- [ ] `docs/contracts/diagnostics.md` contains a per-mode stream table
-      covering every mode in `--help`.
-- [ ] Watch-mode stderr line grammar documented as the stopgap contract.
-- [ ] `--report` help text no longer claims stdout.
+- [ ] `--help` no longer claims `--report` writes "instead of stdout".
+- [ ] `docs/contracts/cli.md` lists the stdout-emitting commands/flags and
+      the empty-stdout rule for everything else.
+- [ ] Per-mode `--report` semantics documented in one table.
