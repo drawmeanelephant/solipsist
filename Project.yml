@@ -36,6 +36,7 @@ targets:
       - path: Sources/Companions
       - path: Sources/Models
       - path: Sources/Engine
+      - path: Sources/Security
       - path: Solipsist/Assets.xcassets
       - path: docs/help.md
         buildPhase: resources
@@ -88,6 +89,7 @@ targets:
       - path: Tests/Fixtures
         type: folder
       - path: Sources/Models
+      - path: Sources/Security
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
     settings:
