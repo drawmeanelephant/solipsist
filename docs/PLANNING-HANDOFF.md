@@ -43,7 +43,7 @@ session re-deriving facts that are already verified and written down.
 |-----------|---------------|
 | **D4 editor scope** | Biggest scope lever. boris now ships `boris-editor` + `completion.json`; decide how much native editor Solipsist builds (full editor vs. native ergonomics + problems panel + preview). |
 | **D3 watch ownership** | Revisit after A5. Today: boris owns preview watch (`watch --serve`); app-side save-triggered one-shot diagnostics. |
-| **D7 pin note (TODO)** | Record the exact afterparty commit (`b82e9e2`, `boris/0.8.1`) somewhere the build can read it, so engine builds are reproducible. |
+| **D7 pin note** | ✅ resolved — commit `b82e9e2` (`boris/0.8.1`); the temporary `boris-agent-kit` folder's MANIFEST+SHA256SUMS are archived in `vendor/boris-agent-kit/` with a rebuild recipe (see [`AGENT-KIT-REVIEW.md`](AGENT-KIT-REVIEW.md)) |
 | **A5 RFC** | `validate --watch`: join the artifact-free preflight with the watch daemon, emitting A1 events. The design discussion companion to the issue batch. |
 | **Issue batch filing** | Drafts are paste-ready in `docs/issues/`; filing order A3 → A4 → A1 → A12 → A6/A7 → A5 RFC. |
 

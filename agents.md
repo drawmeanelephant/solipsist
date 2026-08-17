@@ -104,11 +104,18 @@ make run-spike  # M1 spike against ../boris/content — the CI-able gate
 ```
 
 The engine is located in this order: `SOLIPSIST_BORIS_BIN` env → app bundle
-(`Resources/boris`) → `../boris-agent-kit/bin/boris` (verified kit binary)
-→ `../boris/zig-out/bin/boris` (source build). `make build` runs the
+(`Resources/boris`) → `../boris-agent-kit/bin/boris` (verified kit binary,
+**may not exist** — it was a temporary transport folder) →
+`../boris/zig-out/bin/boris` (source build). `make build` runs the
 pre-build embed script, so the app bundle always carries its own engine.
 `SOLIPSIST_BORIS_BIN` is the tested drop-in for the kit binary — the M1
 spike passes against it unchanged.
+
+**The kit's pin is archived in `vendor/boris-agent-kit/`** (MANIFEST.json +
+SHA256SUMS, verbatim) so future work never depends on the temporary
+sibling folder. If the kit is gone, rebuild from the pinned commit
+`b82e9e2` per the recipe there — behavior is what's pinned, not the exact
+binary hash.
 
 ## Engine contract facts (verified — don't re-derive)
 
@@ -169,7 +176,7 @@ From [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) §Part B
 | D4 | Editor scope — boris now ships `boris-editor` + `completion.json`; Solipsist = native ergonomics + problems panel | ⏳ biggest scope lever, re-decide |
 | D5 | Preview: **engine-owned `watch --serve`** (loopback + SSE) — app-side HTTP server obsolete | 🔁 changed by afterparty |
 | D6 | Stay sandboxed | ✅ decided |
-| D7 | Bundle engine; **pin the boris commit** tested against | ✅ pinned via the agent kit — `boris-agent-kit` is 10 SHA256-verified binaries of b82e9e2 (`boris/0.8.1`); vendor-from-kit recommended (see [`AGENT-KIT-REVIEW.md`](docs/AGENT-KIT-REVIEW.md)) |
+| D7 | Bundle engine; **pin the boris commit** tested against | ✅ pinned — commit `b82e9e2` (`boris/0.8.1`); the kit's MANIFEST+SHA256SUMS are archived in `vendor/boris-agent-kit/`; vendor-from-kit when present, else rebuild from the pin (see [`AGENT-KIT-REVIEW.md`](docs/AGENT-KIT-REVIEW.md)) |
 | D8 | `schemaVersion` gating: unknown/newer → degrade, never crash | ✅ decided — write decoders defensively from day one |
 | D9 | Any-folder project detection | ✅ decided |
 | D10 | Watch-stderr stopgap parser, JSON artifacts as ground truth | ⏳ not built yet |

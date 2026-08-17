@@ -9,6 +9,12 @@ branch `freebuff/agent-pack` with Zig 0.16.0, `dirty: false`. This is the
 canonical "work against binaries" reference for Solipsist — everything below
 was verified by running the kit's own executables, not by reading source.
 
+> **⚠️ The kit folder is temporary and may not exist in future
+> environments.** Its provenance pin (MANIFEST.json + SHA256SUMS, verbatim)
+> is archived in [`../vendor/boris-agent-kit/`](../vendor/boris-agent-kit/),
+> with a rebuild recipe from the pinned commit. The verification below is
+> the durable record; the folder is not a dependency of any future work.
+
 ## Integrity (all green)
 
 - `SHA256SUMS` verified for **all 10 binaries** (`shasum -a 256 -c` → all OK).
@@ -86,10 +92,13 @@ at the same commit — the kit is just the prebuilt set.
    labs are agent-side or later-milestone; `boris-github-pages-audit`
    matters only when the publishing console (M8) is real.
 
-## Open question for the team
+## Resolved: the pin is archived, not the binaries
 
-Should the kit itself be vendored into the repo (committed under
-`solipsist/vendor/boris-agent-kit/`) so builds are reproducible without the
-sibling folder, or referenced by env var like `BORIS_REPO_DIR`? Committing
-~10 MB of binaries is a policy call — the SHA256 pinning already makes the
-sibling-folder reference safe.
+The temporary kit folder is going away; future work happens off the branch.
+Resolution: **archive the kit's pin, not the ~10 MB of binaries.**
+`vendor/boris-agent-kit/` now carries the verbatim MANIFEST.json +
+SHA256SUMS and a rebuild recipe from the pinned commit, so a fresh agent
+can either locate the kit if it exists or rebuild `bin/boris` at
+`b82e9e2` and point the app at it (`SOLIPSIST_BORIS_BIN` or the
+`../boris/zig-out` fallback). Behavior is pinned and verified; exact binary
+hashes are kit-specific and documented.

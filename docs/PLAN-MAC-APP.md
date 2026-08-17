@@ -152,6 +152,14 @@ of every hard contract.
 boris checkout and copies `zig-out/bin/boris` (arm64) into the app's
 `Resources/`. Version-pin the boris commit the app is tested against.
 
+**Pinned:** commit `b82e9e2` (`boris/0.8.1`, afterparty line). The
+`boris-agent-kit` binary kit (same commit, SHA256-verified) is the preferred
+vendor source when present — its provenance pin (MANIFEST.json +
+SHA256SUMS) is archived in `vendor/boris-agent-kit/` with a rebuild recipe
+(see [`AGENT-KIT-REVIEW.md`](AGENT-KIT-REVIEW.md)). `SOLIPSIST_BORIS_BIN`
+overrides the location for testing; the M1 spike passes against the kit
+binary unchanged.
+
 **Shipping:** `boris` goes in the app bundle as an embedded, signed helper
 binary. Xcode signs nested code automatically when the binary is included
 via Copy Bundle Resources / a copy phase; verify with
