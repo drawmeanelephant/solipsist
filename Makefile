@@ -6,7 +6,7 @@
 XCODEGEN := .tools/xcodegen/xcodegen/bin/xcodegen
 PROJECT  := Solipsist.xcodeproj
 
-.PHONY: tools generate build spike run-spike test lint harvest-fixtures clean fart
+.PHONY: tools generate build spike run-spike test lint harvest-fixtures site clean fart
 
 tools:
 	@mkdir -p .tools
@@ -53,6 +53,18 @@ lint:
 
 harvest-fixtures:
 	bash scripts/harvest-stunt-fixtures.sh
+
+site:
+	@if [ -n "$$SOLIPSIST_BORIS_BIN" ] && [ -x "$$SOLIPSIST_BORIS_BIN" ]; then \
+		(cd site && "$$SOLIPSIST_BORIS_BIN" build --profile boris.json); \
+	elif [ -x "../boris/zig-out/bin/boris" ]; then \
+		(cd site && ../boris/zig-out/bin/boris build --profile boris.json); \
+	elif command -v boris >/dev/null 2>&1; then \
+		(cd site && boris build --profile boris.json); \
+	else \
+		echo "error: boris binary not found. Set SOLIPSIST_BORIS_BIN or build ../boris" >&2; \
+		exit 1; \
+	fi
 
 clean:
 	rm -rf build Solipsist.xcodeproj

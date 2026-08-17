@@ -1,0 +1,50 @@
+name: Deploy Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy-site.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy to Cloudflare Pages
+    runs-on: macos-15
+    steps:
+      - name: Checkout Solipsist
+        uses: actions/checkout@v7
+
+      - name: Checkout Boris compiler
+        uses: actions/checkout@v7
+        with:
+          repository: drawmeanelephant/boris
+          path: boris
+          ref: main
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: master
+
+      - name: Build Boris engine
+        run: |
+          cd boris
+          zig build -Doptimize=ReleaseFast
+
+      - name: Compile documentation site
+        run: |
+          cd site
+          ../boris/zig-out/bin/boris build --profile boris.json
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site/dist --project-name=solipsist
