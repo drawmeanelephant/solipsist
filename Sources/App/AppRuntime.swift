@@ -9,6 +9,7 @@ final class AppRuntime {
     let engine: BorisEngine?
     let enginePath: String?
     let engineError: String?
+    let coordinator = Coordinator()
 
     init() {
         if let url = BorisBinary.locate() {
@@ -28,9 +29,12 @@ final class AppRuntime {
     }
 
     var statusLine: String {
+        let engineBit: String
         if let enginePath {
-            return "engine \(URL(fileURLWithPath: enginePath).lastPathComponent)"
+            engineBit = "engine \(URL(fileURLWithPath: enginePath).lastPathComponent)"
+        } else {
+            engineBit = "engine not found"
         }
-        return "engine not found"
+        return "\(coordinator.summary) · \(engineBit)"
     }
 }

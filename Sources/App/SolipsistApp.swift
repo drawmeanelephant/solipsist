@@ -16,6 +16,7 @@ struct SolipsistApp: App {
         .commands {
             SolipsistCommands(
                 store: store,
+                runtime: runtime,
                 inspectorPresented: $inspectorPresented
             )
         }

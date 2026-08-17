@@ -45,6 +45,13 @@ struct LocalPlay: PlaySurface {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle(source.title)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                Divider()
+                ProblemsPane()
+                    .frame(minHeight: 88, idealHeight: 148, maxHeight: 220)
+            }
+        }
         .task(id: source.id) {
             await load()
         }
@@ -130,8 +137,15 @@ struct LocalPlay: PlaySurface {
         }
 
         state = .building
-        let contentRoot = Self.contentRoot(for: root)
-        let outDir = root.appendingPathComponent(".boris", isDirectory: true)
+        let contentRoot: URL
+        let outDir: URL
+        do {
+            contentRoot = try source.contentRoot()
+            outDir = try source.artifactDirectory(named: ".boris")
+        } catch {
+            state = .failed(String(describing: error))
+            return
+        }
 
         do {
             let build = try await engine.buildIR(contentRoot: contentRoot, outDir: outDir)
@@ -158,22 +172,6 @@ struct LocalPlay: PlaySurface {
     private func decodeGraph(at url: URL) throws -> Graph {
         let data = try Data(contentsOf: url)
         return try JSONDecoder().decode(Graph.self, from: data)
-    }
-
-    /// A folder with both `content/` and `boris.json` is a project root.
-    /// `--input content`, cwd = source, `--out .boris`.
-    private static func contentRoot(for sourceRoot: URL) -> URL {
-        let fm = FileManager.default
-        var isDirectory: ObjCBool = false
-        let content = sourceRoot.appendingPathComponent("content", isDirectory: true)
-        let profile = sourceRoot.appendingPathComponent("boris.json")
-        let hasContent = fm.fileExists(atPath: content.path, isDirectory: &isDirectory)
-            && isDirectory.boolValue
-        let hasProfile = fm.fileExists(atPath: profile.path)
-        if hasContent && hasProfile {
-            return content
-        }
-        return sourceRoot
     }
 
     private enum LoadState {
