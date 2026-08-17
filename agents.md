@@ -50,11 +50,13 @@ than shipping slowly.
 | [`README.md`](README.md) | Project overview, prerequisites, quick commands |
 | [`docs/PLAN-MAC-APP.md`](docs/PLAN-MAC-APP.md) | Architecture + the full 9-milestone plan (M0–M8) |
 | [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) | Boris work items (Part A: issues) + our design decisions (Part B: D1–D11) |
-| [`docs/issues/`](docs/issues/) | Ready-to-paste GitHub issues for boris (A1–A4, A6, A7 drafted) |
+| [`docs/CONTRACT-AUDIT.md`](docs/CONTRACT-AUDIT.md) | Consumer-driven audit of the boris boundary, bucketed 🟢/🟡/🔴 (the 🔴s are what we feed back into boris) |
+| [`docs/issues/`](docs/issues/) | Ready-to-paste GitHub issues for boris (A1–A4, A6, A7, A12 drafted) |
 
-If you are new: README → PLAN-MAC-APP → ENGINE-WORK-AND-DESIGN. The issue
-drafts are the "what we want Boris to do for us" list; the design decisions
-are the "how we build on our side" list.
+If you are new: README → PLAN-MAC-APP → ENGINE-WORK-AND-DESIGN →
+CONTRACT-AUDIT. The issue drafts are the "what we want Boris to do for us"
+list; the design decisions are the "how we build on our side" list; the
+audit is why each issue exists.
 
 ## Repo layout
 
@@ -117,6 +119,12 @@ docs over assumptions:
   stopgap parser's territory until boris lands A1 (`--watch-json`).
 - **No `--version` flag exists yet** (A2 is drafted). Engine version comes
   from `manifest.json`'s `compiler` today.
+- **Killing boris is safe (verified):** watch mode catches SIGTERM/SIGINT →
+  graceful exit 0 (≤500ms); an in-flight rebuild completes before shutdown;
+  SIGKILL leaves no `.boris-stage` leftovers and the next build recovers.
+  The app infers *cancelled* from `Process.terminationReason ==
+  .uncaughtSignal`, never from a Boris exit code. Full evidence in
+  [`docs/CONTRACT-AUDIT.md`](docs/CONTRACT-AUDIT.md).
 
 ## Design decisions (Part B) — status
 
@@ -144,9 +152,12 @@ tested against, somewhere the build can read it.
 Drafted and ready to paste: **A1** (NDJSON watch events — flagship P0),
 **A2** (`--version` — P0), **A3** (`compiler` in build-report — P1), **A4**
 (stream docs + fix `--report` help text — P1), **A6** (completion signal —
-P1), **A7** (workspace-rule docs — P1).
+P1), **A7** (workspace-rule docs — P1), **A12** (signal/cancellation docs —
+P1). The 🔴 blockers per the audit: A1/A5 (watch prose), A6 (HTML has no
+result artifact), A2/A3 (no version identity).
 
-Filing order: A2 + A4 first (XS, unblocks us), then A1, then A3 + A6 + A7.
+Filing order: A2 + A4 first (XS, unblocks us), then A1, then A3 + A6 + A7 +
+A12.
 Not yet drafted: **A5** (watch diagnostics for non-HTML — the one that would
 simplify our architecture the most; write it as an RFC), A8 (`boris init`),
 A9/A10 (we recommend *not* doing — see doc).

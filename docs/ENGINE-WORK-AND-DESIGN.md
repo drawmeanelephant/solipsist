@@ -31,6 +31,14 @@ Fact-checked against boris `main` this session (v0.8.0):
 - Incremental HTML builds atomically write `.boris-cache/manifest.json`
   (`format_version: "boris-cache-v2-layout-rules"`) with per-page
   fingerprints, output paths, digests — a ready-made build-completion signal.
+- **Kill/cancel is clean (verified empirically):** watch mode catches
+  SIGTERM/SIGINT → graceful exit 0 within one idle poll (≤500ms) with a
+  cleanup message; an in-flight rebuild completes before shutdown (no
+  partial publish); SIGKILL leaves no `.boris-stage` leftovers and the
+  last-good cache manifests intact, and the next build recovers. No orphan
+  processes. The app distinguishes "cancelled" via Swift
+  `Process.terminationReason == .uncaughtSignal`, not a Boris exit code
+  (→ A12).
 
 ---
 
@@ -42,9 +50,12 @@ Fact-checked against boris `main` this session (v0.8.0):
 > ([boris-A3-build-report-compiler.md](issues/boris-A3-build-report-compiler.md)),
 > A4 ([boris-A4-stream-contract.md](issues/boris-A4-stream-contract.md)), A6
 > ([boris-A6-completion-signal.md](issues/boris-A6-completion-signal.md)), A7
-> ([boris-A7-workspace-rule.md](issues/boris-A7-workspace-rule.md)). Each
+> ([boris-A7-workspace-rule.md](issues/boris-A7-workspace-rule.md)), A12
+> ([boris-A12-signal-contract.md](issues/boris-A12-signal-contract.md)). Each
 > was fact-checked against the current source (exact stderr lines, emission
 > points, exit-code table, existing doc stubs) so they can be filed as-is.
+> The consumer-driven contract audit that produced the bucketing
+> (🟢/🟡/🔴) is in [CONTRACT-AUDIT.md](CONTRACT-AUDIT.md).
 
 ### A1. Machine-readable watch events (NDJSON) — **P0**
 
@@ -215,6 +226,27 @@ ever shows process overhead actually matters (it won't at docs-site scale).
 Covered by A1's NDJSON events — the `rebuild-failed` event should carry the
 diagnostic objects (same shape as `build-report.json`), not just counts.
 
+### A12. Document signal/cancellation behavior — **P1** (docs, tiny)
+
+**Problem.** The user-asked question: *"can I kill Boris?"* The behavior is
+good — verified: SIGTERM/SIGINT → graceful exit 0 (≤500ms, cleanup
+message); an in-flight rebuild finishes before shutdown (latch checked
+between loop iterations, so no partial publish); SIGKILL leaves no
+`.boris-stage` leftovers, last-good manifests intact, next build recovers.
+But none of it is documented as a contract, so a GUI consumer either
+discovers it empirically or assumes the worst and builds process-killing
+workarounds.
+
+**Proposal.** A short Signals section in `docs/contracts/watch-mode.md`
+(drafted in [boris-A12-signal-contract.md](issues/boris-A12-signal-contract.md)):
+the signal table above, the "rebuild completes before shutdown" rule, the
+SIGKILL atomicity guarantee, and the note that consumers infer *cancelled*
+from OS signal-termination status, not a Boris exit code.
+
+**Why it's not a compromise.** Docs only; the behavior already exists and is
+sound. App-side, we still enforce our own timeout + SIGKILL escalation — the
+subprocess boundary makes that safe by construction.
+
 ---
 
 ### A summary table
@@ -232,10 +264,14 @@ diagnostic objects (same shape as `build-report.json`), not just counts.
 | A9 | `check` exit granularity | S | P2 | 🔒 recommend NOT changing |
 | A10 | Library mode | XXL | P2 | 🔒 recommend NOT doing |
 | A11 | Structured watch diagnostics | M | P0 | ✅ folded into A1 |
+| A12 | Document signal/cancellation | XS | P1 | ✅ docs |
 
 **Suggested filing order:** A2 + A4 first (XS, docs, unblock us immediately),
-then A1 (+A11) as the flagship P0, then A3 + A6 + A7, then the A5 design
-discussion.
+then A1 (+A11) as the flagship P0, then A3 + A6 + A7 + A12 (all XS), then the
+A5 design discussion. The 🔴/🟡/🟢 bucketing in
+[CONTRACT-AUDIT.md](CONTRACT-AUDIT.md) says the same thing: the watch-prose
+(A1/A5), HTML-result (A6), and versioning (A2/A3) gaps are the architectural
+blockers to feed back into Boris.
 
 ---
 
