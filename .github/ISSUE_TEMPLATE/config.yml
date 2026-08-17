@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Boris Engine Upstream Issues
+    url: https://github.com/drawmeanelephant/boris/issues
+    about: Direct issues for the Boris Zig publication compiler
+  - name: Architecture & Harness Documentation
+    url: https://github.com/drawmeanelephant/solipsist/tree/main/docs
+    about: Read HARNESS.md, ROADMAP.md, and ENGINE-CONTRACTS.md

@@ -1,0 +1,51 @@
+name: Boris Compiler Defect (Relay)
+description: Report an engine/compiler issue to relay to drawmeanelephant/boris
+title: "boris: "
+labels: ["boris-relay"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Note:** Solipsist never patches Boris directly. Compiler defects are drafted in `docs/issues/` and relayed upstream to `drawmeanelephant/boris`.
+  - type: input
+    id: boris_version
+    attributes:
+      label: Boris Version
+      description: Exact engine version (e.g. `boris/0.8.1 (b82e9e2)`)
+    validations:
+      required: true
+  - type: input
+    id: command_line
+    attributes:
+      label: Command Line
+      description: Exact command line executed (e.g. `boris build --input content --out .boris`)
+    validations:
+      required: true
+  - type: input
+    id: cwd
+    attributes:
+      label: Working Directory (cwd)
+      description: Where was the command executed relative to the content tree?
+    validations:
+      required: true
+  - type: input
+    id: exit_code
+    attributes:
+      label: Exit Code
+      placeholder: e.g. 1, 2, 134
+    validations:
+      required: true
+  - type: textarea
+    id: stderr_quote
+    attributes:
+      label: Exact Stderr / Diagnostics
+      description: Verbatim quote of the error or diagnostic output
+      render: shell
+    validations:
+      required: true
+  - type: input
+    id: draft_filename
+    attributes:
+      label: Draft Filename in docs/issues/
+      description: e.g. `docs/issues/boris-A15-example.md`
+      placeholder: docs/issues/boris-A...
