@@ -50,6 +50,8 @@ targets:
         com.apple.security.app-sandbox: true
         com.apple.security.files.user-selected.read-write: true
         com.apple.security.files.bookmarks.app-scope: true
+        # WKWebView previews load the local boris serve (loopback only).
+        com.apple.security.network.client: true
     preBuildScripts:
       - name: Embed Boris engine binary
         basedOnDependencyAnalysis: false
