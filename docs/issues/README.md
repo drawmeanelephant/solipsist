@@ -28,8 +28,8 @@ a live, artifact-free diagnostics daemon (A5).
 |---|-------|--------|-------------------|
 | [A1](boris-A1-watch-events.md) | `--watch-json`: NDJSON event stream for watch mode | ✅ ready | Typed lifecycle + diagnostic events for subprocess consumers; `mode` field future-proofs A5; compatible with `--serve` |
 | [A2](boris-A2-version-flag.md) | ~~`--version` flag~~ | ⛔ withdrawn | Shipped on afterparty (`boris/0.8.1`, exit 0, test-pinned) — file holds the evidence |
-| [A3](boris-A3-build-report-compiler.md) | Compiler identity in IR `build-report.json` + the field-name zoo | ✅ ready | The one mute artifact; `compiler` / `compiler_id` / `compilerId` triplicate |
-| [A4](boris-A4-stream-contract.md) | Fix `--report` help text; document stdout machine surfaces | ✅ ready | Factual help-text bug + the stdout-payload rule (`--version`, `--timings`, plans) |
+| [A3](boris-A3-build-report-compiler.md) | Compiler identity in IR `build-report.json` + the field-name zoo | ✅ filed [boris#638](https://github.com/drawmeanelephant/boris/issues/638) | The one mute artifact; `compiler` / `compiler_id` / `compilerId` triplicate |
+| [A4](boris-A4-stream-contract.md) | Fix `--report` help text; document stdout machine surfaces | ✅ filed [boris#639](https://github.com/drawmeanelephant/boris/issues/639) | Factual help-text bug + the stdout-payload rule (`--version`, `--timings`, plans) |
 | [A6](boris-A6-completion-signal.md) | Document `.boris-cache/manifest.json` changed-page contract | ✅ ready (P2, honest won't-do option) | Fingerprint-diff change attribution for incremental consumers |
 | [A7](boris-A7-workspace-rule.md) | Document containment rule + IR absolute-path quirk | ✅ ready | Uniform containment made a specified contract; one clarifying question |
 | [A12](boris-A12-signal-contract.md) | Signal/cancellation contract for watch mode | ✅ ready | Graceful SIGTERM/SIGINT + SIGKILL atomicity, doc + latch test |

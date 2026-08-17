@@ -1,5 +1,6 @@
 # A3 — Compiler identity in the IR `build-report.json` (and the field-name zoo)
 
+> **Filed: [boris#638](https://github.com/drawmeanelephant/boris/issues/638)**
 > **Ready-to-paste GitHub issue for the boris repo.**
 > Priority: P1. Size: XS. Additive field — no shape changes.
 > **Rebaselined against afterparty v0.8.1.** The sharpening: afterparty's

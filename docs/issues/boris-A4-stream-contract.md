@@ -1,5 +1,6 @@
 # A4 — Stream contract: fix the `--report` help text; document the stdout machine surfaces
 
+> **Filed: [boris#639](https://github.com/drawmeanelephant/boris/issues/639)**
 > **Ready-to-paste GitHub issue for the boris repo.**
 > Priority: P1. Size: XS. Documentation only — no behavior change.
 > **Rebaselined against afterparty v0.8.1.** The per-mode stream tables are
