@@ -3,18 +3,20 @@ import Observation
 import SwiftUI
 import WebKit
 
-/// Companion host for `boris watch --serve`. Chassis registers the window
-/// and leaves it closed. The Preview lane owns this file.
+/// Companion host for `boris watch --serve` (D5). Chassis registers the
+/// window and leaves it closed; the Preview lane owns this file.
 ///
-/// The grind lane will later add `BorisEngine.previewStart/Stop` and point
-/// this window at the served URL by calling `loadPreview(url:)`. Until then
-/// the web view starts blank and a human can paste a loopback URL into the
-/// toolbar.
+/// When a source is selected the window starts a `WatchServer` for its
+/// content root via `PreviewSession`; the served helper URL (`…/__boris/`)
+/// is loaded into the web view, where the helper page owns the iframe + SSE
+/// auto-reload. The toolbar keeps the manual loopback-paste escape hatch.
 struct PreviewWindow: View {
     @Environment(WorkspaceStore.self) private var store
+    @Environment(AppRuntime.self) private var runtime
 
     @State private var model = PreviewWebModel()
     @State private var urlText = ""
+    @State private var session = PreviewSession()
 
     var body: some View {
         Group {
@@ -27,6 +29,9 @@ struct PreviewWindow: View {
                     PreviewWebView(model: model)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .task(id: source.id) {
+                    startPreview(for: source)
+                }
             } else {
                 emptyState
             }
@@ -35,6 +40,36 @@ struct PreviewWindow: View {
         .navigationTitle("Preview")
         .task {
             model.loadBlank()
+        }
+        .onChange(of: session.serveURL) { _, newURL in
+            if let newURL {
+                model.load(url: newURL)
+            } else {
+                model.loadBlank()
+            }
+        }
+        .onDisappear {
+            session.stop()
+        }
+    }
+
+    /// Starts (or reuses) the watch server for the selected source's content
+    /// root. Ran per source id; switching sources restarts the server.
+    private func startPreview(for source: SourceItem) {
+        switch source {
+        case .local(let local):
+            guard
+                let projectRoot = try? local.workspaceRoot(),
+                let contentRoot = try? local.contentRoot()
+            else {
+                session.fail("could not resolve the project folder for '\(source.title)'")
+                return
+            }
+            session.start(
+                contentRoot: contentRoot,
+                projectRoot: projectRoot,
+                engine: runtime.engine
+            )
         }
     }
 
@@ -100,6 +135,9 @@ struct PreviewWindow: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+            Text(session.statusText)
+                .font(.caption)
+                .foregroundStyle(session.isFailure ? Color.red : .secondary)
         }
         .padding(8)
     }

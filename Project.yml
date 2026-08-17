@@ -55,6 +55,8 @@ targets:
         com.apple.security.files.bookmarks.app-scope: true
         # WKWebView previews load the local boris serve (loopback only).
         com.apple.security.network.client: true
+        # `boris watch --serve` (spawned by the app) binds a loopback port.
+        com.apple.security.network.server: true
     preBuildScripts:
       - name: Embed Boris engine binary
         basedOnDependencyAnalysis: false

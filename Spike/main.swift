@@ -207,5 +207,36 @@ if let pages = impact.report.impact {
     }
 }
 
+// --- 4. watch --serve (M4 preview surface, D5) ----------------------------
+// Spin up a live watch server on the spike's content root, wait for the
+// ephemeral port line, then SIGTERM it and expect a graceful exit (A12).
+print("\n== boris watch --serve: start → port line → stop ==")
+// cwd must be the project folder so workspace-relative layouts/themes
+// resolve (D1); --input may be absolute. Mirror the app's LocalSource logic:
+let watchProjectRoot: URL =
+    fm.fileExists(atPath: contentRoot.appendingPathComponent("layouts").path)
+    ? contentRoot
+    : contentRoot.deletingLastPathComponent()
+let watchServer = try engine.previewStart(
+    contentRoot: contentRoot,
+    workingDirectory: watchProjectRoot,
+    port: 0
+)
+let serveURL: URL? = await withCheckedContinuation { (continuation: CheckedContinuation<URL?, Never>) in
+    watchServer.onServe = { url in continuation.resume(returning: url) }
+}
+guard let serveURL else {
+    FileHandle.standardError.write(Data("error: watch --serve printed no port line\n".utf8))
+    watchServer.stop()
+    exit(2)
+}
+print("serve url    : \(serveURL.absoluteString)")
+let stopExit: Int32 = await withCheckedContinuation {
+    (continuation: CheckedContinuation<Int32, Never>) in
+    watchServer.onExit = { exit in continuation.resume(returning: exit.exitCode) }
+    watchServer.stop()
+}
+print("stop exit    : \(stopExit) (0 = graceful SIGTERM, A12)")
+
 print("\nSPIKE OK — all Boris JSON contracts decoded.")
 exit(build.exitCode)

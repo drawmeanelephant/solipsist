@@ -205,6 +205,31 @@ public actor BorisEngine {
         runHandle.terminate()
     }
 
+    // MARK: Preview (M4)
+
+    /// Starts `boris watch --serve --port 0` for `contentRoot` (D5) and
+    /// returns the live server. `workingDirectory` is the project folder
+    /// (D1: layouts/themes resolve and outputs stay contained there). The
+    /// server parses the startup stderr line for the ephemeral port;
+    /// `WatchServer.onServe` delivers the helper URL (`…/__boris/`) the
+    /// preview web view loads. The caller owns the server lifetime — call
+    /// `stop()` (SIGTERM → graceful exit 0, A12) when done. `nonisolated`:
+    /// reads only the immutable `binaryURL`.
+    public nonisolated func previewStart(
+        contentRoot: URL,
+        workingDirectory: URL,
+        port: Int = 0
+    ) throws -> WatchServer {
+        let server = WatchServer(
+            binary: binaryURL,
+            contentRoot: contentRoot,
+            workingDirectory: workingDirectory,
+            port: port
+        )
+        try server.start()
+        return server
+    }
+
     // MARK: Analysis
 
     /// Runs `boris check --format json --report <file>` and decodes the report.
