@@ -59,17 +59,29 @@ public actor BorisEngine {
     // MARK: Builds
 
     /// Runs `boris --out <dir> --input <root> --quiet` (IR mode) and decodes
-    /// the three published artifacts. `manifest.json` / `graph.json` are only
-    /// decoded on success — Boris deletes them on content failure.
+    /// the published artifacts (`build-report.json` always; `manifest.json` /
+    /// `graph.json` only on success — Boris deletes them on content failure;
+    /// `completion.json` exists on afterparty but is not yet modeled).
+    ///
+    /// Afterparty constrains **output trees** to the process workspace and
+    /// rejects absolute output paths in IR mode (verified: `--out /abs/…`
+    /// fails with `WorkspaceEscape` even inside cwd; relative paths pass).
+    /// The input root may live anywhere. So we run from the output's parent
+    /// and pass a **relative** output path. For the app this means
+    /// `cwd = project folder`, `--out .boris` — the D1 defaults.
     public func buildIR(contentRoot: URL, outDir: URL) throws -> BorisBuild {
         try FileManager.default.createDirectory(
             at: outDir, withIntermediateDirectories: true
         )
-        let out = try BorisRunner.run(binary: binaryURL, arguments: [
-            "--out", outDir.path,
-            "--input", contentRoot.path,
-            "--quiet",
-        ])
+        let out = try BorisRunner.run(
+            binary: binaryURL,
+            arguments: [
+                "--out", outDir.lastPathComponent,
+                "--input", contentRoot.path,
+                "--quiet",
+            ],
+            workingDirectory: outDir.deletingLastPathComponent()
+        )
         let report = try decode(
             BuildReport.self,
             from: outDir.appendingPathComponent("build-report.json"),
@@ -99,15 +111,22 @@ public actor BorisEngine {
     }
 
     /// Runs an HTML site build: `boris --input <root> --html-dir <dir> --quiet`.
+    ///
+    /// Same afterparty containment rule as `buildIR`: run from the output's
+    /// parent and pass a relative path.
     public func buildHTML(contentRoot: URL, htmlDir: URL) throws -> BorisHTMLBuild {
         try FileManager.default.createDirectory(
             at: htmlDir, withIntermediateDirectories: true
         )
-        let out = try BorisRunner.run(binary: binaryURL, arguments: [
-            "--input", contentRoot.path,
-            "--html-dir", htmlDir.path,
-            "--quiet",
-        ])
+        let out = try BorisRunner.run(
+            binary: binaryURL,
+            arguments: [
+                "--input", contentRoot.path,
+                "--html-dir", htmlDir.lastPathComponent,
+                "--quiet",
+            ],
+            workingDirectory: htmlDir.deletingLastPathComponent()
+        )
         return BorisHTMLBuild(exitCode: out.exitCode, stderr: out.stderrText)
     }
 
@@ -116,9 +135,9 @@ public actor BorisEngine {
     /// Runs `boris check --format json --report <file>` and decodes the report.
     ///
     /// Note: Boris prints analysis reports to *stderr* by default, so we use
-    /// `--report PATH` to write the rendered JSON to a file instead. `check`
-    /// exits 1 when it finds unreferenced pages — that is a finding, not a
-    /// crash, and the report is still decoded.
+    /// `--report PATH` to write the rendered JSON to a file instead. On
+    /// afterparty, `check` exits 0 with findings by default and only exits 1
+    /// with `--fail-on-unreferenced` — either way the report decodes fine.
     public func check(contentRoot: URL) throws -> BorisAnalysis {
         let fm = FileManager.default
         let reportURL = fm.temporaryDirectory

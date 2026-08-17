@@ -94,7 +94,7 @@ print("\n== boris check --format json ==")
 let check = try await engine.check(contentRoot: contentRoot)
 // `check` exits 1 when it finds unreferenced pages — expected here (the
 // sample site has one), so don't treat it as a hard failure.
-print("exit code    : \(check.exitCode) (1 = findings found)")
+print("exit code    : \(check.exitCode) (1 only with --fail-on-unreferenced on afterparty)")
 let s = check.report.summary
 print("summary      : \(s.pages) pages, \(s.roots) trunks, \(s.satellites) satellites, \(s.unreferencedPages) unreferenced, \(s.hotspots) hotspots")
 for f in check.report.findings {

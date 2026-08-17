@@ -7,53 +7,51 @@ treats its CLI as a typed process contract (versioned JSON artifacts, stable
 exit codes, sacred stdout, atomic publication). These issues close the
 remaining holes in that contract.
 
+> ⚠️ **Reconciliation required before filing.** This batch was drafted
+> against boris `main` v0.8.0. We now harness **`afterparty` v0.8.1
+> candidate** — and afterparty already ships several of these. The status
+> column below is fact-checked against the afterparty binary; **do not file
+> anything marked ✅ without first updating its draft.**
+
 ## The pitch, in one paragraph
 
 Boris is a compiler whose machine surface is unusually well-designed:
-deterministic, versioned, atomic, documented. But a consumer that treats it
-as a black-box process finds four gaps — it can't be asked its **version**
-(A2), its long-running **watch mode speaks prose instead of events** (A1),
-one-shot HTML builds leave **no parseable result record** (A6), and its
-**containment/stream/cancellation semantics** are real but undocumented
-(A7, A4, A12). None of these require behavior changes for human users; all
-of them complete the story for machines. They are the difference between "a
-great CLI with JSON outputs" and "a compiler with a process ABI."
+deterministic, versioned, atomic, documented. Afterparty already answers the
+version query (`--version`), gives HTML a machine result artifact
+(`build --report`), contains all output trees, and makes `check` findings
+non-failing by default. The genuinely open gaps for a black-box consumer:
+watch mode still speaks prose instead of typed events (A1), the IR
+`build-report.json` still omits its compiler id while the HTML report has it
+(A3), the stream/`--report` help text still misleads (A4), and the
+signal/cancellation contract isn't written down (A12). Those are the issues
+worth filing.
 
-## The issues
+## The issues (with afterparty status)
 
-| # | Issue | What it completes | Size |
-|---|-------|-------------------|------|
-| [A1](boris-A1-watch-events.md) | `--watch-json`: NDJSON event stream for watch mode | The one surface that still emits human prose — typed lifecycle events + structured diagnostics, `hello`-handshake versioned | M |
-| [A2](boris-A2-version-flag.md) | `--version` flag | Engine identity *before* running a build (identity currently lives only in artifacts) | XS |
-| [A3](boris-A3-build-report-compiler.md) | `compiler` in `build-report.json` | Uniform artifact identity — the one machine file that omits it, on the one path (failure) where it matters most | XS |
-| [A4](boris-A4-stream-contract.md) | Document stdout/stderr per mode + fix `--report` help | The stream discipline boris already keeps, made a contract; also fixes a factual help-text bug | XS |
-| [A6](boris-A6-completion-signal.md) | `.boris-cache/manifest.json` as documented completion contract | Atomicity made observable for HTML builds — completion marker + fingerprint-diff change detection | S |
-| [A7](boris-A7-workspace-rule.md) | Decide + document the containment boundary | Safety claim made coherent — HTML is cwd-confined, the other outputs aren't; pick the posture on purpose | XS |
-| [A12](boris-A12-signal-contract.md) | Signal/cancellation contract for watch mode | "Can I kill it?" answered as a documented, test-pinned guarantee | XS |
-| [A5](boris-A5-check-watch-rfc.md) | RFC: `check --watch` — live diagnostics as a daemon | The validate-only half of the compiler-daemon story: recompile in memory, emit events, never touch outputs | L (RFC) |
+| # | Issue | Status on afterparty | What it completes |
+|---|-------|----------------------|-------------------|
+| [A1](boris-A1-watch-events.md) | `--watch-json`: NDJSON event stream for watch mode | 🟡 **OPEN — reframe, cite `--serve`** | Watch has an SSE reload channel for browsers; subprocess consumers still get prose. Typed lifecycle + diagnostic events remain the one missing surface |
+| [A2](boris-A2-version-flag.md) | `--version` flag | ✅ **DONE — withdraw** | `boris/0.8.1`, exit 0, test-pinned |
+| [A3](boris-A3-build-report-compiler.md) | `compiler` in IR `build-report.json` | 🟡 **OPEN — reframe as report parity** | `html-build-report-0.1.0` has `compilerId`; IR `build-report.json` doesn't. The inconsistency is sharper than on main |
+| [A4](boris-A4-stream-contract.md) | Document stdout/stderr per mode + fix `--report` help | 🟡 **PARTIAL — trim to the remaining gaps** | Help still says `--report … instead of stdout`; `--timings` (new stdout surface) needs documenting |
+| [A6](boris-A6-completion-signal.md) | `.boris-cache/manifest.json` as documented completion contract | 🟡 **MOSTLY DONE — demote** | `build --report` gives HTML a machine result artifact on success *and* failure; the manifest-as-contract ask is now low priority |
+| [A7](boris-A7-workspace-rule.md) | Decide + document the containment boundary | 🟡 **MOSTLY DONE — reduce to docs** | All output trees are now cwd-contained (HTML/IR/RAG/context verified); the asymmetry is resolved, only the docs ask remains |
+| [A12](boris-A12-signal-contract.md) | Signal/cancellation contract for watch mode | 🟡 **PARTIAL — trim** | C06 conformance pins watch exit classes; explicit signal docs + latch test still open |
+| [A5](boris-A5-check-watch-rfc.md) | RFC: `validate --watch` — live diagnostics as a daemon | 🔵 **REFORMULATE** | `boris validate` (artifact-free preflight + in-memory link audit) now exists — the RFC becomes "join validate + watch", far more tractable |
+| ~~A8~~ `init` | — | ✅ **DONE — never file** | `boris init [DIR]` ships |
+| ~~A9~~ check exit | — | ✅ **DONE — never file** | `--fail-on-unreferenced` opt-in; findings don't fail by default |
 
-## Why each stands on its own
+## Suggested filing order (after re-baselining)
 
-- **A2** is a universal expectation; every compiler answers `--version`.
-- **A1** completes the machine-contract story at the one surface that lacks
-  it, reusing existing shapes (`compiler_id`, diagnostic objects, sorted
-  content-relative paths) and the existing `docs/contracts/watch-mode.md`.
-- **A3/A6** restore uniform properties (identity, atomicity) that the rest
-  of the artifact set already has — consistency arguments, not feature asks.
-- **A4/A7/A12** convert empirically-true behavior into documented contracts;
-  the only behavior change on the table is the deliberate A7 decision, which
-  is explicitly the maintainers' call.
+1. **A3** — XS, the sharpest consistency gap (HTML report has `compilerId`,
+   IR report doesn't). Cheapest good-faith win.
+2. **A4** — XS; the `--report` help-text bug is a factual error in the
+   tool's own docs.
+3. **A1** — the flagship; engage with the concrete schema in the body, now
+   citing `watch --serve`'s SSE channel as the browser side.
+4. **A12** — XS docs + one test.
+5. **A5** — the RFC, as a discussion after A1 lands (`validate --watch`).
 
-## Suggested filing order
-
-1. **A2 + A4** — XS, universally agreeable, zero risk. Land these first as a
-   good-faith "this batch is cheap" signal.
-2. **A1** — the flagship; engage with the concrete schema in the body.
-3. **A3 + A6 + A7 + A12** — the consistency + contract batch.
-
-A5 is drafted as the RFC companion ([boris-A5-check-watch-rfc.md](boris-A5-check-watch-rfc.md))
-and should be filed as a discussion *after* A1 lands — it consumes A1's event
-protocol, and it's the one issue that changes what `--watch` can mean (it
-redefines today's `check --watch` usage error into a defined mode).
-A8/A9/A10 (init scaffold, exit-code granularity, library mode) are noted in
-the source audit as either nice-to-have or explicitly not recommended.
+A10 (library mode) stays not-recommended; the Wasm `compileBundle` ABI is
+the embed path boris itself chose, and subprocess isolation remains right
+for a Mac app.

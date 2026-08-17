@@ -8,14 +8,22 @@
 
 Solipsist is a native **macOS Swift/SwiftUI app** that wraps
 [Boris](https://github.com/drawmeanelephant/boris) — a deterministic Zig
-documentation compiler — as its **engine**. Boris is not a library and never
-will be; the app drives the `boris` binary as a subprocess and decodes its
-versioned JSON contracts.
+**graph-native publication compiler** — as its **engine**. Boris is not a
+library and never will be; the app drives the `boris` binary as a subprocess
+and decodes its versioned JSON contracts.
 
-**Current status:** M1 done (engine spike verified end-to-end). The app shell
-runs the bundled binary and decodes `build-report.json`, `manifest.json`,
-`graph.json`, and the `check`/`impact` analysis reports. Everything beyond
-that is M2+ (see [Milestones](#milestones)).
+**Engine baseline: the `afterparty` line, v0.8.1 candidate (`boris/0.8.1`)** —
+NOT `main` (frozen, v0.8.0). The local `../boris` checkout is on
+`afterparty`. Mission and full capability map:
+[`docs/MISSION.md`](docs/MISSION.md) and
+[`docs/BORIS-CAPABILITIES.md`](docs/BORIS-CAPABILITIES.md).
+
+**Current status:** M1 done (engine spike verified end-to-end against `main`
+v0.8.0; baseline now afterparty — base IR schema 0.2.0 unchanged, so the
+decoders still apply). The app shell runs the bundled binary and decodes
+`build-report.json`, `manifest.json`, `graph.json`, `completion.json`, and
+the analysis reports. Everything beyond that is M2+ (see
+[Milestones](#milestones)).
 
 ## ⛔ Hard boundaries (non-negotiable)
 
@@ -34,9 +42,10 @@ than shipping slowly.
    parser, no parallel graph/topology logic, no copied diagnostic codes. The
    JSON contracts are the single source of truth; Swift only mirrors them
    (Codable) and displays them.
-4. **Never silently ignore diagnostics or exit codes.** Surface them. Exit 1
-   from `check` means *findings*, not a broken build — render them as an
-   advisory panel.
+4. **Never silently ignore diagnostics or exit codes.** Surface them. On
+   afterparty, `check` exits 0 with findings by default and 1 only with
+   `--fail-on-unreferenced` — findings are an advisory panel, never a broken
+   build.
 5. **Never mutate the user's content tree from the app** except as the direct
    result of an explicit user action (saving an edit).
 6. **The subprocess boundary is a feature.** A crashing/looping Boris process
@@ -48,15 +57,15 @@ than shipping slowly.
 | File | Purpose |
 |------|---------|
 | [`README.md`](README.md) | Project overview, prerequisites, quick commands |
+| [`docs/MISSION.md`](docs/MISSION.md) | **What we're trying to do** — one page, updated to the afterparty baseline |
+| [`docs/BORIS-CAPABILITIES.md`](docs/BORIS-CAPABILITIES.md) | **The full list of what boris does** — sourced from the afterparty changelog + help + STATUS |
 | [`docs/PLAN-MAC-APP.md`](docs/PLAN-MAC-APP.md) | Architecture + the full 9-milestone plan (M0–M8) |
-| [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) | Boris work items (Part A: issues) + our design decisions (Part B: D1–D11) |
-| [`docs/CONTRACT-AUDIT.md`](docs/CONTRACT-AUDIT.md) | Consumer-driven audit of the boris boundary, bucketed 🟢/🟡/🔴 (the 🔴s are what we feed back into boris) |
-| [`docs/issues/`](docs/issues/) | Ready-to-paste GitHub issues for boris (A1–A4, A6, A7, A12 drafted) |
+| [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) | Boris work items (Part A: issues) + our design decisions (Part B: D1–D11); **issue-batch reconciliation at the top** |
+| [`docs/CONTRACT-AUDIT.md`](docs/CONTRACT-AUDIT.md) | Consumer-driven audit of the boris boundary, bucketed 🟢/🟡/🔴 (largely superseded by the afterparty reconciliation) |
+| [`docs/issues/`](docs/issues/) | Issue drafts with afterparty status (✅ withdraw / 🟡 reframe / 🔵 reformulate) |
 
-If you are new: README → PLAN-MAC-APP → ENGINE-WORK-AND-DESIGN →
-CONTRACT-AUDIT. The issue drafts are the "what we want Boris to do for us"
-list; the design decisions are the "how we build on our side" list; the
-audit is why each issue exists.
+If you are new: MISSION → BORIS-CAPABILITIES → PLAN-MAC-APP →
+ENGINE-WORK-AND-DESIGN (read the reconciliation table first).
 
 ## Repo layout
 
@@ -100,25 +109,33 @@ These were established empirically and written up in
 [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md). Trust the
 docs over assumptions:
 
-- **Exit codes:** 0 success · 1 content/validation findings · 2 usage · 3 I/O.
-  `check` exits 1 on unreferenced-page findings *by design*.
+- **Exit codes:** 0 success · 1 content/validation · 2 usage · 3 I/O, plus
+  Standard.site classes 4–9. **`check` exits 0 with findings by default**;
+  `--fail-on-unreferenced` → 1 (verified).
 - **Streams:** virtually everything human-readable goes to **stderr**
-  (progress, diagnostics, `--help`, `check`/`impact` reports). stdout is
-  empty on success paths. Machine consumers use `--report PATH` (analysis)
-  and the JSON artifacts — never parse prose.
-- **Output containment is asymmetric:** HTML targets (`--html-dir`,
-  `--target`) are confined to the process cwd (`WorkspaceEscape`, exit 2);
-  `--llms-path` rejects invalid values (exit 2); but `--out` (IR),
-  `--rag-dir`, `--context-dir`, and analysis `--report` write anywhere. The
-  app runs boris with `cwd = project folder`, so HTML stays in-project.
+  (progress, diagnostics, `--help`, reports). stdout carries only
+  `--version`, `--timings`, and plan/record declarations. Machine consumers
+  use `--report PATH` and the JSON artifacts — never parse prose.
+- **Output containment covers ALL output trees** (verified on afterparty):
+  `--html-dir`, `--target`, `--out`, `--rag-dir`, `--context-dir` outside
+  cwd all fail with `WorkspaceEscape` (exit 2). `--report` single-file paths
+  stay free. The app runs boris with `cwd = project folder`, so everything
+  stays in-project.
+- **`build --report PATH`** writes `html-build-report-0.1.0` on success
+  *and* failure (every HTML diagnostic class, `compilerId`, source
+  locations) — the app's machine diagnostics surface.
+- **`watch --serve [--port N]`** serves the built tree on loopback with an
+  SSE reload stream at `/__boris/events` — preview is engine-owned.
+- **`--version` / `-V`** prints `boris/0.8.1` (exit 0). **`--timings`**
+  prints phase timings JSON on stdout. **`completion.json`** ships with IR
+  builds (editor completion surface).
 - **Completion signal:** for `--incremental`/`--watch` HTML builds,
   `<dist>/.boris-cache/manifest.json` is written **atomically on success
   only** (a failed build leaves it untouched). Its fingerprint diff between
-  builds = the exact changed-page set — our targeted-reload mechanism.
-- **Watch mode is HTML-only and speaks prose on stderr** — that's the D10
-  stopgap parser's territory until boris lands A1 (`--watch-json`).
-- **No `--version` flag exists yet** (A2 is drafted). Engine version comes
-  from `manifest.json`'s `compiler` today.
+  builds = the exact changed-page set.
+- **Watch mode is HTML-only and speaks prose on stderr** — for subprocess
+  consumers; browsers get `--serve`'s SSE reload channel. A1
+  (`--watch-json`) is the typed-events ask.
 - **Killing boris is safe (verified):** watch mode catches SIGTERM/SIGINT →
   graceful exit 0 (≤500ms); an in-flight rebuild completes before shutdown;
   SIGKILL leaves no `.boris-stage` leftovers and the next build recovers.
@@ -134,9 +151,9 @@ From [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) §Part B
 |---|----------|--------|
 | D1 | Artifacts at Boris defaults (`dist/`, `.boris/`, `rag/`, …) | ✅ decided |
 | D2 | App-side settings plist (seam for repo-side JSON later) | ✅ decided |
-| D3 | Watch ownership: Boris for preview, app FSEvents for diagnostics | ⏳ revisit after A5 |
-| D4 | Built-in *basic* Markdown editor for v1 | ⏳ biggest scope lever |
-| D5 | Local HTTP server preview (`127.0.0.1`) over `file://` | ✅ decided |
+| D3 | Watch ownership: Boris for preview (`watch --serve`), app-side watcher only if needed | ⏳ revisit after A5 |
+| D4 | Editor scope — boris now ships `boris-editor` + `completion.json`; Solipsist = native ergonomics + problems panel | ⏳ biggest scope lever, re-decide |
+| D5 | Preview: **engine-owned `watch --serve`** (loopback + SSE) — app-side HTTP server obsolete | 🔁 changed by afterparty |
 | D6 | Stay sandboxed | ✅ decided |
 | D7 | Bundle engine; **pin the boris commit** tested against | ⏳ pin note TODO |
 | D8 | `schemaVersion` gating: unknown/newer → degrade, never crash | ✅ decided — write decoders defensively from day one |
@@ -144,29 +161,30 @@ From [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) §Part B
 | D10 | Watch-stderr stopgap parser, JSON artifacts as ground truth | ⏳ not built yet |
 | D11 | The never-compromise boundary list (see above) | ✅ agreed |
 
-**D7's pin note is a known TODO** — record the exact boris commit (v0.8.0)
-tested against, somewhere the build can read it.
+**D7's pin note is a known TODO** — record the exact afterparty commit
+(b82e9e2, `boris/0.8.1`) tested against, somewhere the build can read it.
 
-## Issue pipeline (boris)
+## Issue pipeline (boris) — reconciled against afterparty
 
-Drafted and ready to paste: **A1** (NDJSON watch events — flagship P0),
-**A2** (`--version` — P0), **A3** (`compiler` in build-report — P1), **A4**
-(stream docs + fix `--report` help text — P1), **A6** (completion signal —
-P1), **A7** (workspace-rule docs — P1), **A12** (signal/cancellation docs —
-P1). **A5** is drafted as the RFC companion (check --watch diagnostics
-daemon) and should be filed as a discussion after A1 lands. The 🔴 blockers
-per the audit: A1/A5 (watch prose), A6 (HTML has no result artifact), A2/A3
-(no version identity).
+Fact-checked status of the drafts (full table in
+[`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) and
+[`docs/issues/README.md`](docs/issues/README.md)):
 
-Filing order: A2 + A4 first (XS, unblocks us), then A1, then A3 + A6 + A7 +
-A12, then the A5 RFC as a discussion.
-Not yet drafted: **A5** (watch diagnostics for non-HTML — the one that would
-simplify our architecture the most; write it as an RFC), A8 (`boris init`),
-A9/A10 (we recommend *not* doing — see doc).
+- ✅ **Withdraw (already done on afterparty):** A2 (`--version`),
+  A8 (`init`), A9 (`--fail-on-unreferenced`).
+- 🟡 **Reframe before filing:** A1 (`--watch-json`; cite `--serve`'s SSE
+  channel), A3 (report parity — HTML report has `compilerId`, IR
+  build-report doesn't), A4 (trim: `--report` help text + `--timings`
+  docs), A6 (demote — `build --report` covers it), A7 (reduce to docs —
+  containment now uniform), A12 (trim — C06 pins exit classes).
+- 🔵 **Reformulate:** A5 RFC becomes `validate --watch` (the `validate`
+  command now exists).
 
-Rule: every issue draft must be fact-checked against the current boris source
-before it's filed — exact stderr lines, emission points, exit codes. The
-existing drafts are the template.
+Filing order after re-baselining: A3 → A4 → A1 → A12 → A5 RFC.
+
+Rule: every issue draft must be fact-checked against the **afterparty**
+source before it's filed — exact stderr lines, emission points, exit codes.
+The drafts are the template; the reconciliation table is the gate.
 
 ## Milestones
 
@@ -175,10 +193,11 @@ From `docs/PLAN-MAC-APP.md`: **M0** bootstrap ✅ · **M1** engine spike ✅ ·
 live preview · **M5** diagnostics panel · **M6** check/impact/exports · **M7**
 themes & multi-target · **M8** packaging & notarization.
 
-Good next tasks for a fresh agent: lock D7's pin note; build the D10
-watch-stderr stopgap parser (unblocks preview without waiting on A1); or
-start M2 (security-scoped project open is already scaffolded in
-`ContentView.swift`).
+Good next tasks for a fresh agent: re-baseline the issue drafts per the
+reconciliation table; lock D7's pin note (afterparty b82e9e2); verify the
+M1 spike against the afterparty binary (`make run-spike`); or start M2
+(security-scoped project open is already scaffolded in `ContentView.swift`)
+— preview via `watch --serve` no longer needs the D10 stopgap parser.
 
 ## Git workflow
 

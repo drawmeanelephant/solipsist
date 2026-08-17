@@ -2,7 +2,31 @@
 
 **Date:** 2026-08-17
 **Status:** brainstorming notes — companion to [PLAN-MAC-APP.md](PLAN-MAC-APP.md)
-**Engine baseline:** boris v0.8.0, IR schema `0.2.0`
+**Engine baseline:** ⚠️ **afterparty line, boris v0.8.1 candidate** (`boris/0.8.1`, IR schema `0.2.0`) — **not `main` v0.8.0**.
+`main` is frozen; `afterparty` (847 commits ahead) is where everything current lives. The local
+boris checkout is on `afterparty`, and the bundled engine is built from it. Full capability map:
+[BORIS-CAPABILITIES.md](BORIS-CAPABILITIES.md). Mission: [MISSION.md](MISSION.md).
+
+## ⚠️ Issue-batch reconciliation (re-check before filing anything)
+
+Fact-checked against the afterparty binary (2026-08-17). **Several drafted issues are already
+done — do not file them as-is:**
+
+| Issue | Status on afterparty | Evidence (verified) |
+|-------|----------------------|---------------------|
+| A2 `--version` | ✅ **DONE — withdraw** | `boris --version` → `boris/0.8.1`, exit 0, no content scan; pinned by `test-version-pin` |
+| A9 check exit | ✅ **DONE — withdraw** | `check` exits 0 with findings; `--fail-on-unreferenced` → 1 (the recommended opt-in) |
+| A8 `init` | ✅ **DONE — withdraw** | `boris init [DIR]` ships (starter site + profile) |
+| A3 compiler in IR build-report | 🟡 **STILL OPEN** | IR `build-report.json` lacks `compiler`; the new `html-build-report-0.1.0` **has** `compilerId` — the inconsistency is sharper; reframe as HTML/IR report parity |
+| A4 stream docs + `--report` help | 🟡 **PARTIAL** | `cli.md` documents version query; help still says `--report … instead of stdout`; `--timings` (new stdout surface) needs documenting |
+| A6 completion signal | 🟡 **MOSTLY DONE** | `build --report PATH` gives HTML a machine result artifact on success *and* failure; cache-manifest-as-contract ask drops to low priority |
+| A7 workspace rule | 🟡 **MOSTLY DONE** | All output trees now cwd-contained (verified: HTML/IR/RAG/context → `WorkspaceEscape`); `--report` free; the asymmetry is resolved — docs ask only |
+| A12 signal contract | 🟡 **PARTIAL** | C06 conformance pins watch exit classes; explicit signal docs + latch test still open |
+| A1 watch events | 🟡 **OPEN, reframed** | `watch --serve` has an SSE `reload` channel for browsers; typed build-lifecycle/diagnostic events for subprocess consumers still missing — A1 stands, cite `--serve` |
+| A5 `check --watch` RFC | 🔵 **REFORMULATE** | `boris validate` (artifact-free preflight + in-memory link audit) now exists; the RFC becomes `validate --watch` — joining validate + watch, far more tractable |
+
+**Action:** rewrite/withdraw the affected drafts (`docs/issues/`) before filing. The batch README
+will carry the same status table.
 
 This document lists (A) the work we should ask Boris to do — phrased as
 ready-to-file GitHub issues — and (B) the design decisions we need to make on
@@ -11,34 +35,47 @@ Boris must be strictly additive or opt-in, and must not touch the properties
 that make Boris Boris** — deterministic output, stable exit codes, closed
 frontmatter, workspace containment, single-native-binary.
 
-Fact-checked against boris `main` this session (v0.8.0):
+Fact-checked against boris `afterparty` this session (v0.8.1 candidate).
+The early session's facts were gathered against `main` v0.8.0; the deltas
+are called out inline:
 
-- No `--version` flag exists (`error: unknown option: --version`).
-- Output containment is **asymmetric** (verified empirically): HTML output
-  targets are **cwd-constrained** — `--html-dir`/`--target` outside the
-  workspace fail with `WorkspaceEscape` (exit 2), `--llms-path` fails with
-  `error: invalid value for --llms` (exit 2) — but `--out` (IR),
-  `--rag-dir`, `--context-dir`, and analysis `--report` **write anywhere**
-  (all verified writing to `/tmp` with exit 0). The workspace boundary for
-  HTML is the process cwd (path-boundary check; targeting cwd itself is
-  `TargetOutputCollision`). See A7.
+- **`--version` / `-V` EXISTS on afterparty** (`boris/0.8.1`, stdout, exit 0,
+  no content scan; pinned by `test-version-pin`) — this was a gap on `main`.
+  → **A2 withdrawn.**
+- **Containment now covers ALL output trees** (verified): `--html-dir`,
+  `--target`, `--out` (IR), `--rag-dir`, `--context-dir` outside cwd all
+  fail with `WorkspaceEscape` (exit 2). The earlier `main`-era asymmetry
+  (IR/RAG/context wrote anywhere) is resolved. `--report` single-file paths
+  remain free. Boundary: process cwd, path-boundary check, root collision is
+  `TargetOutputCollision`. → **A7 reduced to a docs ask.**
 - Analysis reports (`check` / `impact`) print to **stderr** by default;
-  `--report PATH` writes them to a file. `check` exits 1 when it finds
-  unreferenced pages (documented, CI-useful behavior).
-- `build-report.json` (IR mode) has no `compiler` field; `manifest.json` does.
-- Watch mode is **HTML-only** (`--watch` with IR/RAG/context is a usage
-  error) and emits human-readable lines to stderr.
+  `--report PATH` writes them to a file. **`check` no longer fails on
+  findings** — exit 0 with unreferenced pages; `--fail-on-unreferenced` is
+  the CI opt-in (verified: 0 by default, 1 with the flag). → **A9 withdrawn.**
+- IR `build-report.json` still has **no `compiler` field** (verified), while
+  the new `html-build-report-0.1.0` (via `build --report PATH`) **does**
+  (`compilerId`) and is written on success *and* failure. → **A3 reframed as
+  HTML/IR report parity.**
+- Watch mode is **HTML-only** and emits human-readable lines to stderr, but
+  afterparty adds `watch --serve`: a loopback HTTP server (default port
+  8090) with an SSE reload stream at `/__boris/events` (browser channel).
+  The new `validate` command is an artifact-free preflight with an in-memory
+  link audit. → **A1 reframed (typed events still missing for subprocess
+  consumers; cite `--serve`); A5 becomes `validate --watch`.**
 - Incremental HTML builds atomically write `.boris-cache/manifest.json`
   (`format_version: "boris-cache-v2-layout-rules"`) with per-page
   fingerprints, output paths, digests — a ready-made build-completion signal.
-- **Kill/cancel is clean (verified empirically):** watch mode catches
-  SIGTERM/SIGINT → graceful exit 0 within one idle poll (≤500ms) with a
-  cleanup message; an in-flight rebuild completes before shutdown (no
-  partial publish); SIGKILL leaves no `.boris-stage` leftovers and the
-  last-good cache manifests intact, and the next build recovers. No orphan
-  processes. The app distinguishes "cancelled" via Swift
+  `build --report PATH` now also gives HTML a machine result artifact on
+  success and failure. → **A6 mostly done.**
+- **Kill/cancel is clean (verified empirically on `main`; afterparty's C06
+  conformance pins watch failure/exit classes):** watch catches SIGTERM/
+  SIGINT → graceful exit 0 within one idle poll (≤500ms) with a cleanup
+  message; an in-flight rebuild completes before shutdown (no partial
+  publish); SIGKILL leaves no `.boris-stage` leftovers and the last-good
+  cache manifests intact, and the next build recovers. No orphan processes.
+  The app distinguishes "cancelled" via Swift
   `Process.terminationReason == .uncaughtSignal`, not a Boris exit code
-  (→ A12).
+  (→ A12, reduced).
 
 ---
 
