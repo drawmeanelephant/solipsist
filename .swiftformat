@@ -3,4 +3,5 @@
 --allman false
 --semicolons never
 --linebreaks lf
---exclude Sources/Play,Sources/Inspector,Sources/Engine,Sources/Models,Spike,SUPPORT-NOT-FOR-GITHUB,vendor,Stunts,.boris,build
+--disable hoistPatternLet,redundantNilInit,wrapIfStatementBodies,redundantSelf,unusedArguments,conditionalAssignment,trailingCommas,wrapPropertyBodies
+--exclude Sources/App,Sources/Chrome,Sources/Workspace,Sources/Engine,Sources/Models,Spike,SUPPORT-NOT-FOR-GITHUB,vendor,Stunts,.boris,build

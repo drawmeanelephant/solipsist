@@ -2,8 +2,9 @@ included:
   - Sources
   - Tests
 excluded:
-  - Sources/Play
-  - Sources/Inspector
+  - Sources/App
+  - Sources/Chrome
+  - Sources/Workspace
   - Sources/Engine
   - Sources/Models
   - Spike
@@ -18,14 +19,6 @@ indentation:
 line_length:
   warning: 140
   error: 180
-
-type_body_length:
-  warning: 400
-  error: 600
-
-file_length:
-  warning: 600
-  error: 1000
 
 trailing_whitespace:
   ignores_empty_lines: true
