@@ -59,6 +59,7 @@ than shipping slowly.
 | [`README.md`](README.md) | Project overview, prerequisites, quick commands |
 | [`docs/MISSION.md`](docs/MISSION.md) | **What we're trying to do** — one page, updated to the afterparty baseline |
 | [`docs/BORIS-CAPABILITIES.md`](docs/BORIS-CAPABILITIES.md) | **The full list of what boris does** — sourced from the afterparty changelog + help + STATUS |
+| [`docs/ENGINE-CONTRACTS.md`](docs/ENGINE-CONTRACTS.md) | **Probed machine contracts for M2–M4**: `watch --serve` (URLs, SSE), `completion.json`, `build --report` shapes |
 | [`docs/PLAN-MAC-APP.md`](docs/PLAN-MAC-APP.md) | Architecture + the full 9-milestone plan (M0–M8) |
 | [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) | Boris work items (Part A: issues) + our design decisions (Part B: D1–D11); **issue-batch reconciliation at the top** |
 | [`docs/CONTRACT-AUDIT.md`](docs/CONTRACT-AUDIT.md) | Consumer-driven audit of the boris boundary, bucketed 🟢/🟡/🔴 (largely superseded by the afterparty reconciliation) |
