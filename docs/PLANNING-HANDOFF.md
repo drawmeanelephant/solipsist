@@ -27,7 +27,7 @@ session re-deriving facts that are already verified and written down.
 
 ## What's decided — do not re-litigate
 
-- **D1** artifacts at boris defaults · **D2** app-side settings plist ·
+- **D1** artifacts at boris defaults · **D2** project config = Boris profile (`boris.json`); app plist = execution controls + UI state only ·
   **D5** preview is engine-owned via `watch --serve` (loopback + SSE — the
   app-side HTTP server idea is obsolete) · **D6** stay sandboxed ·
   **D8** `schemaVersion` gating: unknown/newer → degrade, never crash ·
@@ -41,21 +41,21 @@ session re-deriving facts that are already verified and written down.
 
 | Open item | What's needed |
 |-----------|---------------|
-| **D4 editor scope** | Biggest scope lever. boris now ships `boris-editor` + `completion.json`; decide how much native editor Solipsist builds (full editor vs. native ergonomics + problems panel + preview). |
+| **D4 editor scope** | ✅ decided — native ergonomics + embedded `boris-editor` (WKWebView token URL; link-out fallback); no from-scratch native editor in v1 (see `ENGINE-WORK-AND-DESIGN.md` §D4). |
 | **D3 watch ownership** | Revisit after A5. Today: boris owns preview watch (`watch --serve`); app-side save-triggered one-shot diagnostics. |
 | **D7 pin note** | ✅ resolved — commit `b82e9e2` (`boris/0.8.1`); the temporary `boris-agent-kit` folder's MANIFEST+SHA256SUMS are archived in `vendor/boris-agent-kit/` with a rebuild recipe (see [`AGENT-KIT-REVIEW.md`](AGENT-KIT-REVIEW.md)) |
 | **A5 RFC** | `validate --watch`: join the artifact-free preflight with the watch daemon, emitting A1 events. The design discussion companion to the issue batch. |
-| **Issue batch filing** | Drafts are paste-ready in `docs/issues/`; filing order A3 → A4 → A1 → A12 → A6/A7 → A5 RFC. |
+| **Issue batch filing** | A3 [boris#638], A4 [boris#639], A13 [boris#640] filed; remaining order A1 → A7 → A5 RFC; A6/A12 moot (see `docs/issues/README.md`). |
 
 ## Suggested lanes (pick one, don't overlap)
 
-- **Issues agent** — file the batch: A3 + A4 first (XS, good-faith cheap
-  wins), A1 the flagship, then A12, A6/A7, and open the A5 RFC as a
-  discussion. Rule: every draft is fact-checked against the **afterparty**
-  source before filing (exact stderr lines, emission points, exit codes).
+- **Issues agent** — A3, A4, and A13 are filed; remaining: A1 (flagship),
+  then A7, then open the A5 RFC as a discussion. A6/A12 are moot. Rule:
+  every draft is fact-checked against the **afterparty** source before
+  filing (exact stderr lines, emission points, exit codes).
   Start: `docs/issues/README.md`.
-- **Design agent** — resolve D4 (editor scope) and D3 (watch ownership),
-  write the D7 pin note into the build, and pressure-test the A5 RFC against
+- **Design agent** — D4 is decided; remaining: D3 (watch ownership), write
+  the D7 pin note into the build, and pressure-test the A5 RFC against
   `watch.zig` / `validate.zig`. Start: `docs/ENGINE-WORK-AND-DESIGN.md` §B.
 - **Implementation agent** — start M2: project open (security-scoped
   bookmarks already scaffolded in `ContentView.swift`) + real graph sidebar

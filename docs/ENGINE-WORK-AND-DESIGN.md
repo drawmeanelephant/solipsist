@@ -17,12 +17,13 @@ All drafts in `docs/issues/` are re-written against the afterparty binary; statu
 | A1 watch events | ✅ **ready** | Typed events for subprocess consumers; cites `watch --serve`'s SSE channel as the browser sibling; `mode` field future-proofs A5 |
 | A3 compiler in IR build-report | ✅ **filed [boris#638](https://github.com/drawmeanelephant/boris/issues/638)** | The naming zoo: `manifest`=`compiler`, `completion`=`compiler_id`, `html-build-report`=`compilerId`, IR build-report=absent — the sharpest consistency gap |
 | A4 stream docs + `--report` help | ✅ **filed [boris#639](https://github.com/drawmeanelephant/boris/issues/639)** | Help still says `--report … instead of stdout` (verified); stdout is now a machine payload surface (`--version`, `--timings`, plans) — document the rule |
-| A6 completion signal | ✅ **ready (P2)** | `build --report` solved the original ask; reduced to documenting the cache-manifest changed-page contract, with an honest won't-do option |
+| A6 completion signal | ⛔ **moot** | `build --report` solved the original ask; the cache-manifest doc idea is P2 nice-to-have, not a blocker |
 | A7 workspace rule | ✅ **ready** | Containment now uniform (HTML/IR/RAG/context verified); docs ask + the IR absolute-output-path quirk (`--out /abs` inside cwd escapes, HTML doesn't) |
-| A12 signal contract | ✅ **ready** | Graceful SIGTERM/SIGINT verified on afterparty (exit 0, ≤500ms); C06 pins exit classes; remaining: docs + shutdown-latch test |
+| A12 signal contract | ⛔ **moot** | watch-mode.md §6 documents signals; C06 pins exit classes; shutdown-latch test is nice-to-have |
+| A13 watch recovery bug | ✅ **filed [boris#640](https://github.com/drawmeanelephant/boris/issues/640)** | Verified: `GraphValidationFailed` on a rebuild exits the watcher (contract says recoverable); should recover like `ParseFailed` |
 | A5 `check --watch` RFC | 🔵 **ready (reformulated)** | `boris validate` exists — the RFC is now `validate --watch` (join validate + watch, A1 events), far more tractable |
 
-**Filing order:** A3 → A4 → A1 → A12 → A6/A7 → A5 RFC. See `docs/issues/README.md`.
+**Filing order:** A1 → A7 → A5 RFC (A3/A4/A13 already filed; A6/A12 moot). See `docs/issues/README.md`.
 
 This document lists (A) the work we should ask Boris to do — phrased as
 ready-to-file GitHub issues — and (B) the design decisions we need to make on
@@ -193,7 +194,7 @@ Boris-side RFC because it touches watch-mode's conflict rules — hence P1/P2,
 not P0. If Boris declines, Solipsist does its own FSEvents watcher + one-shot
 IR builds (Part B, decision D3) and this becomes a non-issue.
 
-### A6. A written completion/result signal for one-shot builds — **P1** (small)
+### A6. A written completion/result signal for one-shot builds — **moot** (solved by `build --report`)
 
 **Problem.** For one-shot HTML builds (no `--watch`), the app currently gets
 exit code + stderr prose only — HTML mode publishes no `build-report.json`.
@@ -271,7 +272,7 @@ ever shows process overhead actually matters (it won't at docs-site scale).
 Covered by A1's NDJSON events — the `rebuild-failed` event should carry the
 diagnostic objects (same shape as `build-report.json`), not just counts.
 
-### A12. Document signal/cancellation behavior — **P1** (docs, tiny)
+### A12. Document signal/cancellation behavior — **moot** (documented in watch-mode.md §6)
 
 **Problem.** The user-asked question: *"can I kill Boris?"* The behavior is
 good — verified: SIGTERM/SIGINT → graceful exit 0 (≤500ms, cleanup
@@ -322,155 +323,118 @@ blockers to feed back into Boris.
 
 ## Part B — Solipsist-side design decisions
 
-These are decisions *we* own. Each lists options and a recommendation.
+These are decisions *we* own. Statuses reflect the afterparty re-baseline
+(2026-08-17).
 
-### D1. Where build artifacts live (workspace constraint)
+### D1. Where build artifacts live — ✅ decided: Boris defaults
 
-Boris confines HTML outputs to the process cwd, and the app will run boris
-with `cwd = project folder`, so HTML artifacts stay in-project. IR/RAG/
-context/llms outputs are *not* confined (A7), so defaults matter here. So:
+The app runs boris with `cwd = project folder`; afterparty confines **all**
+output trees to the cwd (`WorkspaceEscape`, exit 2). Artifacts stay at Boris
+defaults — `dist/`, `.boris/`, `rag/`, `context/`, `llms.txt` — so the
+project stays CLI-compatible and the security-scoped bookmark covers them.
+README guidance gitignores `dist/`, `.boris/`, `.boris-cache/`, `rag/`,
+`context/`, `llms.txt`. (No hidden `.solipsist/` folder.)
 
-- **Option A (recommended):** use Boris defaults — `dist/`, `.boris/`,
-  `rag/`, `context/`, `llms.txt` at project root. Project stays
-  CLI-compatible (`boris` from a terminal does the same thing), artifacts are
-  obviously gitignorable, and the app's security-scoped bookmark already
-  covers them.
-- **Option B:** a hidden `.solipsist/` folder for everything. Cleaner-looking
-  project, but diverges from the CLI and adds an abstraction layer for zero
-  gain.
+### D2. Settings storage — ✅ decided: two layers, split by what Boris consumes
 
-**Decision needed:** A (recommended). Also: README guidance to gitignore
-`dist/`, `.boris/`, `.boris-cache/`, `rag/`, `context/`, `llms.txt`.
+afterparty ships a native project config (`boris.json`,
+`boris-publication-profile` schema v1), so the old app-vs-repo question
+resolves by ownership:
 
-### D2. Settings storage: app-side vs repo-side
+- **Project configuration → the Boris profile (repo-side):** `input`,
+  `input_format`, `site`, `publication`, `targets`, `editions`. This is what
+  `plan` validates and `build --profile` consumes — the single shareable,
+  reproducible, `plan`-validated truth. The console edits this file.
+- **Execution controls + machine-local state → app-side plist:** `jobs`,
+  `incremental`, `quiet` (deliberately *not* plan identity), plus window
+  layout, recent projects, pinned preview port, last-opened project.
 
-Boris reads no config file, so project settings (input root, theme, targets,
-layout rules, incremental/jobs) are purely our concern.
+Rule: if a setting affects Boris output it lives in the profile; the plist
+never duplicates it.
 
-- **Option A (recommended):** app-side plist in
-  `~/Library/Application Support/Solipsist/`, keyed by project folder path.
-  Machine-local, no repo pollution, survives git operations.
-- **Option B:** `solipsist.json` in the project root. Shareable/committable,
-  reproducible builds across machines — but it's content-adjacent config
-  inside content repos, and "what if the repo is also built by CLI users"
-  gets murky.
+### D3. Who watches the files — ✅ decided: Boris owns it; no app-side watcher
 
-**Decision needed:** A for v1, with a clean seam (a `ProjectSettings`
-Codable type) so B can be added later if multi-machine reproducibility
-matters. Related sub-decision: if we ever do B, JSON (Boris's native
-language) not YAML/TOML.
+- **Preview:** `boris watch --serve` (debounce/coalescing, self-trigger
+  protection, loopback + SSE reload).
+- **Diagnostics:** save-triggered `boris validate --report` (artifact-free;
+  binary-verified to run alongside `watch`). No FSEvents watcher, no one-shot
+  IR builds for diagnostics.
+- **Revisit:** A5 (`validate --watch`) would fold diagnostics into the daemon;
+  not required in the meantime.
 
-### D3. Who watches the files?
+### D4. Editor scope for v1 — ✅ decided
 
-- **Option A:** Boris `--watch` owns watching for the preview (battle-tested
-  debounce/coalescing, self-trigger protection). App-side FSEvents watcher
-  triggers one-shot IR builds for live diagnostics (since watch is HTML-only).
-- **Option B:** App owns ALL watching (FSEvents), Boris only ever runs
-  one-shot builds. Full control, but we reimplement debounce/coalescing and
-  lose Boris's tested exclusion logic.
-- **Option C:** Boris gains `check --watch`/diagnostics watch (A5) and owns
-  everything.
+**Decision: native ergonomics + embedded `boris-editor`. No from-scratch
+native editor in v1.**
 
-**Decision needed:** A for M4, revisit after A5 lands. A5 would simplify us
-considerably (no app-side watcher at all).
+- **Authoring** is `boris-editor` embedded in a `WKWebView`: the app spawns
+  the Zig loopback host and loads its session-token URL. Fallback if the
+  sandbox/token/CSP spike fails: "Open in Boris Editor" (link out).
+- **Solipsist builds the native ergonomics around it**, not a text editor:
+  the problems panel (`validate --report` + IR `build-report.json`), the
+  completion-driven frontmatter/theme inspector (`completion.json`), and
+  preview (`watch --serve`).
+- **Rationale:** `boris-editor` is compiler-owned — its completion is sourced
+  exclusively from `completion.json` and its problems panel consumes only
+  Boris-owned reports. A native editor would reimplement that coupling,
+  against the "never reimplement Boris semantics in Swift" boundary.
+  Solipsist's real edge is Mac citizenship (security-scoped open, menus,
+  bookmarks) + the publishing console, not text editing.
+- **Revisit trigger:** only if the embed proves brittle on real content or a
+  concrete native-editor need (pasteboard/drag-drop/Spotlight) outweighs the
+  duplication cost. That is post-M5, not v1.
 
-### D4. Editor scope for v1
+Tradeoffs accepted: the embed is a browser surface inside a native app;
+building `boris-editor`'s Svelte UI needs `npm` at *build* time (runtime
+stays toolchain-free). Pin the editor to the same `b82e9e2` commit as the
+engine.
 
-- **Option A:** Built-in Markdown editor (plain text + frontmatter inspector
-  form: title/parent/status/tags) + save → debounced rebuild.
-- **Option B:** "Open in External Editor" + app-side watcher; app is
-  read/manage/preview only.
+### D5. Preview transport — ✅ decided: engine-owned `watch --serve`
 
-**Decision needed:** This is the biggest scope lever. Recommendation: A, but
-with a deliberately *basic* editor (no syntax highlighting or wiki
-autocomplete in v1 — those are post-M5). B as a fallback if A balloons.
+afterparty ships the preview server, so the app writes neither an HTTP
+server nor uses `file://`. The app runs `boris watch --serve --port 0`,
+parses the one stderr startup line for the ephemeral port, and loads
+`http://127.0.0.1:PORT/__boris/` in a `WKWebView`; SSE `event: reload`
+drives refresh. Entitlements: `network.server` (loopback listen);
+`network.client` only for remote theme assets or publication flows.
 
-### D5. Preview transport: WKWebView file:// vs local HTTP server
+### D6. Sandbox vs non-sandbox — ✅ decided: stay sandboxed
 
-- **Option A (recommended):** tiny in-app HTTP server on `127.0.0.1` serving
-  `dist/`. Avoids `file://` quirks (sandbox, baseURL, some JS), enables
-  future live-reload JS injection, and behaves like production. Needs
-  `com.apple.security.network.server` entitlement.
-- **Option B:** `WKWebView` + `file://` with `baseURL = dist/`. No server,
-  but file URLs in WKWebView have real limitations and some themes may
-  misbehave.
+Security-scoped bookmarks for project folders; `network.server` for the
+preview server; `network.client` added only when publication/remote assets
+need outbound. Nothing in v1 needs unsandboxed access.
 
-**Decision needed:** A (recommended); validate early with the reference
-theme before committing. Note the network-server entitlement only allows
-*listening*, not outbound — outbound (remote fonts/CDN) still needs
-`network.client` if a theme uses it.
+### D7. Engine provisioning & version policy — ✅ decided: bundle + pin
 
-### D6. Sandbox vs non-sandbox
+Bundle the engine in the app (no download-on-first-run). **Pin commit
+`b82e9e2` (`boris/0.8.1`)**; vendor the SHA256-verified agent-kit binary
+when present, else rebuild from the pin (see
+[`AGENT-KIT-REVIEW.md`](AGENT-KIT-REVIEW.md)). Gate features on IR
+`schemaVersion` (D8), not assumed compatibility. About screen shows the
+compiler id (`boris --version`).
 
-We scaffolded sandboxed (entitlements already signed in). Options:
+### D8. SchemaVersion gating policy — ✅ decided
 
-- **Option A (recommended):** stay sandboxed. App Store-ready, forces
-  security-scoped bookmarks (good hygiene), and nothing in the plan needs
-  unsandboxed access.
-- **Option B:** non-sandboxed Developer ID distribution — simpler file
-  access, but locks out App Store and encourages sloppy paths.
-
-**Decision needed:** A. Revisit only if the HTTP server + file access
-combination (D5) proves painful.
-
-### D7. Engine provisioning & version policy
-
-- **Option A (recommended):** bundle the engine in the app (current
-  `embed-boris.sh` approach). Deterministic, offline, sandbox-friendly.
-  Engine upgrades ship with app updates; About screen shows the compiler id
-  (once A2/A3 land).
-- **Option B:** download-on-first-run. Fresher engine, but needs network
-  entitlement, a download service, and re-signing of a downloaded binary —
-  a lot of moving parts.
-
-**Decision needed:** A. Related policy: **pin the boris commit** we test
-against, record it in the repo, and gate app features on IR `schemaVersion`
-(D8) rather than assuming compatibility.
-
-**Status (2026-08-17): pin is now concrete.** The `boris-agent-kit` sibling
-folder ships 10 SHA256-verified binaries of our exact pinned commit
-(`b82e9e2`, `boris/0.8.1`) — the engine behaves identically to the
-afterparty build on every probed contract (M1 spike passes via
-`SOLIPSIST_BORIS_BIN`). Recommended: vendor-from-kit for the app bundle
-(hash-checkable, no Zig toolchain at build time), keep the source build as
-fallback. See [`AGENT-KIT-REVIEW.md`](AGENT-KIT-REVIEW.md).
-
-### D8. SchemaVersion gating policy
-
-Define now how the app treats future IR versions so decoders are written
-defensively from day one:
+Decoders branch on `schemaVersion` (string `"0.2.0"` on IR artifacts, integer
+`1` on `completion.json`) and degrade, never crash:
 
 - `schemaVersion == "0.2.0"` → full feature set.
-- Unknown/`> 0.2.0` → show "engine newer than app" banner; disable
-  IR-dependent features (tree, diagnostics panel) or degrade to HTML-only;
-  never crash on decode. All decoders must branch on `schemaVersion`, per
-  the Boris contract.
+- Unknown/newer → "engine newer than app" banner; disable IR-dependent
+  features or degrade to HTML-only.
 
-**Decision needed:** adopt this policy + write it into the Models layer as a
-documented convention (e.g. a `schemaSupported` check in the engine).
+Consider generating the Codable mirrors from the published JSON Schemas under
+`docs/contracts/schemas/`.
 
-### D9. Project identity & detection
+### D9. Project identity & detection — ✅ decided: any folder; `boris init` for new projects
 
-What makes a folder a Solipsist project?
+Any folder is a project (default input root `content/`). "New Project" runs
+`boris init` (shipped on afterparty) — no app-side template.
 
-- **Option A (recommended):** any folder; default input root `content/`
-  (Boris default); custom `--input` via settings. Zero magic.
-- **Option B:** require a marker file (`.solipsist` / `boris.json`).
-  Explicit, but an extra file in every repo and friction for "open any docs
-  folder".
+### D10. Watch-stderr fallback parsing — ⛔ withdrawn (superseded by afterparty)
 
-**Decision needed:** A. A "New Project" template (content/ + layouts +
-sample page) lives in the app until/unless A8 (`boris init`) lands.
-
-### D10. Watch-stderr fallback parsing
-
-Until A1 ships, Solipsist must consume the human watch lines. Decision:
-implement a small, forgiving parser for the documented stable lines
-(`watch: initial build succeeded (N pages written)…`, `watch: rebuild
-succeeded.`, `error: rebuild failed: …`), treat unknown lines as ignorable,
-and prefer `.boris-cache/manifest.json` / `build-report.json` as ground
-truth over any parsed prose. This is a deliberate stopgap with a defined
-lifetime (until A1).
+No stderr parser. `build --report` / `validate --report` (machine JSON) and
+`watch --serve`'s SSE reload replaced prose parsing; the only stderr line the
+app parses is the `watch --serve` startup port line.
 
 ### D11. What we will NOT compromise on (our side of the boundary)
 

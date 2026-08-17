@@ -171,9 +171,9 @@ From [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) §Part B
 | # | Decision | Status |
 |---|----------|--------|
 | D1 | Artifacts at Boris defaults (`dist/`, `.boris/`, `rag/`, …) | ✅ decided |
-| D2 | App-side settings plist (seam for repo-side JSON later) | ✅ decided |
+| D2 | Project config = Boris profile (`boris.json`, repo-side); app plist = `jobs`/`incremental`/`quiet` + UI state only | ✅ decided |
 | D3 | Watch ownership: Boris for preview (`watch --serve`), app-side watcher only if needed | ⏳ revisit after A5 |
-| D4 | Editor scope — boris now ships `boris-editor` + `completion.json`; Solipsist = native ergonomics + problems panel | ⏳ biggest scope lever, re-decide |
+| D4 | Editor scope: native ergonomics + embedded `boris-editor` (WKWebView token URL; link-out fallback); no from-scratch native editor in v1 | ✅ decided |
 | D5 | Preview: **engine-owned `watch --serve`** (loopback + SSE) — app-side HTTP server obsolete | 🔁 changed by afterparty |
 | D6 | Stay sandboxed | ✅ decided |
 | D7 | Bundle engine; **pin the boris commit** tested against | ✅ pinned — commit `b82e9e2` (`boris/0.8.1`); the kit's MANIFEST+SHA256SUMS are archived in `vendor/boris-agent-kit/`; vendor-from-kit when present, else rebuild from the pin (see [`AGENT-KIT-REVIEW.md`](docs/AGENT-KIT-REVIEW.md)) |
@@ -190,15 +190,17 @@ From [`docs/ENGINE-WORK-AND-DESIGN.md`](docs/ENGINE-WORK-AND-DESIGN.md) §Part B
 The drafts are re-baselined and ready to paste (statuses in
 [`docs/issues/README.md`](docs/issues/README.md)):
 
-- ✅ **Ready:** A1 (`--watch-json`), A3 (IR build-report identity + the
-  `compiler`/`compiler_id`/`compilerId` naming zoo), A4 (`--report` help
-  bug + stdout surfaces), A6 (cache-manifest changed-page docs, P2),
-  A7 (containment docs + IR absolute-path quirk), A12 (signal contract).
+- ✅ **Ready:** A1 (`--watch-json`), A7 (containment docs + IR absolute-path quirk).
 - 🔵 **RFC:** A5 (`validate --watch` — join validate + watch, A1 events).
-- ⛔ **Withdrawn (shipped on afterparty):** A2 (`--version`), A8 (`init`),
-  A9 (`--fail-on-unreferenced`). The A2 file holds the evidence.
+- ✅ **Filed:** A3 [boris#638] (IR build-report identity + the
+  `compiler`/`compiler_id`/`compilerId` naming zoo), A4 [boris#639]
+  (`--report` help bug + stdout surfaces), A13 [boris#640] (watch exits on
+  `GraphValidationFailed` instead of recovering).
+- ⛔ **Moot / withdrawn:** A2 (`--version` shipped), A6 (`build --report`
+  solved the completion signal), A8 (`init`), A9 (`--fail-on-unreferenced`),
+  A12 (watch-mode.md §6 documents signals; C06 pins exit classes).
 
-Filing order: A3 → A4 → A1 → A12 → A6/A7 → A5 RFC.
+Filing order: A1 → A7 → A5 RFC (A3/A4/A13 filed; A6/A12 moot).
 
 Rule: every issue draft must be fact-checked against the **afterparty**
 source before it's filed — exact stderr lines, emission points, exit codes.
