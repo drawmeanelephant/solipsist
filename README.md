@@ -47,6 +47,12 @@ Engine search order: `SOLIPSIST_BORIS_BIN` → app bundle →
 `SUPPORT-NOT-FOR-GITHUB/…/bin/boris` (local only) →
 `../boris/zig-out/bin/boris`.
 
+## CI
+
+PRs to `main` run GitHub Actions (`spike` compile + `app` compile).
+There is no boris binary in CI, so the spike is compile-only and the
+app embeds nothing. A `fart` job is reserved and disabled.
+
 ## Boundaries
 
 - Never touch the boris repo from here. File issues; vendor the binary.

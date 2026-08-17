@@ -52,6 +52,14 @@ if BIN="$(find_prebuilt)"; then
   exit 0
 fi
 
+# CI compiles the app without a bundled engine. Local `make build` still
+# requires a kit or a boris checkout.
+if [[ "${SKIP_EMBED_BORIS:-}" == "1" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  echo "embed-boris: no engine available — compiling without a bundle"
+  mkdir -p "$DEST_DIR"
+  exit 0
+fi
+
 BORIS_REPO="${BORIS_REPO_DIR:-$SRCROOT/../boris}"
 BIN="$BORIS_REPO/zig-out/bin/boris"
 

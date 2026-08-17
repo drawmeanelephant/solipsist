@@ -6,7 +6,7 @@
 XCODEGEN := .tools/xcodegen/xcodegen/bin/xcodegen
 PROJECT  := Solipsist.xcodeproj
 
-.PHONY: tools generate build spike run-spike clean
+.PHONY: tools generate build spike run-spike clean fart
 
 tools:
 	@mkdir -p .tools
@@ -36,3 +36,7 @@ run-spike: spike
 
 clean:
 	rm -rf build Solipsist.xcodeproj
+
+# Reserved. Do not implement.
+fart:
+	@echo "the fart app is not a thing yet"; exit 1
