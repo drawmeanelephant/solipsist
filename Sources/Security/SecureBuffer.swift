@@ -74,16 +74,16 @@ public final class SecureBuffer: @unchecked Sendable, CustomStringConvertible, C
         lock.lock()
         defer { lock.unlock() }
         guard let buf = buffer else { return }
-        
+
         // Zero the memory buffer using memset_s when available or explicit volatile zeroing
         #if canImport(Darwin)
-        memset_s(buf.baseAddress, buf.count, 0, buf.count)
+            memset_s(buf.baseAddress, buf.count, 0, buf.count)
         #else
-        if let base = buf.baseAddress {
-            base.initializeMemory(as: UInt8.self, repeating: 0, count: buf.count)
-        }
+            if let base = buf.baseAddress {
+                base.initializeMemory(as: UInt8.self, repeating: 0, count: buf.count)
+            }
         #endif
-        
+
         buf.deallocate()
         self.buffer = nil
         self.count = 0

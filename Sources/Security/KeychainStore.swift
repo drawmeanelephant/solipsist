@@ -17,20 +17,20 @@ public protocol KeychainStoring: Sendable {
     func hasSecret(account: String, service: String) -> Bool
 }
 
-extension KeychainStoring {
-    public func saveSecret(_ secret: SecureBuffer, account: String) throws {
+public extension KeychainStoring {
+    func saveSecret(_ secret: SecureBuffer, account: String) throws {
         try saveSecret(secret, account: account, service: KeychainStore.defaultService)
     }
 
-    public func loadSecret(account: String) throws -> SecureBuffer? {
+    func loadSecret(account: String) throws -> SecureBuffer? {
         try loadSecret(account: account, service: KeychainStore.defaultService)
     }
 
-    public func deleteSecret(account: String) throws {
+    func deleteSecret(account: String) throws {
         try deleteSecret(account: account, service: KeychainStore.defaultService)
     }
 
-    public func hasSecret(account: String) -> Bool {
+    func hasSecret(account: String) -> Bool {
         hasSecret(account: account, service: KeychainStore.defaultService)
     }
 }

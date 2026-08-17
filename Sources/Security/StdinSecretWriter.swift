@@ -11,7 +11,6 @@ public enum StdinSecretWriterError: Error, Equatable, Sendable {
 /// Ensures secrets are written directly without intermediate logging, string allocation,
 /// or persistence, and immediately flushes and signals EOF if configured.
 public enum StdinSecretWriter {
-
     /// Writes the contents of `secret` to the given file handle.
     ///
     /// - Parameters:
@@ -34,14 +33,14 @@ public enum StdinSecretWriter {
                 throw StdinSecretWriterError.emptySecret
             }
 
-            let fd = handle.fileDescriptor
+            let descriptor = handle.fileDescriptor
             var bytesWritten = 0
             let totalBytes = rawBytes.count
 
             while bytesWritten < totalBytes {
                 let chunkPtr = baseAddress.advanced(by: bytesWritten)
                 let remaining = totalBytes - bytesWritten
-                let result = write(fd, chunkPtr, remaining)
+                let result = write(descriptor, chunkPtr, remaining)
                 if result < 0 {
                     let err = errno
                     throw StdinSecretWriterError.writeFailed("POSIX write failed with errno: \(err)")
@@ -52,7 +51,7 @@ public enum StdinSecretWriter {
             if appendNewline {
                 var newlineByte: UInt8 = 0x0A
                 _ = withUnsafeBytes(of: &newlineByte) { nlPtr in
-                    write(fd, nlPtr.baseAddress, 1)
+                    write(descriptor, nlPtr.baseAddress, 1)
                 }
             }
         }

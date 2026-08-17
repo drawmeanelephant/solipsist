@@ -27,7 +27,6 @@ final class MockKeychainStore: KeychainStoring, @unchecked Sendable {
 }
 
 final class SecurityTests: XCTestCase {
-
     // MARK: - SecureBuffer Tests
 
     func testSecureBufferLifecycleAndZeroing() {
@@ -44,7 +43,7 @@ final class SecurityTests: XCTestCase {
 
         // Verify byte reading
         let bytes = buffer.copyBytes()
-        XCTAssertEqual(String(decoding: bytes, as: UTF8.self), secretText)
+        XCTAssertEqual(String(bytes: bytes, encoding: .utf8), secretText)
 
         // Verify wipe
         buffer.wipe()
@@ -108,7 +107,7 @@ final class SecurityTests: XCTestCase {
         )
 
         let readData = pipe.fileHandleForReading.readDataToEndOfFile()
-        let receivedText = String(decoding: readData, as: UTF8.self)
+        let receivedText = String(data: readData, encoding: .utf8)
         XCTAssertEqual(receivedText, "nsec1secretpayload999\n")
     }
 
@@ -124,7 +123,7 @@ final class SecurityTests: XCTestCase {
         )
 
         let readData = pipe.fileHandleForReading.readDataToEndOfFile()
-        let receivedText = String(decoding: readData, as: UTF8.self)
+        let receivedText = String(data: readData, encoding: .utf8)
         XCTAssertEqual(receivedText, "app-password-token-abc")
 
         // Assert that the source secret buffer was wiped
