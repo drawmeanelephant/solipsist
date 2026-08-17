@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.3.0",
+  "ok": true,
+  "contentRoot": "content",
+  "outDir": ".boris",
+  "pageCount": 3,
+  "errorCount": 0,
+  "diagnostics": []
+}

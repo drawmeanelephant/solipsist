@@ -29,6 +29,14 @@ jobs:
       - name: Generate project and compile the app
         run: make build
 
+  fixtures:
+    name: fixtures
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode checked-in contract fixtures
+        run: make test
+
   fart:
     name: fart
     runs-on: ubuntu-latest

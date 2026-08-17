@@ -72,6 +72,20 @@ targets:
         PRODUCT_NAME: boris-spike
         GENERATE_INFOPLIST_FILE: YES
 
+  ContractTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/ContractTests
+      - path: Tests/Fixtures
+        type: folder
+      - path: Sources/Models
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.drawmeanelephant.solipsist.contracttests
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_NAME: ContractTests
+
 schemes:
   Solipsist:
     build:
@@ -85,3 +99,10 @@ schemes:
         spike: all
     run:
       config: Debug
+  ContractTests:
+    build:
+      targets:
+        ContractTests: [test, run]
+    test:
+      targets:
+        - ContractTests

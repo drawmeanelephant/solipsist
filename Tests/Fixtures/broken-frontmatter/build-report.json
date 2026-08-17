@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.2.0",
+  "ok": false,
+  "contentRoot": "broken-frontmatter",
+  "outDir": "_ir-broken-fm",
+  "pageCount": 0,
+  "errorCount": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "EFRONTMATTER",
+      "message": "unsupported frontmatter key",
+      "remediation": "Fix the frontmatter or encoding for this file",
+      "sourcePath": "index.md",
+      "line": 4,
+      "column": 1,
+      "id": null
+    }
+  ]
+}

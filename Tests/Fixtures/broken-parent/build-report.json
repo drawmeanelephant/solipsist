@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.2.0",
+  "ok": false,
+  "contentRoot": "broken-parent",
+  "outDir": "_ir-broken-parent",
+  "pageCount": 1,
+  "errorCount": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "EPARENTMISSING",
+      "message": "parent \"does-not-exist\" does not exist",
+      "remediation": "Create the parent document or fix the parent id",
+      "sourcePath": "orphan.md",
+      "line": 1,
+      "column": 1,
+      "id": "orphan"
+    }
+  ]
+}
