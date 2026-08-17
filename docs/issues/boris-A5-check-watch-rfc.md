@@ -1,6 +1,6 @@
 # A5 — RFC: `boris validate --watch` — live, artifact-free validation as a daemon
 
-> **Design discussion for the boris repo.** Companion to A1
+> **Filed:** [boris#647](https://github.com/drawmeanelephant/boris/issues/647) — as an issue (Discussions disabled on the repo). Companion to A1
 > ([boris-A1-watch-events.md](boris-A1-watch-events.md)) — this mode consumes
 > A1's event protocol. Not a contract change; an RFC to decide whether boris
 > wants a validate-only watch mode at all.
