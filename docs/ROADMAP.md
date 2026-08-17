@@ -143,7 +143,14 @@ window groups. `Source` / `WorkspaceSelection` / `WorkspaceStore`.
 File → Open… bookmarks a local folder.
 Gate: empty chrome is Mail-shaped; Open adds a source; spike unchanged.
 
-### P — Project subdomain (parallel, plenty early)
+### P — Project subdomain (parallel, plenty early) — ⛔ **withdrawn (2026-08-17)**
+
+**Decision:** not building the Worker/Wasm subdomain host. The public site
+ships via Cloudflare Pages (`https://solipsist.filed.fyi` — see `site/` and
+`.github/workflows/deploy-site.yml`); a separate Worker + R2 + Wasm host
+adds infra for no user-facing gain. The boris-side surfaces
+(`hosts/cloudflare-worker`, `compileBundle` Wasm) stay in the operator
+reviews, but this repo does not stand up a project subdomain on them.
 
 **Goal.** Solipsist has a public URL that is itself a Boris publication,
 without depending on GitHub being up or on us having full GitHub access.
