@@ -39,16 +39,17 @@ test: generate
 		-derivedDataPath build -destination 'platform=macOS' test
 
 lint:
-	@if command -v swiftformat >/dev/null 2>&1; then \
-		echo "==> Running SwiftFormat"; \
-		swiftformat --lint .; \
-	elif command -v swiftlint >/dev/null 2>&1; then \
-		echo "==> Running SwiftLint"; \
-		swiftlint; \
-	else \
-		echo "==> swiftformat/swiftlint not found locally — checking lint config files"; \
-		test -f .swiftformat && test -f .swiftlint.yml && echo "==> Lint configs OK"; \
-	fi
+	@missing=""; \
+	if ! command -v swiftformat >/dev/null 2>&1; then missing="$$missing swiftformat"; fi; \
+	if ! command -v swiftlint >/dev/null 2>&1; then missing="$$missing swiftlint"; fi; \
+	if [ -n "$$missing" ]; then \
+		echo "error: missing required lint tool(s):$$missing. Install with: brew install swiftformat swiftlint" >&2; \
+		exit 1; \
+	fi; \
+	echo "==> Running SwiftFormat"; \
+	swiftformat --lint . && \
+	echo "==> Running SwiftLint" && \
+	swiftlint --strict
 
 harvest-fixtures:
 	bash scripts/harvest-stunt-fixtures.sh
