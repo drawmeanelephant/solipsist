@@ -93,6 +93,7 @@ No scraped prose. No homegrown graph. No third settings store.
 - `validate --watch` once A5 exists (replaces save-triggered one-shots)
 - Cooklang recipe-scale as a first-class play pane (v1: available from
   the page inspector when the corpus has recipes)
+- The fart app (CI job reserved, `make fart` refuses; do not build it)
 
 ---
 
