@@ -1,0 +1,5 @@
+---
+id: broken-textile-link
+title: Page with Broken Textile Link
+---
+This page carries an incomplete "Textile link": with no destination, which must fail with ETEXTILE.

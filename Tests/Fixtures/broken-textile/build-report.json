@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "0.2.0",
+  "ok": false,
+  "contentRoot": "broken-textile",
+  "outDir": "_ir-broken-textile",
+  "pageCount": 0,
+  "errorCount": 1,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "ETEXTILE",
+      "message": "Incomplete link: missing destination after ':'",
+      "remediation": "Give the link a safe destination or remove it",
+      "sourcePath": "page.textile",
+      "line": 4,
+      "column": 30,
+      "id": "broken-textile-link"
+    }
+  ]
+}
