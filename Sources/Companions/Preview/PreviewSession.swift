@@ -154,6 +154,8 @@ final class PreviewSession {
         server?.stop()
         server = nil
         timeoutTask = nil
-        rootPath = nil        phase = .failed("preview server did not report a port within 15s")
+        rootPath = nil
+        phase = .failed("preview server did not report a port within 15s")
     }
 }
+
