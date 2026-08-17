@@ -9,10 +9,15 @@
 
 ## Summary
 
-There is no way to ask the binary its own version. `manifest.json` carries
-`compiler: boris/0.8.0`, but a consumer needs the engine version *before*
-running a build — About screen, engine-update checks, and schema-compatibility
-gating all want a one-shot answer.
+Every compiler CLI lets you ask it which version it is. Boris is the
+exception: `boris --version` is a usage error. The *artifacts* it produces
+carry the identity (`manifest.json` → `compiler: boris/0.8.0`,
+`catalog_meta.json` → `boris_version`), but the binary itself is mute before
+it does any work. Any consumer that needs the engine version **before**
+running a build — shell scripts choosing flags, CI matrix logic, editors
+checking compatibility, package managers pinning engines — has no answer.
+This is the cheapest possible completion of the process ABI: identity is
+already a constant, it's just not exposed.
 
 ## Proposal
 
@@ -35,8 +40,8 @@ boris/0.8.0
 
 ## Optional follow-up (separate concern, not required for this issue)
 
-A machine-readable form for consumers that also need the IR schema version for
-gating:
+A machine-readable form for consumers that also need the IR schema version
+for compatibility gating:
 
 ```
 $ boris --version --json
@@ -46,10 +51,12 @@ $ boris --version --json
 Add only if there's appetite — the plain `--version` is the complete minimal
 ask.
 
-## Why this is not a compromise
+## Why this is a strong decision for boris
 
-A standard, read-only flag. Zero impact on compilation, determinism, exit
-codes, or any artifact. Note that `boris package` already writes
+A standard, read-only flag; zero impact on compilation, determinism, exit
+codes, or any artifact. It closes an obvious gap between what boris *says*
+about itself in its artifacts and what it can *answer* about itself on the
+command line. Note that `boris package` already writes
 `MACHINE-READABLE-VERSION.json`, but that requires running a package build;
 `--version` is the cheap, standard path.
 

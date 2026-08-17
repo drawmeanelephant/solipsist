@@ -9,7 +9,10 @@
 
 ## Summary
 
-Watch mode's only output is human prose on stderr:
+Boris's contract discipline is its identity: every surface that produces
+output for humans also produces a typed, versioned, machine-readable form —
+IR artifacts, analysis reports, diagnostics, exit codes. **Watch mode is the
+one surface that doesn't.** Its entire output is human prose on stderr:
 
 ```
 watch: changed paths detected:
@@ -18,11 +21,12 @@ watch: triggering incremental rebuild...
 watch: rebuild succeeded.
 ```
 
-Tooling that drives `boris --watch` as a subprocess (a GUI, an editor plugin, a
-dev-server wrapper) either parses this prose — fragile — or ignores it and
-polls the output tree. We want typed lifecycle events: build started /
-succeeded / failed, the changed page set, error counts, structured
-diagnostics, and target names, on a stream we can consume without regex.
+Anything that drives `boris --watch` as a subprocess — an editor plugin, a
+dev-server wrapper, a GUI, a CI dashboard, a `watch(1)`-style script — must
+either regex-parse this prose (fragile, breaks on any wording change) or
+ignore it and poll the output tree. Watch mode is effectively a compile
+*daemon*, and a daemon without a typed event protocol is the one hole in the
+compiler's otherwise-complete process ABI.
 
 ## Proposal
 
@@ -93,14 +97,19 @@ during watch compiles, the `build-failed` event's `diagnostics` array should
 carry the same objects (the pipeline already holds them as structured data;
 `--watch-json` should suppress the text form, not the data).
 
-## Why this is not a compromise
+## Why this is a strong decision for boris
 
+- It **completes the machine-contract story**: watch mode joins IR, analysis,
+  and diagnostics as a typed, versioned, documented surface
+  (`docs/contracts/watch-mode.md` already exists as the natural home).
 - Purely additive and opt-in; without the flag, stderr and all artifacts are
-  byte-identical to today.
-- The compile/validate pipeline, watch fan-out, debounce, and exit semantics
-  are untouched.
-- Follows the repo's existing pattern of versioned, documented machine
-  contracts (`docs/contracts/`). Proposed home: `docs/contracts/watch-mode.md`.
+  byte-identical to today. Human users lose nothing; tool users gain a
+  contract.
+- The event schema reuses existing shapes and constants (`compiler_id`,
+  diagnostic objects, sorted content-relative paths) — nothing new is
+  invented, only serialized.
+- It follows the repo's own precedent: versioned contracts, deterministic
+  field order via `json_out`, golden-tested output.
 
 ## Alternative considered
 

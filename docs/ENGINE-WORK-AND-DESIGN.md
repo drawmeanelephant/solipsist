@@ -44,7 +44,9 @@ Fact-checked against boris `main` this session (v0.8.0):
 
 ## Part A — Issues to file against Boris
 
-> Ready-to-paste issue bodies live in [`docs/issues/`](issues/): A1
+> Ready-to-paste issue bodies live in [`docs/issues/`](issues/) (batch
+> overview: [`issues/README.md`](issues/README.md) — each issue is framed to
+> stand on its own for boris, independent of Solipsist): A1
 > ([boris-A1-watch-events.md](issues/boris-A1-watch-events.md)), A2
 > ([boris-A2-version-flag.md](issues/boris-A2-version-flag.md)), A3
 > ([boris-A3-build-report-compiler.md](issues/boris-A3-build-report-compiler.md)),

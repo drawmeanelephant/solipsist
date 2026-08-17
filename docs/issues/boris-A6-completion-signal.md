@@ -5,19 +5,24 @@
 
 ---
 
-**Title:** Document `.boris-cache/manifest.json` as the HTML build-completion marker; add `completed_at` + `page_count`
+**Title:** Document `.boris-cache/manifest.json` as the HTML build-completion contract; add `completed_at` + `page_count`
 
 ## Summary
 
-IR mode publishes `build-report.json` on every build — success *and* failure —
-so a consumer gets a durable, parseable result artifact. HTML mode publishes
-nothing comparable: a one-shot HTML build returns only an exit code and
-stderr prose. A tool driving `boris` as a subprocess (a GUI preview, an
-editor plugin) wants a deterministic "build finished, here are the results"
-signal to know when to reload and which pages changed.
+Boris's core promise is deterministic, **atomic** builds: a consumer should
+never have to wonder whether an output tree is complete. IR mode makes that
+observable — `build-report.json` is published on every build, success *and*
+failure. HTML mode makes it observable only by accident. A one-shot HTML
+build returns exit code + stderr prose; the durable record of what was built
+lives in `.boris-cache/manifest.json` — an artifact already listed in
+`--help`, already written atomically on success only, but **undocumented and
+missing the two fields that make it consumable as a completion signal**.
 
-The good news: for incremental/watch builds, a completion marker already
-exists de facto — it's just undocumented and missing two convenience fields.
+Any tool that drives HTML builds — incremental deploy scripts that need "the
+exact set of changed pages since last build", editors that reload previews,
+CI that wants a parseable build record — currently has to poll mtimes and
+reverse-engineer the manifest format. The manifest is already a public
+artifact; the ask is to make it a *contract*.
 
 ## Verified behavior
 
@@ -29,7 +34,8 @@ exists de facto — it's just undocumented and missing two convenience fields.
 - A **failed** incremental build leaves the existing manifest **untouched**
   (verified: mtime and bytes unchanged). Only a successful publish replaces
   it — so its presence/mtime is already a genuine "last successful build"
-  marker, not a "last attempt" marker.
+  marker, not a "last attempt" marker. That is a real, testable guarantee
+  that simply isn't written down.
 
 Current shape (no timestamp, no summary):
 
@@ -51,12 +57,13 @@ Current shape (no timestamp, no summary):
 
 ## Proposal
 
-1. **Document the manifest as the normative completion marker.** New
+1. **Document the manifest as the normative completion contract.** New
    `docs/contracts/cache-manifest.md` (or a section in `html-output.md`)
    stating: written atomically on successful incremental/watch publish only;
    never rewritten on failure; consumers treat replacement as the completion
    signal; and the `fingerprint` diff between consecutive manifests is the
-   exact changed-page set (enabling targeted preview reloads).
+   exact changed-page set — which makes targeted, incremental deploys and
+   preview reloads a pure read of a JSON file.
 2. **Add two additive fields** so consumers don't poll mtimes or count
    entries:
    - `"completed_at": <unix_ms>` — wall-clock completion time of the publish
@@ -75,13 +82,16 @@ Publish a `build-report.json`-shaped completion report in HTML mode
 (`ok` / `errorCount` / `diagnostics`). This additionally gives structured
 diagnostics on failure — but it changes the HTML artifact set, overlaps the
 A5 diagnostics work, and is a larger surface. Keep it as a follow-up;
-the manifest-as-marker covers the reload/completion need today.
+the manifest-as-contract covers the completion/change-detection need today.
 
-## Why this is not a compromise
+## Why this is a strong decision for boris
 
-The manifest already exists and is already atomic-on-success; we're asking to
-document that contract and add two metadata fields to a cache file. HTML
-outputs remain byte-identical. No exit-code, determinism, or artifact changes.
+It makes atomicity *observable*: the guarantee "a successful build is
+atomically published" becomes a documented, field-complete, machine-readable
+record instead of a property consumers must discover by experiment. It costs
+two metadata fields on an internal cache file, changes no HTML output, and
+unlocks a legitimate class of consumers (incremental deployers, preview
+tools) that today either poll the filesystem or re-run full builds.
 
 ## Testing
 
@@ -98,4 +108,4 @@ outputs remain byte-identical. No exit-code, determinism, or artifact changes.
       after `format_version` on successful incremental/watch builds.
 - [ ] Failed builds never rewrite the manifest (documented + tested).
 - [ ] `docs/contracts/cache-manifest.md` (or equivalent) specifies the
-      completion-marker contract and the fingerprint-diff changed-page rule.
+      completion contract and the fingerprint-diff changed-page rule.

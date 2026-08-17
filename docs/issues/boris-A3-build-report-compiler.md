@@ -5,13 +5,14 @@
 
 ---
 
-**Title:** Add `compiler` to `build-report.json` (mirror `manifest.json`)
+**Title:** Add `compiler` to `build-report.json` (artifact-identity consistency)
 
 ## Summary
 
-`build-report.json` is the artifact a consumer decodes on **every** IR build —
-including failed ones, where it carries the diagnostics. But it is the only
-machine artifact that doesn't say *which engine* produced it:
+Boris's machine artifacts are consistent about one thing: they say who made
+them. `manifest.json`, `graph.json`, and the `check`/`impact` analysis report
+all carry a `compiler` id. **`build-report.json` is the single exception** —
+and it's the artifact written on *every* build, including failures:
 
 | Artifact | Has `compiler`? |
 |----------|-----------------|
@@ -20,10 +21,13 @@ machine artifact that doesn't say *which engine* produced it:
 | `check` / `impact` analysis report | ✅ |
 | `build-report.json` | ❌ |
 
-On a failed build — precisely the case where an app wants to know "was this
-produced by the engine I shipped, or a newer/older one?" — the report is
-silent. Schema-compatibility gating (does this report's `schemaVersion` belong
-to the compiler we expect?) has nothing to key on.
+The failure case is precisely where identity matters most: a build report
+with diagnostics is read by a tool that wants to know *which compiler
+produced this* — the engine it shipped, or a newer/older one that changed
+behavior between versions. Without the field, the report's `schemaVersion` is
+floating: the consumer has to guess whether the schema it's reading belongs
+to the compiler it expected. This is a one-field hole in an otherwise
+uniform identity contract.
 
 ## Proposal
 
@@ -55,11 +59,13 @@ Add one field to `renderBuildReport` (`src/ir_emit.zig`), immediately after
   `src/compile.zig`). Final call is yours — an additive-field bump would be
   defensible, just costly for every downstream consumer.
 
-## Why this is not a compromise
+## Why this is a strong decision for boris
 
-One already-computed field, added in an existing renderer, on a
-Boris-versioned artifact. No behavior, exit-code, or determinism change; the
-golden-output updates are mechanical.
+One already-computed field, added in an existing renderer, restoring a
+uniform property across every machine artifact. No behavior, exit-code, or
+determinism change; the golden-output updates are mechanical. It hardens the
+identity contract at the exact point (failure reports) where version skew is
+most likely to be diagnosed.
 
 ## Testing
 

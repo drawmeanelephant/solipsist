@@ -1,21 +1,24 @@
-# A7 — Document the workspace-containment rule (and its asymmetry)
+# A7 — The workspace-containment rule (and its asymmetry)
 
 > **Ready-to-paste GitHub issue for the boris repo.**
-> Priority: P1. Size: XS. Documentation + a design question — no behavior change.
+> Priority: P1. Size: XS. Documentation + one architectural decision.
 
 ---
 
-**Title:** Docs: specify the workspace-containment rule — HTML targets only, and why
+**Title:** Decide + document the workspace-containment boundary — HTML targets only, and why
 
 ## Summary
 
-Which outputs Boris confines to the workspace is currently undocumented and —
-after verification — **asymmetric**. HTML output targets are strictly
-contained to the process working directory; the IR / RAG / context / analysis
-outputs are not. We hit the HTML wall the hard way (pointing `--html-dir` at
-a temp folder fails), then discovered the others write anywhere. The rule
-deserves to be stated precisely, and the asymmetry deserves an explicit
-decision rather than being incidental.
+Boris has a security posture most compilers don't: **HTML output targets are
+strictly confined to the process working directory.** Point `--html-dir` at a
+folder outside the workspace and the build refuses (exit 2). That's a
+genuinely valuable safety property — a misconfigured build can never clobber
+an arbitrary directory tree. But the containment is **asymmetric**: the IR,
+RAG, context, and analysis outputs write anywhere. That asymmetry is
+currently undocumented and looks incidental rather than deliberate. A
+consumer (or a maintainer auditing the tool's safety claims) cannot tell
+from any doc whether "outputs are contained" is a promise of boris or a
+property of one flag class.
 
 ## Verified boundary map (boris 0.8.0, workspace = cwd)
 
@@ -41,8 +44,8 @@ decision rather than being incidental.
   (`TargetOutputCollision`), not `WorkspaceEscape`.
 - Both map to **exit 2** (usage; see `mapHtmlError` in `src/main.zig`).
 - A consumer therefore defines the containment boundary by choosing the
-  process cwd — an app running boris with `cwd = project folder` confines all
-  HTML output to the project folder automatically.
+  process cwd — which is a clean, composable property: any wrapper decides
+  its own sandbox by where it launches boris.
 
 ## Proposal
 
@@ -52,22 +55,26 @@ decision rather than being incidental.
    HTML errors; exit 2 mapping; and the per-flag table above including the
    explicitly-open outputs (`--out`, `--rag-dir`, `--context-dir`,
    `--report`, `--llms-path`'s "invalid value" rule).
-2. **Decide the asymmetry explicitly** — two options, pick one:
+2. **Resolve the asymmetry with an explicit decision** — two options:
    - **(a) Document as-is (recommended).** HTML outputs are hardened because
-     they're deployable artifacts that clobber a tree; IR/RAG/context/report
+     they are deployable artifacts that clobber a tree; IR/RAG/context/report
      are data products where writing elsewhere (e.g. `--report /tmp/x`, an
      IR dump into a scratch dir) is legitimate. Containment stays
      HTML-specific; docs state this is intentional.
    - **(b) Extend containment to all outputs.** More consistent
-     defense-in-depth, but a behavior change: today IR/RAG/context/report
-     legitimately write outside cwd, and users may rely on it. This deserves
-     its own RFC if pursued.
+     defense-in-depth — a single "all outputs live under cwd" invariant. But
+     it is a behavior change: today IR/RAG/context/report legitimately write
+     outside cwd, and users may rely on it. If pursued, it deserves its own
+     RFC; the decision here is which way the tool's promise goes.
 
-## Why this is not a compromise
+## Why this is a strong decision for boris
 
-Documentation only. No behavior changes without an explicit maintainer
-decision; if (b) is chosen, that ships as a separate, additive-contract
-change with its own issue.
+Containment is a safety *claim*, and safety claims that are half-true are
+worse than none — they train consumers to test empirically instead of
+trusting the contract. Naming the boundary (option a) or extending it
+(option b) turns an accident of implementation into a deliberate,
+documented posture that every future consumer can rely on. Either way, the
+tool's security story becomes coherent rather than asymmetric-by-omission.
 
 ## Acceptance criteria
 
