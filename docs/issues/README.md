@@ -14,8 +14,9 @@ PR against boris from this repo.
 - A1 [boris#644](https://github.com/drawmeanelephant/boris/issues/644)
 - A14 [boris#645](https://github.com/drawmeanelephant/boris/issues/645)
 - A7 [boris#646](https://github.com/drawmeanelephant/boris/issues/646)
+- A5 [boris#647](https://github.com/drawmeanelephant/boris/issues/647) — RFC, filed as an issue (Discussions disabled on the repo)
 
-**File next:** [A5](boris-A5-check-watch-rfc.md) as a discussion.
+**File next:** none.
 
 Do not ask: unifying `compiler` field names, library mode, relaxing
 editor token/CSP, shipping `boris-editor` in the agent-pack.
