@@ -92,7 +92,7 @@ final class ContractDecodeTests: XCTestCase {
                 .appendingPathComponent(name),
             bundle.resourceURL?
                 .appendingPathComponent(folder, isDirectory: true)
-                .appendingPathComponent(name),
+                .appendingPathComponent(name)
         ]
         if let url = candidates.compactMap({ $0 }).first(where: {
             FileManager.default.fileExists(atPath: $0.path)

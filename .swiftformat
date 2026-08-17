@@ -1,0 +1,7 @@
+--swiftversion 6.0
+--indent 4
+--allman false
+--semicolons never
+--linebreaks lf
+--disable hoistPatternLet,redundantNilInit,wrapIfStatementBodies,redundantSelf,unusedArguments,conditionalAssignment,trailingCommas,wrapPropertyBodies,redundantParens,preferKeyPath,redundantSwiftUIGroup,spaceAroundOperators,hoistTry,redundantViewBuilder
+--exclude Sources/App,Sources/Chrome,Sources/Workspace,Sources/Play,Sources/Inspector,Sources/Engine,Sources/Models,Spike,SUPPORT-NOT-FOR-GITHUB,vendor,Stunts,.boris,build
