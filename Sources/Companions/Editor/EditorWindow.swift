@@ -43,7 +43,7 @@ public enum EditorURL {
         guard let scheme = components.scheme?.lowercased(), scheme == "http" else {
             throw ParseError.invalidURL
         }
-        guard let host = components.host?.lowercased(), (host == "127.0.0.1" || host == "localhost" || host == "::1") else {
+        guard let host = components.host?.lowercased(), host == "127.0.0.1" || host == "localhost" || host == "::1" else {
             throw ParseError.notLoopback
         }
         guard let fragment = components.fragment, fragment.hasPrefix("token=") else {
@@ -110,7 +110,8 @@ struct EditorWindow: View {
         ContentUnavailableView {
             Label("Editor Host Not Running", systemImage: "square.and.pencil")
         } description: {
-            Text("The Boris editor for “\(source.title)” will connect when the host process is running. Paste a BORIS_EDITOR_URL= line above to connect manually.")
+            Text("The Boris editor for “\(source.title)” will connect when the host process is running. " +
+                 "Paste a BORIS_EDITOR_URL= line above to connect manually.")
         }
     }
 

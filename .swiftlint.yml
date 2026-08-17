@@ -1,6 +1,17 @@
+disabled_rules:
+  - control_statement
+  - trailing_comma
+
+line_length:
+  warning: 180
+  error: 240
+
+indentation: 4
+
 included:
   - Sources
   - Tests
+
 excluded:
   - Sources/App
   - Sources/Chrome
@@ -14,13 +25,6 @@ excluded:
   - vendor
   - Stunts
   - build
-
-indentation:
-  width: 4
-
-line_length:
-  warning: 140
-  error: 180
 
 trailing_whitespace:
   ignores_empty_lines: true
