@@ -14,7 +14,7 @@ jobs:
     name: spike
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Generate project and compile spike
         run: make spike
       # Running the spike needs a boris binary. We do not vendor that.
@@ -25,7 +25,7 @@ jobs:
     env:
       SKIP_EMBED_BORIS: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Generate project and compile the app
         run: make build
 
@@ -33,7 +33,7 @@ jobs:
     name: fixtures
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Decode checked-in contract fixtures
         run: make test
 
