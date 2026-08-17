@@ -9,7 +9,13 @@ PR against boris from this repo.
 - A4 [boris#639](https://github.com/drawmeanelephant/boris/issues/639) → [#642](https://github.com/drawmeanelephant/boris/pull/642)
 - A13 [boris#640](https://github.com/drawmeanelephant/boris/issues/640) → [#641](https://github.com/drawmeanelephant/boris/pull/641)
 
-**File next:** [A1](boris-A1-watch-events.md) → [A14](boris-A14-editor-launch-contract.md) → [A7](boris-A7-workspace-rule.md). Then [A5](boris-A5-check-watch-rfc.md) as a discussion.
+**Filed (2026-08-17):**
+
+- A1 [boris#644](https://github.com/drawmeanelephant/boris/issues/644)
+- A14 [boris#645](https://github.com/drawmeanelephant/boris/issues/645)
+- A7 [boris#646](https://github.com/drawmeanelephant/boris/issues/646)
+
+**File next:** [A5](boris-A5-check-watch-rfc.md) as a discussion.
 
 Do not ask: unifying `compiler` field names, library mode, relaxing
 editor token/CSP, shipping `boris-editor` in the agent-pack.
