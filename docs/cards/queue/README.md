@@ -49,9 +49,9 @@ Status legend: **open** · **in flight** (PR open) · **done** (merged — do no
 | ID | Card | Owns | Status |
 |----|------|------|--------|
 | Q13 | [about-window](about-window.md) | `Sources/App/AboutWindow.swift` + one `Window` in `SolipsistApp.swift` | done (#46) |
-| Q20 | [companion-url-tests](companion-url-tests.md) | `Tests/` + read-only extraction in `Companions/` | **open** |
-| Q21 | [contract-null-locations](contract-null-location-fixtures.md) | `Tests/Fixtures/` + `ContractDecodeTests` | **open** |
-| Q22 | [make-lint-fails-loudly](make-lint-fail-loudly.md) | `Makefile` lint target only | **open** |
+| Q20 | [companion-url-tests](companion-url-tests.md) | `Tests/` + read-only extraction in `Companions/` | done (#47) |
+| Q21 | [contract-null-locations](contract-null-location-fixtures.md) | `Tests/Fixtures/` + `ContractDecodeTests` | done (#51) |
+| Q22 | [make-lint-fails-loudly](make-lint-fail-loudly.md) | `Makefile` lint target only | done (#52) |
 | Q23 | [site-content-expansion](site-content-expansion.md) | `site/` only | done (#49) |
 | Q24 | [stunt-textile-corpus](stunt-textile-corpus.md) | `Stunts/` + `Tests/Fixtures/` | done (#50) |
 | Q25 | [help-doc-coverage](help-doc-coverage.md) | `docs/help.md` only | done (#48) |
@@ -62,4 +62,4 @@ Status legend: **open** · **in flight** (PR open) · **done** (merged — do no
 |----|------|-----|
 | Q14 | statusbar-exit-color | Owns `Sources/Chrome/MainWindow.swift`, which is on this queue's own forbidden list. Grind lane owns the status bar — do not pick. |
 
-Pick the lowest **open** ID (next: Q20, then Q21). Stay in that card's paths.
+No open batch-2 cards remain — batch 2 is fully landed. Check batch 3 in the issue tracker before picking.
