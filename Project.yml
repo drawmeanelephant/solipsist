@@ -36,6 +36,8 @@ targets:
       - path: Sources/Models
       - path: Sources/Engine
       - path: Solipsist/Assets.xcassets
+      - path: docs/help.md
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.drawmeanelephant.solipsist

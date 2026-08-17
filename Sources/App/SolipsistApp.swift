@@ -34,5 +34,11 @@ struct SolipsistApp: App {
                 .environment(runtime)
         }
         .defaultSize(width: 720, height: 560)
+
+        Window("Solipsist Help", id: "help") {
+            HelpWindow()
+        }
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 560, height: 480)
     }
 }

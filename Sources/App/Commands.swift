@@ -86,6 +86,13 @@ struct SolipsistCommands: Commands {
             }
             .keyboardShortcut("e", modifiers: [.command, .shift])
         }
+
+        CommandGroup(replacing: .help) {
+            Button("Solipsist Help") {
+                openWindow(id: "help")
+            }
+            .keyboardShortcut("?", modifiers: .command)
+        }
     }
 
     private var hasSource: Bool { store.selectedSource != nil }
