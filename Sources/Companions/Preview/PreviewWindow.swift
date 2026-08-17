@@ -169,14 +169,11 @@ final class PreviewWebModel {
     }
 
     private static func isAllowed(_ url: URL) -> Bool {
-        if url.absoluteString == "about:blank" { return true }
-        return isLoopback(url)
+        PreviewURL.isAllowed(url)
     }
 
     private static func isLoopback(_ url: URL) -> Bool {
-        guard let scheme = url.scheme?.lowercased(), scheme == "http" else { return false }
-        guard let host = url.host?.lowercased() else { return false }
-        return host == "127.0.0.1" || host == "localhost" || host == "::1"
+        PreviewURL.isLoopback(url)
     }
 }
 
