@@ -57,6 +57,7 @@ than shipping slowly.
 | File | Purpose |
 |------|---------|
 | [`README.md`](README.md) | Project overview, prerequisites, quick commands |
+| [`docs/PLANNING-HANDOFF.md`](docs/PLANNING-HANDOFF.md) | **Start here if you're joining the planning effort** — state of the world, decided vs. open, per-agent lanes |
 | [`docs/MISSION.md`](docs/MISSION.md) | **What we're trying to do** — one page, updated to the afterparty baseline |
 | [`docs/BORIS-CAPABILITIES.md`](docs/BORIS-CAPABILITIES.md) | **The full list of what boris does** — sourced from the afterparty changelog + help + STATUS |
 | [`docs/ENGINE-CONTRACTS.md`](docs/ENGINE-CONTRACTS.md) | **Probed machine contracts for M2–M4**: `watch --serve` (URLs, SSE), `completion.json`, `build --report` shapes |
@@ -65,8 +66,9 @@ than shipping slowly.
 | [`docs/CONTRACT-AUDIT.md`](docs/CONTRACT-AUDIT.md) | Consumer-driven audit of the boris boundary, bucketed 🟢/🟡/🔴 (largely superseded by the afterparty reconciliation) |
 | [`docs/issues/`](docs/issues/) | Issue drafts with afterparty status (✅ withdraw / 🟡 reframe / 🔵 reformulate) |
 
-If you are new: MISSION → BORIS-CAPABILITIES → PLAN-MAC-APP →
-ENGINE-WORK-AND-DESIGN (read the reconciliation table first).
+If you are new: PLANNING-HANDOFF → MISSION → BORIS-CAPABILITIES →
+PLAN-MAC-APP → ENGINE-WORK-AND-DESIGN (read the reconciliation table
+first).
 
 ## Repo layout
 
