@@ -5,7 +5,7 @@ This directory contains the content and plain publication profile for the public
 ## Profile & Content
 
 - `boris.json`: Plain static-site profile (schema version 1, target `site`, output `dist`, input `content`).
-- `content/`: Closed-frontmatter Markdown pages (`index.md`, `mission.md`, `architecture.md`).
+- `content/`: Closed-frontmatter Markdown pages (`index.md`, `mission.md`, `roadmap.md`, `architecture.md`, `dogfood.md`).
 
 ## Operator Deployment
 

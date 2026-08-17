@@ -18,4 +18,4 @@ It broadcasts local Boris publications while strictly respecting compiler contra
 - **Companion Windows**: Live preview powered by `watch --serve` and editing hosted in `boris-editor`.
 - **First-Class Verbs**: Plan, Validate, Build, Check, Impact, and Stop available directly from the menu.
 
-Read more in our [[mission]] and [[architecture]] documents.
+Read more in our [[mission]], [[roadmap]], [[architecture]], and [[dogfood]] documents.
