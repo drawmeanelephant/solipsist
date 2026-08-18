@@ -82,13 +82,62 @@ public enum BorisRunner {
 
     /// Launch and wait off the caller's executor. Completion uses
     /// `terminationHandler` so an actor can still `interrupt()` / `forceKill()`
-    /// a wedged child.
+    /// a wedged child. Stdin is a wiped secret buffer (Boris publication).
     public static func run(
         binary: URL,
         arguments: [String],
         workingDirectory: URL? = nil,
         handle: RunHandle? = nil,
         stdin: SecureBuffer? = nil
+    ) async throws -> RunOutput {
+        if let stdin {
+            return try await launch(
+                binary: binary,
+                arguments: arguments,
+                workingDirectory: workingDirectory,
+                handle: handle
+            ) { pipe in
+                try StdinSecretWriter.writeAndWipe(stdin, to: pipe.fileHandleForWriting)
+            }
+        }
+        // No stdin: close the write end immediately so the child sees EOF
+        // (the old behavior piped `nullDevice`; EOF is equivalent).
+        return try await launch(
+            binary: binary,
+            arguments: arguments,
+            workingDirectory: workingDirectory,
+            handle: handle
+        ) { pipe in
+            pipe.fileHandleForWriting.closeFile()
+        }
+    }
+
+    /// Same launch, with plain-text stdin — the compose preview renders
+    /// buffers through this path (Oliver CLI), never secrets.
+    public static func run(
+        binary: URL,
+        arguments: [String],
+        workingDirectory: URL? = nil,
+        handle: RunHandle? = nil,
+        stdinText: String
+    ) async throws -> RunOutput {
+        try await launch(
+            binary: binary,
+            arguments: arguments,
+            workingDirectory: workingDirectory,
+            handle: handle
+        ) { pipe in
+            let data = Data(stdinText.utf8)
+            try pipe.fileHandleForWriting.write(contentsOf: data)
+        }
+    }
+
+    private static func launch(
+        binary: URL,
+        arguments: [String],
+        workingDirectory: URL?,
+        handle: RunHandle?,
+        writeStdin: (Pipe) throws -> Void
     ) async throws -> RunOutput {
         let fm = FileManager.default
         let tmpDir = fm.temporaryDirectory
@@ -116,15 +165,8 @@ public enum BorisRunner {
         process.standardOutput = stdoutHandle
         process.standardError = stderrHandle
 
-        let stdinPipe: Pipe?
-        if stdin != nil {
-            let pipe = Pipe()
-            process.standardInput = pipe
-            stdinPipe = pipe
-        } else {
-            process.standardInput = FileHandle.nullDevice
-            stdinPipe = nil
-        }
+        let pipe = Pipe()
+        process.standardInput = pipe
 
         handle?.attach(process)
         defer {
@@ -147,14 +189,13 @@ public enum BorisRunner {
                 }
                 return
             }
-            if let stdin, let stdinPipe {
-                do {
-                    try StdinSecretWriter.writeAndWipe(stdin, to: stdinPipe.fileHandleForWriting)
-                } catch {
-                    process.terminate()
-                    box.resume {
-                        cont.resume(throwing: error)
-                    }
+            do {
+                try writeStdin(pipe)
+                pipe.fileHandleForWriting.closeFile()
+            } catch {
+                process.terminate()
+                box.resume {
+                    cont.resume(throwing: error)
                 }
             }
         }

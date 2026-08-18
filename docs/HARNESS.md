@@ -48,12 +48,15 @@ Companion windows (hosted, not authored):
   • Preview   — full site; boris watch --serve in WKWebView
   • Editor    — boris-editor (Svelte) at its session-token URL
   • anything else Boris already built that we will not rewrite
+
+Our chrome (authored):
+  • Compose   — native buffer (`Sources/Compose/`, ⌘⇧C). Oliver
+    renders the preview. Explicit save. Not a hosted companion.
 ```
 
 Mail, not Finder, not Xcode. Accounts in Preferences. Mailboxes on the
 left. Messages in the middle. The letter you picked, readable. Compose
-is a separate surface (the hosted editor now; a native buffer only when
-we name that later).
+is a separate window — the native buffer — not a tab in Play.
 
 ### Settings — the account book
 
@@ -154,14 +157,23 @@ Mail's Activity window is the analog for build/plan/timings if that
 surface ever outgrows its mailbox. It is still *our* chrome if we
 author it; companions are specifically the things we refuse to author.
 
-### Native editor (named later, not M10)
+### Compose — native buffer (M10)
 
-A from-scratch native buffer is **allowed to be later**. It is not a
-v1 gate and it is not a reason to stop hosting `boris-editor`. If it
-lands, it is a buffer + save + problems surface over `sourcePath`. It
-does not parse frontmatter, does not compile, does not invent graph
-semantics, and does not replace `watch --serve`. Until that card is
-cut, Edit means the hosted companion.
+Mail's compose is a separate window. Ours is `Sources/Compose/`: a
+native Markdown / Textile / Cooklang buffer over the selected page's
+`sourcePath`, with Oliver as the language reference and the preview
+renderer. Highlighting is heuristic paint, not a parse. The front
+matter boundary is sniffed, never parsed. Save is explicit and flows
+into the coordinator's validate gate.
+
+This does **not** replace the hosted `boris-editor` companion (#102).
+Edit ▶ still opens that host. Compose ▶ (`⌘⇧C`) opens the native
+buffer. Distinct lanes: `Companions/Editor/` vs `Compose/`.
+
+Oliver is spawned only from `Engine/` (`OliverRenderer` reuses
+`BorisRunner`). Play does not grow a `TextView`. Remaining compose
+depth (span diagnostics, incremental highlight, bundling `oliver`
+next to `boris`) is Later, not the M10 gate.
 
 ---
 
@@ -183,14 +195,15 @@ Sources/
     Local/        message list + reading pane; mailbox contents
   Inspector/      Inspectable sections, no selection ownership
   Companions/     PreviewWindow, EditorWindow (WKWebView hosts)
-  Engine/         existing — the only Process owner
+  Compose/        native buffer + Oliver preview (M10)
+  Engine/         existing — the only Process owner (boris *and* oliver)
   Models/         existing — Codable mirrors, no SwiftUI
 ```
 
 `ContentView.swift` is gone. Chrome is `MainWindow` and empty slots.
 Do not grow `MainWindow` — fill `Play/`, `Inspector/`, `Companions/`,
-`App/Settings/`. Recut `SourceSidebar` into a mailbox tree; do not
-start a second sidebar.
+`Compose/`, `App/Settings/`. Recut `SourceSidebar` into a mailbox
+tree; do not start a second sidebar.
 
 ### Load-bearing types (the seams)
 
@@ -241,7 +254,8 @@ cut wrong — stop and recut.
 | **Settings** (M10) | `Sources/App/Settings/`, Settings scene in `SolipsistApp.swift` | `Commands.swift`, Play, mailbox tree, `Project.yml` | Settings → Sources adds/removes/relocates a local source; same store as File → Open… |
 | **Mailboxes** (M10) | `SourceSidebar.swift`; `WorkspaceSelection` / `WorkspaceStore` / `WorkspacePersistence`; sole `MainWindow.swift` | Settings scene, `Commands.swift`, Play row rendering, Inspector, `Project.yml` | Sidebar is account headers + mailboxes; selecting one writes `selection.mailbox` |
 | **Reading** (M10) | `Sources/Play/Local/`; named recut: `PlayHost` binder, `AppRuntime.previewSession`, `Companions/Preview/` session share + `PreviewURL` helpers | Chrome mailbox construction, `MainWindow.swift`, Engine | Tabs gone; center is message list + reading pane driven by `mailbox` |
-| **Editor wiring** (M10) | `Sources/Companions/Editor/`, File → Edit Page in `Commands.swift` | Native `TextView`, Play list internals, `MainWindow.swift` | File → Edit Page; header shows title + `sourcePath`; merge after Reading |
+| **Editor wiring** (M10) | `Sources/Companions/Editor/`, File → Edit Page in `Commands.swift` | `Sources/Compose/`, Play list internals, `MainWindow.swift` | File → Edit Page; header shows title + `sourcePath`; merge after Reading |
+| **Compose** (M10) | `Sources/Compose/`, `OliverRenderer` / `OliverBinary` in `Engine/`, Compose menu / window | `Companions/Editor/`, Play list internals, `MainWindow.swift` | ⌘⇧C opens the selected page; explicit save; Oliver preview when the binary is present |
 | **Issues** | `docs/issues/` | `Sources/` | Draft fact-checked against afterparty, then filed |
 | **Design** | `docs/*.md` except `issues/` | `Sources/` | Decisions recorded; no silent contradiction with this file |
 
@@ -259,7 +273,8 @@ cut wrong — stop and recut.
    instead of it.** Settings can run next to Mailboxes. Reading follows
    Mailboxes (it consumes `selection.mailbox`). Editor wiring **merges
    after Reading** (it reads `noun.sourcePath` that Reading writes).
-   Native editor is not in this sequence.
+   Compose (#106) keys off the same page noun, owns `Sources/Compose/`
+   + the Oliver engine seam, and does not block #101 or #102.
 
 ### Integration rules
 
@@ -270,9 +285,9 @@ cut wrong — stop and recut.
 - Unknown/newer `schemaVersion` degrades, never crashes (D8).
 - If a feature is not in the menu bar, it is not a feature.
 - If you are about to write a Markdown editor, a graph algorithm, a
-  frontmatter parser, or an HTTP server — stop. That is Boris's job or
-  a companion host. A native buffer is a named later card, not a
-  surprise `TextView` in Play.
+  frontmatter parser, or an HTTP server — stop. That is Boris's job,
+  Oliver's job, or a companion host. The native buffer lives in
+  `Sources/Compose/` (#106). Do not drop a surprise `TextView` in Play.
 
 ---
 
@@ -321,7 +336,8 @@ without picking an M10 card. The live app is still the flatter cut:
 | Left column | Flat source list (`SourceSidebar`) | Account headers + mailboxes |
 | Center | Segmented play tabs (Pages / Outputs / Publish / Plan / Activity) + problems strip | Message list + reading pane, driven by the selected mailbox |
 | Preview | Companion only | Companion (full site) + reading pane (selected page, same watch) |
-| Editor | Companion only; source-scoped, not page-scoped | Companion, opened from the selected page; native buffer later |
+| Editor | Companion only; source-scoped, not page-scoped | Companion, opened from the selected page (#102) |
+| Compose | none | Native buffer window (`⌘⇧C`) over `sourcePath`; Oliver preview (#106) |
 | Selection | `sourceID` + `noun` | `sourceID` + `mailbox` + `noun` |
 
 M10 cards live in [`cards/`](cards/README.md)

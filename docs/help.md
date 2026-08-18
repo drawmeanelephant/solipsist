@@ -47,6 +47,7 @@ Every menu verb and keyboard shortcut:
 | Show/Hide Inspector | `⌥⌘0` | Toggle the Inspector drawer on the right. |
 | Preview | `⌘⇧P` | Open the Preview companion window (live preview via `watch --serve` with loopback URL validation). |
 | Editor | `⌘⇧E` | Open the Editor companion window (token-isolated host for `boris-editor`). |
+| Compose | `⌘⇧C` | Open the Compose window (native Markdown / Textile / Cooklang editor for the selected page; Oliver-powered preview; Save flows into the coordinator's validate gate). |
 
 ### Help
 
@@ -58,5 +59,6 @@ Every menu verb and keyboard shortcut:
 
 - **Preview Companion (`⌘⇧P`)**: Live preview powered by `watch --serve` with loopback URL validation.
 - **Editor Companion (`⌘⇧E`)**: Token-isolated companion host for `boris-editor`.
+- **Compose Window (`⌘⇧C`)**: Native compose surface for the selected page's source file — Markdown / Textile / Cooklang editing with heuristic highlighting, an Oliver-rendered preview split (live, debounced; Render Options mirror Oliver's `ParseOptions` — wikilinks, callouts, smart typography, footnotes, task lists, frontmatter policy, raw-HTML policy, XHTML profile), and save-triggered validate through the coordinator. The renderer binary is located via `SOLIPSIST_OLIVER_BIN` → app bundle → sibling of `boris` → dev checkouts. Language is auto-detected from the file; the picker overrides it per session.
 
 For architecture and roadmap details, see [ROADMAP.md](https://github.com/drawmeanelephant/solipsist/blob/main/docs/ROADMAP.md).

@@ -23,7 +23,9 @@ Design: [`docs/M10-DESIGN.md`](../M10-DESIGN.md).
 - `Sources/Chrome/MainWindow.swift` (Editor toolbar is #100)
 - `Sources/Engine/**` beyond existing `editorStart`
 - `Sources/Inspector/**` (PageSection already opens the companion)
-- A native `NSTextView` / SwiftUI `TextEditor` buffer
+- `Sources/Compose/` ([#106](https://github.com/drawmeanelephant/solipsist/issues/106)
+  / [#108](https://github.com/drawmeanelephant/solipsist/pull/108) —
+  that is the native buffer; this card hosts `boris-editor`)
 - Preview companion internals
 - `docs/issues/` (do not draft an editor-open-file issue)
 

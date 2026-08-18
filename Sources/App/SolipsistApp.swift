@@ -85,6 +85,13 @@ struct SolipsistApp: App {
         }
         .defaultSize(width: 720, height: 560)
 
+        WindowGroup("Compose", id: CompanionID.compose) {
+            ComposeWindow()
+                .environment(store)
+                .environment(runtime)
+        }
+        .defaultSize(width: 900, height: 620)
+
         Window("Solipsist Help", id: "help") {
             HelpWindow()
         }

@@ -75,8 +75,9 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
   [#78](https://github.com/drawmeanelephant/solipsist/issues/78).
   Next **product cut:** M10 Mail body
   ([#98](https://github.com/drawmeanelephant/solipsist/issues/98) —
-  Settings, mailbox sidebar, reading pane). Sequence:
-  [ROADMAP.md](ROADMAP.md) §8.
+  Settings, mailbox sidebar, reading pane, native compose
+  [#106](https://github.com/drawmeanelephant/solipsist/issues/106)).
+  Sequence: [ROADMAP.md](ROADMAP.md) §8.
 - **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `b82e9e2`.
   A3/A4/A13/A1/A14/A7 have merged after that pin — bump when we vendor
   a newer kit (#78).
@@ -91,6 +92,6 @@ Settings → it appears as an account with mailboxes → the reading place
 shows the graph as messages and a pane for the selected page → the
 drawer shows the profile and that page → Plan / Validate / Build
 surface every diagnostic → Preview reloads through `watch --serve` →
-Edit hosts `boris-editor` → publish to GitHub Pages, Standard.site, or
+Edit hosts `boris-editor` → Compose is the native buffer → publish to GitHub Pages, Standard.site, or
 Nostr with the Proof Pack attached. All of it driven by the compiler's
 contracts; none of it by scraped prose or reimplemented logic.

@@ -27,7 +27,7 @@ Settings → Sources (the account book; not a column)
 │ folders under it │ message                     │                  │
 └──────────────────┴─────────────────────────────┴──────────────────┘
 Companion windows we host: Preview (full site) · Editor (boris-editor)
-Native buffer: named later, not a v1 gate.
+Compose window we author: native buffer (`⌘⇧C`) + Oliver preview (#106)
 ```
 
 M2–M8 shipped a flatter cut (source list + tabbed play). M10 is the
@@ -76,6 +76,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | Diagnostics as a place | `html-build-report` / IR `build-report` / check findings, clickable |
 | Engine-owned preview | Companion; `watch --serve` + SSE; no app HTTP server |
 | Hosted editor | Companion; `boris-editor` token URL; opened from the selected page; link-out fallback |
+| Native compose | `Sources/Compose/`; Oliver preview; explicit save → validate |
 | Outputs fan-out | Every profile target and edition, isolated, reported |
 | Publication console | GH Pages evidence (Boris-owned workflow + audit), Standard.site, Nostr — secrets on stdin |
 | Proof Pack visible | `boris-package` evidence, read-only |
@@ -85,7 +86,8 @@ No scraped prose. No homegrown graph. No third settings store.
 ### v1 must not
 
 - A frontmatter parser, a graph algorithm, or a homegrown Markdown
-  renderer in Swift
+  renderer in Swift (Compose sniffs Oliver's boundary and paints
+  tokens; Oliver/Boris parse)
 - A Finder clone of the content tree in the sidebar
 - An app-side HTTP server or `file://` preview
 - Cloudflare / Vercel / Netlify as *in-app* deploy adapters or a
@@ -94,15 +96,13 @@ No scraped prose. No homegrown graph. No third settings store.
 - Theme *authoring* (selection only)
 - Migration labs as runtime
 - iOS
-- A native editor *instead of* hosting `boris-editor` (see Later)
 
 ### Later (named so they stay later)
 
-- A **native editor**: buffer + save + problems over `sourcePath`.
-  Still no frontmatter parser. Still no compile. Still hosts
-  `watch --serve` for preview. Cut a card only when the hosted
-  Svelte shell is the wrong Mac citizen, not because Play looks
-  empty.
+- Compose **depth**: span diagnostics from Oliver, incremental
+  highlight, front-matter form, Cooklang autocomplete, bundling
+  `oliver` next to `boris`. The M10 gate is the window + save +
+  preview seam (#106 / #108), not those.
 - GitHub as a second **source** (account header + its own mailboxes;
   we do not have full GitHub access; Pages as a *target* does not
   require it)
@@ -130,7 +130,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M7** Outputs | ✅ gate — Build this / Build all fan-out (#76, #81) |
 | **M8** Publish | ✅ gate — stdin secrets, Standard.site / Nostr buttons (#77, #82/#84) |
 | **M9** Ship | 🔧 pipeline exists; clean-Mac proof + credentials + pin open (#78) |
-| **M10** Mail body | 📋 Settings for sources; mailbox sidebar; reading pane; editor from the selected page ([#98](https://github.com/drawmeanelephant/solipsist/issues/98)) |
+| **M10** Mail body | 📋 Settings, mailboxes, reading pane, hosted Edit, native Compose ([#98](https://github.com/drawmeanelephant/solipsist/issues/98), [#106](https://github.com/drawmeanelephant/solipsist/issues/106)) |
 
 **Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
 batch then landed: first-run and problem→page (#88/#94), graph filter /
@@ -139,7 +139,10 @@ activity / plan document (#89/#96), profile 1:1 + execution knobs +
 proof (#91/#93). Remaining **ship** card is
 [#78](https://github.com/drawmeanelephant/solipsist/issues/78) (M9).
 M10 is the next product cut after ship; it does not expand #78. Do
-not grow `MainWindow`.
+not grow `MainWindow`. Native compose is an M10 child
+([#106](https://github.com/drawmeanelephant/solipsist/issues/106),
+PR [#108](https://github.com/drawmeanelephant/solipsist/pull/108)),
+not a side lane.
 
 ---
 
@@ -354,8 +357,8 @@ folder, plan, validate, build, preview.
 
 **Goal.** The window is Mail, not a tabbed workbench. Sources live in
 Settings. The left pane is a mailbox tree. The center is messages plus
-a reading pane. Edit still hosts `boris-editor`; a native buffer stays
-Later.
+a reading pane. Edit hosts `boris-editor` from the selected page.
+Compose is the native buffer (`⌘⇧C`) over that page's `sourcePath`.
 
 This is a chrome recut, not a new compiler surface. Contracts,
 coordinator verbs, publish flows, and the subprocess boundary do not
@@ -369,6 +372,7 @@ does not grow to absorb this.
 | Reading place | Message list of the selected mailbox + reading pane for the selected page (watch URL if up; contract summary if not) |
 | Full-site Preview | Companion, unchanged |
 | Editor | Companion, opened from the selected page; link-out fallback |
+| Compose | Native window (`Sources/Compose/`); Oliver preview; explicit save → validate |
 | Drawer | Still minutiae of the selection, not the account book |
 
 **Gate.** Settings → Sources adds a local folder that also appears as
@@ -376,17 +380,19 @@ an account header. Selecting Pages shows the graph as a message list.
 Selecting a page shows a reading pane (watch URL or summary — never
 `file://`, never a Swift Markdown renderer). Outputs / Publish / Plan
 / Activity are mailboxes, not tabs. Edit ▶ on a selected page opens
-the hosted editor. `SKIP_EMBED_BORIS=1 make build` + `make test`
-green.
+the hosted editor. Compose ▶ opens the native buffer and saves
+through the coordinator. `SKIP_EMBED_BORIS=1 make build` +
+`make test` green.
 
-**Lanes.** Settings, Mailboxes, Reading, Editor wiring — paths in
-[`HARNESS.md`](HARNESS.md) §4. Tracker
+**Lanes.** Settings, Mailboxes, Reading, Editor wiring, Compose —
+paths in [`HARNESS.md`](HARNESS.md) §4. Tracker
 [#98](https://github.com/drawmeanelephant/solipsist/issues/98);
+compose [#106](https://github.com/drawmeanelephant/solipsist/issues/106);
 cards in [`cards/`](cards/README.md). Implementation design:
 [`M10-DESIGN.md`](M10-DESIGN.md).
 
-**Not this milestone.** Native editor. GitHub as a source. Finder
-sidebar. In-app HTTP server. Growing #78.
+**Not this milestone.** Compose depth (diagnostics, bundle `oliver`).
+GitHub as a source. Finder sidebar. In-app HTTP server. Growing #78.
 
 ---
 
@@ -413,6 +419,7 @@ here, it is not a v1 promise.
 | `init` | M4 | File → New Project… |
 | `recipe-scale` | M6 | Drawer, cook corpora only |
 | `boris-editor` | M6, M10 | Companion (A14); M10 opens it from the selected page |
+| Oliver (`oliver render`) | M10 | Compose preview; Engine-owned subprocess; not a Swift parse |
 | GitHub Pages + audit | M8 | In-app evidence; Boris workflow owns push; we are not the GH operator |
 | `hosts/cloudflare-worker` + `compileBundle` Wasm | **P (now)** | This project’s subdomain. Free-tier host glue. Not in-app |
 | `boris-job-runner` / CF Containers (#300) | parked | Different host (native binary in a container), not the Free Wasm path |
@@ -450,7 +457,7 @@ or beside ship, never inside it.
 | Order | Track | Issue | Why this next |
 |------:|-------|-------|----------------|
 | 1 | Ship | [#78](https://github.com/drawmeanelephant/solipsist/issues/78) | Credentials, clean-Mac proof, pin bump, testdata. |
-| 2 | Mail body | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) ([#99](https://github.com/drawmeanelephant/solipsist/issues/99)–[#102](https://github.com/drawmeanelephant/solipsist/issues/102)) | Sources in Settings; left pane is folders; center is messages + reading; Edit from the selected page. |
+| 2 | Mail body | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) ([#99](https://github.com/drawmeanelephant/solipsist/issues/99)–[#102](https://github.com/drawmeanelephant/solipsist/issues/102), [#106](https://github.com/drawmeanelephant/solipsist/issues/106)) | Settings, mailboxes, reading, hosted Edit, native Compose. |
 
 #78 stays build-lane only (`scripts/embed-boris.sh`, `Project.yml`,
 entitlements, release workflow, `docs/SHIP-HARDENING.md`). Do not
@@ -480,9 +487,9 @@ Named in this file and **not** a product surface yet: browser OAuth,
 `github-pages-audit`.
 
 Out of v1 (unchanged): GitHub as a source, content-audit, source-rag,
-migration labs, Wasm in the app, `validate --watch` until A5 + pin,
-a from-scratch native editor (named Later; M10 still hosts
-`boris-editor`).
+migration labs, Wasm in the app, `validate --watch` until A5 + pin.
+Compose **depth** (diagnostics, bundle `oliver`) stays Later; the
+M10 compose window is #106 / #108.
 
 #30 is a pr-cop dump, not a card.
 

@@ -176,6 +176,11 @@ struct SolipsistCommands: Commands {
                 openWindow(id: CompanionID.editor)
             }
             .keyboardShortcut("e", modifiers: [.command, .shift])
+
+            Button("Compose") {
+                openWindow(id: CompanionID.compose)
+            }
+            .keyboardShortcut("c", modifiers: [.command, .shift])
         }
 
         CommandGroup(replacing: .help) {
