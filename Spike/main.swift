@@ -104,7 +104,7 @@ if let report = validated.report {
     }
 } else {
     print("report       : not written")
-    let err = validated.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+    let err = validated.stderr.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
     if !err.isEmpty {
         print("stderr       : \(err)")
     }
@@ -130,7 +130,7 @@ for d in build.report.diagnostics {
 if let manifest = build.manifest {
     print("\n== manifest.json ==")
     print("pages: \(manifest.pages.count)")
-    let trunks = manifest.pages.filter(\.isTrunk)
+    let trunks = manifest.pages.filter { $0.isTrunk }
     let satellites = manifest.pages.filter { !$0.isTrunk }
     print("trunks: \(trunks.count), satellites: \(satellites.count)")
     for trunk in trunks {

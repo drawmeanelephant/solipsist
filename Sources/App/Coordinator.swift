@@ -1,7 +1,6 @@
 import Foundation
 import Observation
 
-
 /// Menu verbs against `BorisEngine`. One job at a time. Play and the
 /// status bar read this; they do not spawn `boris`.
 @MainActor
@@ -351,6 +350,7 @@ final class Coordinator {
         engine: BorisEngine,
         secret: SecureBuffer?
     ) async -> JobResult {
+        let knobs = BorisExecutionKnobs.load()
         do {
             switch verb {
             case .plan:
@@ -384,7 +384,8 @@ final class Coordinator {
                 let result = try await engine.validate(
                     contentRoot: source.contentRoot(),
                     reportURL: reportURL,
-                    workingDirectory: try source.workspaceRoot()
+                    workingDirectory: try source.workspaceRoot(),
+                    knobs: knobs
                 )
                 var items = CoordinatorProblems.from(report: result.report)
                 if items.isEmpty, result.exitCode != 0 {
@@ -406,7 +407,8 @@ final class Coordinator {
                 let result = try await engine.buildIR(
                     contentRoot: source.contentRoot(),
                     outDir: outDir,
-                    timings: true
+                    timings: true,
+                    knobs: knobs
                 )
                 var items = CoordinatorProblems.fromIR(report: result.report)
                 if items.isEmpty, result.exitCode != 0 {
@@ -431,7 +433,8 @@ final class Coordinator {
                 let result = try await engine.buildHTML(
                     contentRoot: source.contentRoot(),
                     htmlDir: htmlDir,
-                    reportURL: reportURL
+                    reportURL: reportURL,
+                    knobs: knobs
                 )
                 var items = CoordinatorProblems.from(report: result.report)
                 if items.isEmpty, result.exitCode != 0 {
@@ -448,7 +451,7 @@ final class Coordinator {
                 )
 
             case .buildThis:
-                return try await buildThis(noun: noun, source: source, engine: engine)
+                return try await buildThis(noun: noun, source: source, engine: engine, knobs: knobs)
 
             case .buildAll:
                 let workspaceRoot = try source.workspaceRoot()
@@ -470,7 +473,8 @@ final class Coordinator {
                     contentRoot: source.contentRoot(),
                     profile: profile,
                     workingDirectory: workspaceRoot,
-                    timings: true
+                    timings: true,
+                    knobs: knobs
                 )
                 let items = CoordinatorProblems.fromEntries(result.results.map {
                     CoordinatorProblems.EntryProblemSource(
@@ -489,7 +493,8 @@ final class Coordinator {
             case .check:
                 let result = try await engine.check(
                     contentRoot: source.contentRoot(),
-                    workingDirectory: try source.workspaceRoot()
+                    workingDirectory: try source.workspaceRoot(),
+                    knobs: knobs
                 )
                 let items = result.report.findings.map {
                     ProblemItem(
@@ -519,7 +524,8 @@ final class Coordinator {
                 let result = try await engine.impact(
                     contentRoot: source.contentRoot(),
                     pageID: pageID,
-                    workingDirectory: try source.workspaceRoot()
+                    workingDirectory: try source.workspaceRoot(),
+                    knobs: knobs
                 )
                 let items = (result.report.impact ?? []).map {
                     ProblemItem(severity: "info", code: $0.type, message: $0.value)
@@ -528,6 +534,31 @@ final class Coordinator {
                     exit: result.exitCode,
                     summary: "impact \(pageID) · \(items.count) item(s)",
                     problems: items
+                )
+
+            case .recipeScale:
+                guard let pageID = noun?.kind == "page" ? noun?.id : nil else {
+                    return JobResult(
+                        exit: 2,
+                        summary: "recipe-scale: select a page",
+                        problems: CoordinatorProblems.fromFailure(
+                            code: "recipe-scale",
+                            message: "select a page"
+                        )
+                    )
+                }
+                let result = try await engine.recipeScale(
+                    contentRoot: source.contentRoot(),
+                    pageID: pageID,
+                    factor: 1.0,
+                    workingDirectory: try source.workspaceRoot(),
+                    knobs: knobs
+                )
+                let count = result.recipe?.ingredients.count ?? 0
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: "recipe-scale \(pageID) · \(count) ingredient(s)",
+                    problems: []
                 )
 
             case .publishStandardSite:
@@ -651,7 +682,8 @@ final class Coordinator {
     private static func buildThis(
         noun: WorkspaceNoun?,
         source: LocalSource,
-        engine: BorisEngine
+        engine: BorisEngine,
+        knobs: BorisExecutionKnobs? = nil
     ) async throws -> JobResult {
         guard let noun else {
             return JobResult(
@@ -701,7 +733,8 @@ final class Coordinator {
                 target: target,
                 siteURL: profile?.site?.url,
                 workingDirectory: workspaceRoot,
-                timings: true
+                timings: true,
+                knobs: knobs
             )
             let items = CoordinatorProblems.fromEntry(
                 name: result.name,
@@ -734,7 +767,8 @@ final class Coordinator {
                 scope: spec.scope,
                 splitSize: spec.splitSize,
                 workingDirectory: workspaceRoot,
-                timings: true
+                timings: true,
+                knobs: knobs
             )
             let items = CoordinatorProblems.fromEntry(
                 name: result.name,

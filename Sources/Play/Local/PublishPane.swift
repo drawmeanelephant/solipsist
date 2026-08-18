@@ -66,15 +66,19 @@ struct PublishPane: View {
         Section("Publication Declaration") {
             if let pub = profile?.publication {
                 LabeledContent("Target", value: pub.target)
-                LabeledContent("Base URL", value: pub.base_url)
-                LabeledContent("Origin", value: pub.origin)
-                if !pub.base_path.isEmpty {
-                    LabeledContent("Base Path", value: pub.base_path)
+                if let baseUrl = pub.base_url, !baseUrl.isEmpty {
+                    LabeledContent("Base URL", value: baseUrl)
                 }
-                if let did = pub.did {
+                if let origin = pub.origin, !origin.isEmpty {
+                    LabeledContent("Origin", value: origin)
+                }
+                if let basePath = pub.base_path, !basePath.isEmpty {
+                    LabeledContent("Base Path", value: basePath)
+                }
+                if let did = pub.did, !did.isEmpty {
                     LabeledContent("DID / Identity", value: did)
                 }
-                if let name = pub.name {
+                if let name = pub.name, !name.isEmpty {
                     LabeledContent("Site Name", value: name)
                 }
                 if let desc = pub.description, !desc.isEmpty {
@@ -111,7 +115,9 @@ struct PublishPane: View {
             .padding(.vertical, 2)
 
             if let pub = profile?.publication {
-                LabeledContent("Public URL", value: pub.base_url)
+                if let baseUrl = pub.base_url, !baseUrl.isEmpty {
+                    LabeledContent("Public URL", value: baseUrl)
+                }
                 LabeledContent("Staging Output", value: "dist/")
                 LabeledContent("Evidence Root", value: "_boris/proof/")
             }

@@ -10,6 +10,7 @@ struct ProfileSection: View {
     @State private var originalData: Data?
     @State private var status: Status = .idle
     @State private var note: String?
+    @State private var availableThemes: [String] = []
 
     var body: some View {
         Group {
@@ -35,22 +36,55 @@ struct ProfileSection: View {
 
     private var form: some View {
         Group {
-            TextField("Title", text: $fields.siteTitle)
-            TextField("URL", text: $fields.siteURL)
-            TextField("Input", text: $fields.input)
-            Picker("Input format", selection: $fields.inputFormat) {
-                ForEach(InspectorProfile.inputFormats, id: \.self) { format in
-                    Text(format).tag(format)
+            Section("Site") {
+                TextField("Title", text: $fields.siteTitle)
+                TextField("URL", text: $fields.siteURL)
+                TextField("Description", text: $fields.siteDescription)
+                TextField("Input", text: $fields.input)
+                Picker("Input format", selection: $fields.inputFormat) {
+                    ForEach(InspectorProfile.inputFormats, id: \.self) { format in
+                        Text(format).tag(format)
+                    }
                 }
             }
-            Picker("Publication target", selection: $fields.publicationTarget) {
-                if loaded.publicationTarget.isEmpty {
-                    Text("None").tag("")
+
+            Section("Publication") {
+                Picker("Target", selection: $fields.publicationTarget) {
+                    if loaded.publicationTarget.isEmpty {
+                        Text("None").tag("")
+                    }
+                    ForEach(InspectorProfile.publicationTargets, id: \.self) { target in
+                        Text(Self.label(forTarget: target)).tag(target)
+                    }
                 }
-                ForEach(InspectorProfile.publicationTargets, id: \.self) { target in
-                    Text(Self.label(forTarget: target)).tag(target)
+                if !fields.publicationTarget.isEmpty {
+                    TextField("Base URL", text: $fields.publicationBaseURL)
+                    TextField("Origin", text: $fields.publicationOrigin)
+                    TextField("Base Path", text: $fields.publicationBasePath)
+                    if fields.publicationTarget == "standard-site" {
+                        TextField("DID", text: $fields.publicationDid)
+                        TextField("PDS", text: $fields.publicationPds)
+                    }
                 }
             }
+
+            Section("HTML Targets") {
+                ForEach($fields.targets.indices, id: \.self) { index in
+                    targetRow(index: index)
+                }
+                Button("Add Target") {
+                    let nextIndex = fields.targets.count + 1
+                    fields.targets.append(
+                        PublicationTarget(name: "target-\(nextIndex)", output: "dist/target-\(nextIndex)", public: true)
+                    )
+                }
+                .controlSize(.small)
+            }
+
+            Section("Editions") {
+                editionsForm
+            }
+
             HStack {
                 Button("Save") { save() }
                     .disabled(!isDirty)
@@ -59,6 +93,94 @@ struct ProfileSection: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func targetRow(index: Int) -> some View {
+        if index < fields.targets.count {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    TextField("Name", text: $fields.targets[index].name)
+                    Button {
+                        fields.targets.remove(at: index)
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Remove target")
+                }
+                TextField("Output", text: $fields.targets[index].output)
+                Picker("Theme", selection: Binding(
+                    get: { fields.targets[index].theme ?? "" },
+                    set: { fields.targets[index].theme = $0.isEmpty ? nil : $0 }
+                )) {
+                    Text("Default").tag("")
+                    ForEach(availableThemes, id: \.self) { theme in
+                        Text(theme).tag(theme)
+                    }
+                }
+                TextField("Layout", text: Binding(
+                    get: { fields.targets[index].layout ?? "" },
+                    set: { fields.targets[index].layout = $0.isEmpty ? nil : $0 }
+                ))
+                Toggle("Public", isOn: Binding(
+                    get: { fields.targets[index].public ?? false },
+                    set: { fields.targets[index].public = $0 }
+                ))
+            }
+            .padding(.vertical, 2)
+            Divider()
+        }
+    }
+
+    private var editionsForm: some View {
+        Group {
+            // IR
+            Toggle("IR Edition", isOn: Binding(
+                get: { fields.editions.ir != nil },
+                set: { enabled in
+                    fields.editions.ir = enabled ? PublicationEdition(output: ".boris") : nil
+                }
+            ))
+            if fields.editions.ir != nil {
+                TextField("IR Output", text: Binding(
+                    get: { fields.editions.ir?.output ?? "" },
+                    set: { fields.editions.ir?.output = $0 }
+                ))
+            }
+
+            // RAG
+            Toggle("RAG Edition", isOn: Binding(
+                get: { fields.editions.rag != nil },
+                set: { enabled in
+                    fields.editions.rag = enabled ? PublicationRagEdition(output: "rag") : nil
+                }
+            ))
+            if fields.editions.rag != nil {
+                TextField("RAG Output", text: Binding(
+                    get: { fields.editions.rag?.output ?? "" },
+                    set: { fields.editions.rag?.output = $0 }
+                ))
+                TextField("Scope", text: Binding(
+                    get: { fields.editions.rag?.scope ?? "" },
+                    set: { fields.editions.rag?.scope = $0.isEmpty ? nil : $0 }
+                ))
+            }
+
+            // Context
+            Toggle("Context Edition", isOn: Binding(
+                get: { fields.editions.context != nil },
+                set: { enabled in
+                    fields.editions.context = enabled ? PublicationContextEdition(output: "context") : nil
+                }
+            ))
+            if fields.editions.context != nil {
+                TextField("Context Output", text: Binding(
+                    get: { fields.editions.context?.output ?? "" },
+                    set: { fields.editions.context?.output = $0 }
+                ))
             }
         }
     }
@@ -73,6 +195,7 @@ struct ProfileSection: View {
         }
         do {
             let root = try source.resolve().url
+            availableThemes = ThemeCatalog.allThemes(for: root)
             guard let loaded = try InspectorProfile.load(from: root) else {
                 status = .missing
                 return
