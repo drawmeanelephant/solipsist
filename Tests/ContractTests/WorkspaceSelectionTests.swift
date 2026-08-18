@@ -35,6 +35,21 @@ final class WorkspaceSelectionTests: XCTestCase {
         ])
     }
 
+    func testMailboxDisplayNameAndSymbolCoverEveryKnownMailbox() {
+        for mailbox in WorkspaceMailbox.all {
+            XCTAssertFalse(WorkspaceMailbox.displayName(mailbox).isEmpty)
+            XCTAssertFalse(WorkspaceMailbox.symbolName(mailbox).isEmpty)
+        }
+        XCTAssertEqual(WorkspaceMailbox.displayName(WorkspaceMailbox.pages), "Pages")
+        XCTAssertEqual(WorkspaceMailbox.displayName(WorkspaceMailbox.outputs), "Outputs")
+        XCTAssertEqual(WorkspaceMailbox.displayName(WorkspaceMailbox.publish), "Publish")
+        XCTAssertEqual(WorkspaceMailbox.displayName(WorkspaceMailbox.plan), "Plan")
+        XCTAssertEqual(WorkspaceMailbox.displayName(WorkspaceMailbox.activity), "Activity")
+        // Unknown raw values display verbatim, never rewritten to Pages.
+        XCTAssertEqual(WorkspaceMailbox.displayName("trunk:guides"), "trunk:guides")
+        XCTAssertEqual(WorkspaceMailbox.symbolName("trunk:guides"), "folder")
+    }
+
     func testMailboxRowIDHashEquality() {
         let firstRow = MailboxRowID(sourceID: sourceA, mailbox: WorkspaceMailbox.pages)
         let sameRow = MailboxRowID(sourceID: sourceA, mailbox: WorkspaceMailbox.pages)
