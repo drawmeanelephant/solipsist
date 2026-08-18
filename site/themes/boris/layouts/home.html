@@ -1,23 +1,23 @@
 <!doctype html>
-<html lang="en" data-layout="main">
+<html lang="en" data-layout="home">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Solipsist is a native macOS harness for Boris, the deterministic Zig graph-native publication compiler.">
+    <meta name="description" content="Solipsist is a native macOS workstation for Boris, the deterministic Zig graph-native publication compiler.">
     <meta name="theme-color" content="#151a24">
-    <title>{{title}} · Solipsist</title>
+    <title>Solipsist — Native macOS harness for Boris</title>
     <link rel="icon" type="image/png" sizes="32x32" href="{{asset-url assets/favicon/favicon-32.png}}">
     <link rel="icon" type="image/png" sizes="128x128" href="{{asset-url assets/favicon/favicon-128.png}}">
     <link rel="apple-touch-icon" href="{{asset-url assets/favicon/apple-touch-icon.png}}">
     <meta property="og:site_name" content="Solipsist">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Solipsist — Project documentation">
-    <meta property="og:description" content="Solipsist is a native macOS harness for Boris, the deterministic Zig graph-native publication compiler. Open a folder of Boris content and the whole publishing loop lives in one Mail-grade window.">
+    <meta property="og:title" content="Solipsist — Native macOS harness for Boris">
+    <meta property="og:description" content="Solipsist is a native macOS workstation for Boris, the deterministic Zig graph-native publication compiler. Open a folder of Boris content and the whole publishing loop lives in one Mail-grade window.">
     <meta property="og:url" content="https://solipsist.filed.fyi/">
     <meta property="og:image" content="https://solipsist.filed.fyi/assets/og/og-card.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Solipsist — Project documentation">
-    <meta name="twitter:description" content="Solipsist is a native macOS harness for Boris, the deterministic Zig graph-native publication compiler.">
+    <meta name="twitter:title" content="Solipsist — Native macOS harness for Boris">
+    <meta name="twitter:description" content="Solipsist is a native macOS workstation for Boris, the deterministic Zig graph-native publication compiler.">
     <meta name="twitter:image" content="https://solipsist.filed.fyi/assets/og/og-card.png">
     <link rel="stylesheet" href="{{asset-url assets/css/boris.css}}">
     {{head}}
@@ -25,7 +25,7 @@
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
 
-    <header class="site-header">
+    <header class="site-header site-header--home">
       <div class="site-container site-header__inner">
         <a class="site-brand" href="index.html">
           <span class="site-brand__name">Solipsist</span>
@@ -35,23 +35,13 @@
       </div>
     </header>
 
-    <div class="site-container"><div class="site-breadcrumb">{{breadcrumb}}</div></div>
-
-    <main id="main-content" class="site-container site-grid" tabindex="-1" data-boris-search-root>
-      <article class="Box site-article">
-        <header class="site-article__header">
-          <span class="Label Label--accent">Project documentation</span>
-          {{metadata}}
-        </header>
+    <main id="main-content" class="site-container site-home" tabindex="-1" data-boris-search-root>
+      <article class="Box site-hero">
+        <p class="site-hero__kicker">Native macOS workstation</p>
+        <h1 class="site-hero__title">{{title}}</h1>
         <div class="markdown-body">{{content}}</div>
-        <section class="Box Box--nested site-children" aria-labelledby="children-heading">
-          <h2 id="children-heading" class="section-heading">In this section</h2>
-          {{children}}
-        </section>
-        {{relations}}
-        {{backlinks}}
       </article>
-      <aside class="site-rail" data-boris-search-exclude>
+      <aside class="site-home__rail" data-boris-search-exclude>
         <section class="site-search" data-boris-search-ui aria-labelledby="site-search-label">
           <form action="_boris/search/" method="get" role="search" data-boris-search-form>
             <label class="site-search__label" id="site-search-label" for="site-search-input">Search documentation</label>
@@ -64,6 +54,10 @@
           <ol class="site-search__results" data-boris-search-results aria-label="Search results"></ol>
           <noscript><p class="site-search__fallback">Search needs JavaScript in this static site. Use the navigation above.</p></noscript>
         </section>
+        <div class="Box rail-box">
+          <p class="rail-kicker">Explore</p>
+          {{children}}
+        </div>
         <div class="Box rail-box">
           <p class="rail-kicker">On this page</p>
           {{toc}}

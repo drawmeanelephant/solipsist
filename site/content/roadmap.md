@@ -2,12 +2,12 @@
 title: Roadmap
 parent: index
 status: published
+tags: [roadmap]
 ---
+
 # Roadmap
 
-Solipsist is a **harness**, not a better compiler and not a Markdown
-IDE. Boris stays a better Boris: we vendor the binary, file issues,
-render contracts, and host the surfaces we will not rewrite.
+Solipsist is a **harness**, not a better compiler and not a Markdown IDE. Boris stays a better Boris: we vendor the binary, file issues, render contracts, and host the surfaces we will not rewrite.
 
 ## Where we are
 
@@ -50,14 +50,6 @@ render contracts, and host the surfaces we will not rewrite.
 
 ## The north star
 
-Open a folder of Boris content → it appears as a **source** → the play
-place shows the real graph from `graph.json` → the drawer shows the
-profile and the selected page → Plan / Validate / Build surface every
-diagnostic → Preview reloads through `watch --serve` → Edit opens
-`boris-editor` → Publish runs GitHub Pages evidence, Standard.site, or
-Nostr with the Proof Pack attached.
+Open a folder of Boris content → it appears as a **source** → the play place shows the real graph from `graph.json` → the drawer shows the profile and the selected page → Plan / Validate / Build surface every diagnostic → Preview reloads through `watch --serve` → Edit opens `boris-editor` → Publish runs GitHub Pages evidence, Standard.site, or Nostr with the Proof Pack attached.
 
-This project's own public face is a Cloudflare subdomain on Boris's
-official Worker + Wasm embed host — stood up early, on the Free tier,
-not as an in-app engine. Full detail lives in the repository
-[ROADMAP.md](https://github.com/drawmeanelephant/solipsist/blob/main/docs/ROADMAP.md).
+This project’s own public face is a Cloudflare subdomain on Boris’s official Worker + Wasm embed host — stood up early, on the Free tier, not as an in-app engine. Full detail lives in the repository [ROADMAP.md](https://github.com/drawmeanelephant/solipsist/blob/main/docs/ROADMAP.md).
