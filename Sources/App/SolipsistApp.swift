@@ -97,5 +97,11 @@ struct SolipsistApp: App {
         }
         .windowResizability(.contentSize)
         .defaultSize(width: 400, height: 280)
+
+        Settings {
+            SettingsRoot()
+                .environment(store)
+                .environment(runtime)
+        }
     }
 }
