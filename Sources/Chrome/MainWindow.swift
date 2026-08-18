@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The one window: sources | play | inspector drawer.
 ///
@@ -75,6 +76,21 @@ struct MainWindow: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             statusBar
         }
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            var handled = false
+            for provider in providers {
+                if provider.canLoadObject(ofClass: URL.self) {
+                    _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                        guard let url else { return }
+                        Task { @MainActor in
+                            store.openFromSystem(url)
+                        }
+                    }
+                    handled = true
+                }
+            }
+            return handled
+        }
         .alert("Workspace", isPresented: errorPresented) {
             Button("OK", role: .cancel) { store.lastError = nil }
         } message: {
@@ -85,19 +101,8 @@ struct MainWindow: View {
 
     private var statusBar: some View {
         HStack(spacing: 8) {
-            if let source = store.selectedSource {
-                Image(systemName: source.symbolName)
-                Text(source.title)
-                if let detail = source.detailLine {
-                    Text("·")
-                    Text(detail)
-                        .truncationMode(.middle)
-                }
-            } else {
-                Text("No source")
-            }
+            Text(runtime.statusLine(selectedSourceTitle: store.selectedSource?.title))
             Spacer()
-            Text(runtime.statusLine)
         }
         .font(.caption)
         .foregroundStyle(.secondary)

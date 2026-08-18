@@ -600,6 +600,197 @@ public struct TimingsCounters: Codable, Sendable {
     public var fast_path_hits: Int?
 }
 
+// MARK: - Proof Pack & Evidence Chain (`_boris/proof/`)
+
+/// Decoded from `_boris/proof/proof-pack.json`.
+public struct ProofPackDocument: Codable, Sendable {
+    public var format: String?
+    public var schema_version: Int?
+    public var digest: String?
+    public var model_digest: String?
+    public var generated_at: String?
+    public var timestamp: String?
+    public var claims: [ProofClaim]?
+    public var checks: [ProofCheck]?
+    public var artifacts: [ProofArtifact]?
+    public var limitations: [String]?
+}
+
+/// A structured claim made in the publication proof chain (`claims.json`).
+public struct ProofClaim: Codable, Sendable, Identifiable {
+    public var id: String?
+    public var statement: String?
+    public var claim: String?
+    public var description: String?
+    public var category: String?
+    public var status: String?
+    public var verified: Bool?
+    public var evidence: [String]?
+    public var artifacts: [String]?
+
+    public var displayID: String { id ?? statement ?? "claim" }
+    public var displayText: String { statement ?? claim ?? description ?? id ?? "Unnamed claim" }
+    public var isVerified: Bool {
+        if let verified { return verified }
+        if let status {
+            let s = status.lowercased()
+            return s == "verified" || s == "pass" || s == "ok"
+        }
+        return false
+    }
+}
+
+/// A structured verification check in the proof chain (`checks.json`).
+public struct ProofCheck: Codable, Sendable, Identifiable {
+    public var id: String?
+    public var name: String?
+    public var title: String?
+    public var status: String?
+    public var passed: Bool?
+    public var ok: Bool?
+    public var message: String?
+    public var description: String?
+    public var target: String?
+    public var path: String?
+
+    public var displayID: String { id ?? name ?? title ?? "check" }
+    public var displayTitle: String { name ?? title ?? id ?? "Verification Check" }
+    public var displayMessage: String? { message ?? description }
+    public var isPassed: Bool {
+        if let passed { return passed }
+        if let ok { return ok }
+        if let status {
+            let s = status.lowercased()
+            return s == "passed" || s == "pass" || s == "ok"
+        }
+        return true
+    }
+}
+
+/// A structured artifact entry in `artifacts.json`.
+public struct ProofArtifact: Codable, Sendable, Identifiable {
+    public var id: String { path ?? name ?? sha256 ?? UUID().uuidString }
+    public var path: String?
+    public var name: String?
+    public var size: Int?
+    public var sha256: String?
+    public var media_type: String?
+    public var mime_type: String?
+    public var semantics: String?
+}
+
+/// Decoded from `_boris/proof/claims.json`.
+public struct ProofClaimsDocument: Codable, Sendable {
+    public var format: String?
+    public var schema_version: Int?
+    public var claims: [ProofClaim]?
+    public var limitations: [String]?
+}
+
+/// Decoded from `_boris/proof/checks.json`.
+public struct ProofChecksDocument: Codable, Sendable {
+    public var format: String?
+    public var schema_version: Int?
+    public var checks: [ProofCheck]?
+}
+
+// MARK: - Nostr Publish Report (`_boris/nostr-publish.json`)
+
+/// Decoded from `_boris/nostr-publish.json` or engine stdout.
+public struct NostrPublishReport: Codable, Sendable {
+    public var format: String?
+    public var schema_version: Int?
+    public var verdict: String?
+    public var created_at: String?
+    public var timestamp: String?
+    public var event_id: String?
+    public var relays: [NostrRelayVerdict]?
+}
+
+/// Per-relay publication verdict from a Nostr publish run.
+public struct NostrRelayVerdict: Codable, Sendable, Identifiable {
+    public var id: String { url ?? relay ?? UUID().uuidString }
+    public var url: String?
+    public var relay: String?
+    public var verdict: String?
+    public var status: String?
+    public var ok: Bool?
+    public var message: String?
+    public var error: String?
+    public var event_id: String?
+
+    public var relayURL: String { url ?? relay ?? "unknown" }
+    public var isSuccess: Bool {
+        if let ok { return ok }
+        if let verdict {
+            let v = verdict.lowercased()
+            return v == "complete" || v == "ok" || v == "success" || v == "published"
+        }
+        if let status {
+            let s = status.lowercased()
+            return s == "ok" || s == "success" || s == "complete"
+        }
+        return false
+    }
+    public var displayMessage: String {
+        message ?? error ?? verdict ?? status ?? (isSuccess ? "Published successfully" : "Publish failed")
+    }
+}
+
+// MARK: - Package Metadata (`MACHINE-READABLE-VERSION.json` & `SHA256SUMS`)
+
+/// Decoded from `MACHINE-READABLE-VERSION.json` in packages or project root.
+public struct MachineReadableVersion: Codable, Sendable {
+    public var format: String?
+    public var schema_version: Int?
+    public var version: String?
+    public var commit: String?
+    public var compiler: String?
+    public var compiler_id: String?
+    public var compilerId: String?
+    public var timestamp: String?
+    public var created_at: String?
+    public var platform: String?
+    public var ir_version: String?
+    public var features: [String]?
+    public var sha256: String?
+
+    public var displayVersion: String { version ?? "unknown" }
+    public var displayCommit: String? { commit }
+    public var displayPlatform: String? { platform }
+    public var displayCompiler: String? { compiler ?? compiler_id ?? compilerId }
+}
+
+/// A parsed line from a `SHA256SUMS` file.
+public struct PackageChecksumEntry: Identifiable, Sendable {
+    public var id: String { "\(filename)-\(sha256)" }
+    public let sha256: String
+    public let filename: String
+
+    public init(sha256: String, filename: String) {
+        self.sha256 = sha256
+        self.filename = filename
+    }
+
+    public static func parse(from text: String) -> [PackageChecksumEntry] {
+        var entries: [PackageChecksumEntry] = []
+        for line in text.split(whereSeparator: \.isNewline) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else { continue }
+            let parts = trimmed.split(maxSplits: 1, whereSeparator: { $0.isWhitespace })
+            guard parts.count == 2 else { continue }
+            let hash = String(parts[0])
+            var file = String(parts[1]).trimmingCharacters(in: .whitespaces)
+            if file.hasPrefix("*") {
+                file.removeFirst()
+            }
+            guard hash.count == 64 else { continue }
+            entries.append(PackageChecksumEntry(sha256: hash, filename: file))
+        }
+        return entries
+    }
+}
+
 // MARK: - Schema version policy (D8)
 
 /// D8: unknown/newer `schemaVersion` degrades visibly, never crashes.

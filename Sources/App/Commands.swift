@@ -111,8 +111,42 @@ struct SolipsistCommands: Commands {
             }
             .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 
+            Button("Verify Standard.site") {
+                runtime.coordinator.run(.standardSiteVerify, store: store, runtime: runtime)
+            }
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
+
+            Button("Standard.site Records") {
+                runtime.coordinator.run(.standardSiteRecords, store: store, runtime: runtime)
+            }
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
+
+            Button("Standard.site Sessions") {
+                runtime.coordinator.run(.standardSiteSessions, store: store, runtime: runtime)
+            }
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
+
+            Button("Standard.site Smoke Test") {
+                runtime.coordinator.run(.standardSiteSmoke, store: store, runtime: runtime)
+            }
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
+
+            Button("Logout Standard.site") {
+                runtime.coordinator.run(.standardSiteLogout, store: store, runtime: runtime)
+            }
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
+
+            Divider()
+
             Button("Publish to Nostr…") {
                 runtime.coordinator.run(.publishNostr, store: store, runtime: runtime)
+            }
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
+
+            Divider()
+
+            Button("Package Archive") {
+                runtime.coordinator.run(.package, store: store, runtime: runtime)
             }
             .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 

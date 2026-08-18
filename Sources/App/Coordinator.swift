@@ -1,42 +1,6 @@
 import Foundation
 import Observation
 
-enum CoordinatorVerb: String, Sendable {
-    case plan
-    case validate
-    case buildIR
-    case buildHTML
-    case buildThis = "build this"
-    case buildAll
-    case check
-    case impact
-    case recipeScale = "recipe-scale"
-    case publishStandardSite = "publish Standard.site"
-    case publishNostr = "publish Nostr"
-
-    /// Jobs that write trees watch also owns (`dist/`, `.boris`, proof).
-    var writesTree: Bool {
-        switch self {
-        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite, .publishNostr:
-            true
-        case .plan, .validate, .check, .impact, .recipeScale:
-            false
-        }
-    }
-
-    var timeout: Duration {
-        writesTree ? CoordinatorPolicy.buildTimeout : CoordinatorPolicy.oneShotTimeout
-    }
-
-    var secretTarget: String? {
-        switch self {
-        case .publishNostr: PublishTargets.nostr
-        case .publishStandardSite: PublishTargets.standardSite
-        default: nil
-        }
-    }
-}
-
 /// Menu verbs against `BorisEngine`. One job at a time. Play and the
 /// status bar read this; they do not spawn `boris`.
 @MainActor
@@ -45,9 +9,11 @@ final class Coordinator {
     private(set) var isRunning = false
     private(set) var state: CoordinatorState = .idle
     private(set) var verb: CoordinatorVerb?
+    private(set) var lastVerb: CoordinatorVerb?
     private(set) var summary = "idle"
     private(set) var exitCode: Int32?
     private(set) var problems: [ProblemItem] = []
+    private var jobStartTime: ContinuousClock.Instant?
     private var task: Task<Void, Never>?
     private var reapTask: Task<Void, Never>?
     private var watchdogTask: Task<Void, Never>?
@@ -216,6 +182,8 @@ final class Coordinator {
         isRunning = true
         state = verb.writesTree ? .building : .validating
         self.verb = verb
+        self.lastVerb = verb
+        self.jobStartTime = .now
         jobOrigin = origin
         timedOut = false
         summary = "\(verb.rawValue)…"
@@ -294,6 +262,10 @@ final class Coordinator {
         reapTask = nil
         watchdogTask?.cancel()
         watchdogTask = nil
+
+        let duration = jobStartTime.map { $0.duration(to: .now) } ?? .zero
+        jobStartTime = nil
+        JobNotificationDispatcher.notifyIfBackgrounded(verb: verb, exit: exit, duration: duration)
 
         let origin = jobOrigin
         let wasTimeout = timedOut
@@ -592,8 +564,110 @@ final class Coordinator {
             case .publishStandardSite:
                 return try await publishStandardSite(source: source, engine: engine, secret: secret)
 
+            case .standardSiteVerify:
+                guard let profileURL = source.profileURL() else {
+                    return JobResult(
+                        exit: 3,
+                        summary: "verify: no boris.json",
+                        problems: CoordinatorProblems.fromFailure(code: "standard-site", message: "no boris.json")
+                    )
+                }
+                let result = try await engine.standardSiteVerify(profileURL: profileURL)
+                let items = CoordinatorProblems.fromCommand(
+                    code: "standard-site",
+                    exitCode: result.exitCode,
+                    stderr: result.stderr
+                )
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: result.exitCode == 0 ? "Standard.site verify ok" : "Standard.site verify exit \(result.exitCode)",
+                    problems: items
+                )
+
+            case .standardSiteRecords:
+                guard let profileURL = source.profileURL() else {
+                    return JobResult(
+                        exit: 3,
+                        summary: "records: no boris.json",
+                        problems: CoordinatorProblems.fromFailure(code: "standard-site", message: "no boris.json")
+                    )
+                }
+                let result = try await engine.standardSiteRecords(profileURL: profileURL)
+                let items = CoordinatorProblems.fromCommand(
+                    code: "standard-site",
+                    exitCode: result.exitCode,
+                    stderr: result.stderr
+                )
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: result.exitCode == 0 ? "Standard.site records ok" : "Standard.site records exit \(result.exitCode)",
+                    problems: items
+                )
+
+            case .standardSiteSessions:
+                let result = try await engine.standardSiteSessions(
+                    workingDirectory: try source.workspaceRoot()
+                )
+                let items = CoordinatorProblems.fromCommand(
+                    code: "standard-site",
+                    exitCode: result.exitCode,
+                    stderr: result.stderr
+                )
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: result.exitCode == 0 ? "Standard.site sessions ok" : "Standard.site sessions exit \(result.exitCode)",
+                    problems: items
+                )
+
+            case .standardSiteLogout:
+                let result = try await engine.standardSiteLogout(
+                    workingDirectory: try source.workspaceRoot()
+                )
+                let items = CoordinatorProblems.fromCommand(
+                    code: "standard-site",
+                    exitCode: result.exitCode,
+                    stderr: result.stderr
+                )
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: result.exitCode == 0 ? "Standard.site logout ok" : "Standard.site logout exit \(result.exitCode)",
+                    problems: items
+                )
+
+            case .standardSiteSmoke:
+                let result = try await engine.standardSiteSmoke(
+                    profileURL: source.profileURL(),
+                    workingDirectory: try source.workspaceRoot()
+                )
+                let items = CoordinatorProblems.fromCommand(
+                    code: "standard-site",
+                    exitCode: result.exitCode,
+                    stderr: result.stderr
+                )
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: result.exitCode == 0 ? "Standard.site smoke ok" : "Standard.site smoke exit \(result.exitCode)",
+                    problems: items
+                )
+
             case .publishNostr:
                 return try await publishNostr(source: source, engine: engine, secret: secret)
+
+            case .package:
+                let result = try await engine.package(
+                    contentRoot: try source.contentRoot(),
+                    workingDirectory: try source.workspaceRoot()
+                )
+                let items = CoordinatorProblems.fromCommand(
+                    code: "package",
+                    exitCode: result.exitCode,
+                    stderr: result.stderr
+                )
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: result.exitCode == 0 ? "Package archive ok" : "Package exit \(result.exitCode)",
+                    problems: items
+                )
             }
         } catch {
             let message = String(describing: error)
@@ -851,14 +925,37 @@ final class Coordinator {
         }
 
         let published = try await engine.nostrPublish(bundleURL: bundleURL, reportURL: reportURL)
-        return JobResult(
-            exit: published.exitCode,
-            summary: "Nostr publish exit \(published.exitCode)",
-            problems: CoordinatorProblems.fromCommand(
+        var items: [ProblemItem] = []
+        var summaryText = "Nostr publish exit \(published.exitCode)"
+        let reportData = (try? Data(contentsOf: reportURL)) ?? (published.stdout.isEmpty ? nil : Data(published.stdout.utf8))
+        if let reportData,
+           let report = try? JSONDecoder().decode(NostrPublishReport.self, from: reportData) {
+            if let verdict = report.verdict {
+                summaryText = "Nostr publish \(verdict) (exit \(published.exitCode))"
+            }
+            if let relays = report.relays {
+                for relay in relays {
+                    let isOk = relay.isSuccess
+                    let severity = isOk ? "info" : "error"
+                    items.append(ProblemItem(
+                        severity: severity,
+                        code: "nostr-relay",
+                        message: "\(relay.relayURL): \(relay.displayMessage)"
+                    ))
+                }
+            }
+        }
+        if items.isEmpty, published.exitCode != 0 {
+            items = CoordinatorProblems.fromCommand(
                 code: "nostr",
                 exitCode: published.exitCode,
                 stderr: published.stderr
             )
+        }
+        return JobResult(
+            exit: published.exitCode,
+            summary: summaryText,
+            problems: items
         )
     }
 

@@ -746,6 +746,74 @@ public actor BorisEngine {
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
+    /// Runs `boris standard-site verify --profile PATH`.
+    public func standardSiteVerify(profileURL: URL) async throws -> BorisPublishResult {
+        let out = try await run(
+            arguments: ["standard-site", "verify", "--profile", profileURL.lastPathComponent],
+            workingDirectory: profileURL.deletingLastPathComponent()
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    /// Runs `boris standard-site sessions`.
+    public func standardSiteSessions(workingDirectory: URL? = nil) async throws -> BorisPublishResult {
+        let out = try await run(
+            arguments: ["standard-site", "sessions"],
+            workingDirectory: workingDirectory
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    /// Runs `boris standard-site logout`.
+    public func standardSiteLogout(workingDirectory: URL? = nil) async throws -> BorisPublishResult {
+        let out = try await run(
+            arguments: ["standard-site", "logout"],
+            workingDirectory: workingDirectory
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    /// Runs `boris standard-site smoke` (live opt-in interop test).
+    public func standardSiteSmoke(
+        profileURL: URL? = nil,
+        workingDirectory: URL? = nil
+    ) async throws -> BorisPublishResult {
+        var args = ["standard-site", "smoke"]
+        if let profileURL {
+            args.append(contentsOf: ["--profile", profileURL.lastPathComponent])
+        }
+        let out = try await run(
+            arguments: args,
+            workingDirectory: workingDirectory ?? profileURL?.deletingLastPathComponent()
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    /// Runs `boris package`: produces `packages/<archive>` containing `MACHINE-READABLE-VERSION.json`, `SHA256SUMS`, etc.
+    public func package(
+        contentRoot: URL,
+        packagesDir: URL? = nil,
+        archive: String? = nil,
+        withRag: Bool = true,
+        workingDirectory: URL? = nil
+    ) async throws -> BorisPublishResult {
+        var args = ["package", "--input", contentRoot.path]
+        if let packagesDir {
+            args.append(contentsOf: ["--packages-dir", packagesDir.path])
+        }
+        if let archive, !archive.isEmpty {
+            args.append(contentsOf: ["--archive", archive])
+        }
+        args.append(withRag ? "--with-rag" : "--no-rag")
+        args.append("--quiet")
+
+        let out = try await run(
+            arguments: args,
+            workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
     /// Runs `boris nostr plan --profile PATH`.
     public func nostrPlan(profileURL: URL) async throws -> BorisPublishResult {
         let out = try await run(
