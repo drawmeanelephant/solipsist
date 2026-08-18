@@ -78,7 +78,6 @@ final class EditorSession {
         do {
             let server = try engine.editorStart(
                 editorBinary: editorBinary,
-                contentRoot: contentRoot,
                 workingDirectory: projectRoot,
                 port: 0
             )

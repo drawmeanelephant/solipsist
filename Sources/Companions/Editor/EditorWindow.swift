@@ -6,10 +6,12 @@ import WebKit
 /// Companion host for `boris-editor` (Svelte). Chassis registers the window
 /// and leaves it closed; the editor opens against the selected page.
 ///
-/// The window starts an `EditorSession` for the selected source's content
-/// root, then loads the tokenized `BORIS_EDITOR_URL=` into the web view. The
-/// header names the selected page and its `sourcePath`. Manual URL paste and
-/// "Open in Browser" stay as the loopback fallback.
+/// The window starts an `EditorSession` for the selected source's project
+/// root, then loads the tokenized `BORIS_EDITOR_URL=` into the web view
+/// with `open=` set from the page `sourcePath` (A15 / boris#649; ignored
+/// by today's shell). The header names the selected page and its
+/// `sourcePath`. Manual URL paste and "Open in Browser" stay as the
+/// loopback fallback.
 struct EditorWindow: View {
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
@@ -44,7 +46,9 @@ struct EditorWindow: View {
         .navigationTitle("Editor")
         .onChange(of: session.editorURL) { _, newURL in
             if let newURL {
-                model.load(url: newURL)
+                let targeted = EditorURL.opening(newURL, sourcePath: pageSourcePath)
+                urlText = targeted.absoluteString
+                model.load(url: targeted)
             }
         }
         .onDisappear {
@@ -133,10 +137,18 @@ struct EditorWindow: View {
     }
 
     private func headerSubtitle(for source: SourceItem) -> String? {
-        if let noun = store.selection.noun, noun.kind == "page", let path = noun.sourcePath, !path.isEmpty {
+        if let path = pageSourcePath {
             return path
         }
         return source.detailLine
+    }
+
+    /// Graph `sourcePath` when the editor was opened from a page.
+    private var pageSourcePath: String? {
+        guard let noun = store.selection.noun, noun.kind == "page",
+              let path = noun.sourcePath, !path.isEmpty
+        else { return nil }
+        return path
     }
 
     private var toolbar: some View {

@@ -553,10 +553,10 @@ public actor BorisEngine {
 
     // MARK: Editor (M6)
 
-    /// Starts `boris-editor` for `contentRoot` (A14) and returns the live host server.
+    /// Starts `boris-editor` for the project at `workingDirectory` (A14).
+    /// DIR is the project folder (must contain `content/`), not the content tree.
     public nonisolated func editorStart(
         editorBinary: URL,
-        contentRoot: URL,
         workingDirectory: URL,
         uiDir: URL? = nil,
         port: Int = 0
@@ -564,8 +564,7 @@ public actor BorisEngine {
         let server = EditorServer(
             editorBinary: editorBinary,
             engineBinary: binaryURL,
-            contentRoot: contentRoot,
-            workingDirectory: workingDirectory,
+            projectRoot: workingDirectory,
             uiDir: uiDir,
             port: port
         )
