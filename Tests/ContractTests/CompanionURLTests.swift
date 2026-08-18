@@ -123,4 +123,65 @@ final class CompanionURLTests: XCTestCase {
         XCTAssertFalse(PreviewURL.isLoopback(file))
         XCTAssertFalse(PreviewURL.isAllowed(file))
     }
+
+    func testPreviewURLSiteOriginFromHelper() throws {
+        let helper = try XCTUnwrap(URL(string: "http://127.0.0.1:8080/__boris/"))
+        let origin = try XCTUnwrap(PreviewURL.siteOrigin(fromHelper: helper))
+        XCTAssertEqual(origin.scheme, "http")
+        XCTAssertEqual(origin.host, "127.0.0.1")
+        XCTAssertEqual(origin.port, 8080)
+        XCTAssertEqual(origin.path, "/")
+        XCTAssertNil(origin.query)
+        XCTAssertNil(origin.fragment)
+    }
+
+    func testPreviewURLSiteOriginWithoutTrailingSlash() throws {
+        let helper = try XCTUnwrap(URL(string: "http://localhost:3000/__boris"))
+        let origin = try XCTUnwrap(PreviewURL.siteOrigin(fromHelper: helper))
+        XCTAssertEqual(origin.host, "localhost")
+        XCTAssertEqual(origin.port, 3000)
+        XCTAssertEqual(origin.path, "/")
+    }
+
+    func testPreviewURLSiteOriginStripsQueryAndFragment() throws {
+        let helper = try XCTUnwrap(URL(string: "http://127.0.0.1:8080/__boris/?x=1#frag"))
+        let origin = try XCTUnwrap(PreviewURL.siteOrigin(fromHelper: helper))
+        XCTAssertEqual(origin.path, "/")
+        XCTAssertNil(origin.query)
+        XCTAssertNil(origin.fragment)
+    }
+
+    func testPreviewURLPageURLFromGraphIDs() throws {
+        let helper = try XCTUnwrap(URL(string: "http://127.0.0.1:49152/__boris/"))
+        let index = try XCTUnwrap(PreviewURL.pageURL(helper: helper, pageID: "index"))
+        XCTAssertEqual(index.absoluteString, "http://127.0.0.1:49152/index.html")
+        let nested = try XCTUnwrap(PreviewURL.pageURL(helper: helper, pageID: "guides/getting-started"))
+        XCTAssertEqual(nested.absoluteString, "http://127.0.0.1:49152/guides/getting-started.html")
+        let cook = try XCTUnwrap(PreviewURL.pageURL(helper: helper, pageID: "recipe/soup"))
+        XCTAssertEqual(cook.absoluteString, "http://127.0.0.1:49152/recipe/soup.html")
+    }
+
+    func testPreviewURLPageURLTrimsSlashes() throws {
+        let helper = try XCTUnwrap(URL(string: "http://127.0.0.1:8080/__boris/"))
+        let url = try XCTUnwrap(PreviewURL.pageURL(helper: helper, pageID: "/guides/getting-started/"))
+        XCTAssertEqual(url.absoluteString, "http://127.0.0.1:8080/guides/getting-started.html")
+    }
+
+    func testPreviewURLPageURLRejectsEmptyID() throws {
+        let helper = try XCTUnwrap(URL(string: "http://127.0.0.1:8080/__boris/"))
+        XCTAssertNil(PreviewURL.pageURL(helper: helper, pageID: ""))
+        XCTAssertNil(PreviewURL.pageURL(helper: helper, pageID: "///"))
+    }
+
+    func testPreviewURLSiteOriginRejectsNonLoopback() throws {
+        let remote = try XCTUnwrap(URL(string: "http://example.com/__boris/"))
+        XCTAssertNil(PreviewURL.siteOrigin(fromHelper: remote))
+        XCTAssertNil(PreviewURL.pageURL(helper: remote, pageID: "index"))
+    }
+
+    func testPreviewURLPageURLRejectsFile() throws {
+        let file = try XCTUnwrap(URL(string: "file:///tmp/index.html"))
+        XCTAssertNil(PreviewURL.siteOrigin(fromHelper: file))
+        XCTAssertNil(PreviewURL.pageURL(helper: file, pageID: "index"))
+    }
 }

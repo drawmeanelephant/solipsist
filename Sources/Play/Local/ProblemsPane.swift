@@ -71,7 +71,23 @@ struct ProblemsPane: View {
 
                 switch resolution {
                 case .page(let pageID, let pageTitle):
-                    store.select(noun: WorkspaceNoun(kind: "page", id: pageID, title: pageTitle))
+                    store.select(mailbox: WorkspaceMailbox.pages)
+                    if let page = pages.first(where: { $0.id == pageID })
+                        ?? LocalPlayGraph.resolvePage(forSourcePath: path, in: pages)
+                    {
+                        store.select(
+                            noun: WorkspaceNoun(
+                                kind: "page",
+                                id: page.id,
+                                title: page.title,
+                                sourcePath: page.sourcePath
+                            )
+                        )
+                    } else {
+                        store.select(
+                            noun: WorkspaceNoun(kind: "page", id: pageID, title: pageTitle)
+                        )
+                    }
                 case .revealFile(let url):
                     NSWorkspace.shared.activateFileViewerSelecting([url])
                 }

@@ -1,8 +1,9 @@
 import Foundation
 import Observation
 
-/// Process-wide runtime: the engine identity, not the workspace.
-/// Companions and the status bar read this; they do not spawn `boris`.
+/// Process-wide runtime: engine identity, coordinator, and the one
+/// preview watch session (lifted from the companion so Play can observe
+/// it). Companions and Play ask this type; they do not spawn `boris`.
 @MainActor
 @Observable
 final class AppRuntime {
@@ -12,6 +13,7 @@ final class AppRuntime {
     private(set) var engineVersion: String
     let coordinator = Coordinator()
     let credentials = PublishCredentialManager()
+    let previewSession = PreviewSession()
 
     init() {
         if let url = BorisBinary.locate() {
