@@ -27,45 +27,7 @@ struct MainWindow: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    runtime.coordinator.run(.validate, store: store, runtime: runtime)
-                } label: {
-                    Label("Validate", systemImage: "checkmark.circle")
-                }
-                .help("Validate")
-                .disabled(store.selectedSource == nil || !runtime.coordinator.canRunVerb)
-
-                Button {
-                    runtime.coordinator.run(.buildIR, store: store, runtime: runtime)
-                } label: {
-                    Label("Build IR", systemImage: "hammer")
-                }
-                .help("Build IR")
-                .disabled(store.selectedSource == nil || !runtime.coordinator.canRunVerb)
-
-                Button {
-                    runtime.coordinator.stop(runtime: runtime)
-                } label: {
-                    Label("Stop", systemImage: "stop.fill")
-                }
-                .help("Stop")
-                .disabled(!runtime.coordinator.canStop)
-
-                Button {
-                    openWindow(id: CompanionID.preview)
-                } label: {
-                    Label("Preview", systemImage: "safari")
-                }
-                .help("Open Preview")
-                .disabled(store.selectedSource == nil)
-
-                Button {
-                    openWindow(id: CompanionID.editor)
-                } label: {
-                    Label("Editor", systemImage: "square.and.pencil")
-                }
-                .help("Open Editor")
-                .disabled(!store.selection.canEditPage)
+                mainToolbar
             }
         }
         .onAppear {
@@ -98,6 +60,61 @@ struct MainWindow: View {
             Text(store.lastError ?? "")
         }
         .frame(minWidth: 800, minHeight: 480)
+    }
+
+    @ViewBuilder
+    private var mainToolbar: some View {
+        let hasSource = store.selectedSource != nil
+        let canRun = hasSource && runtime.coordinator.canRunVerb
+        let canEdit = store.selection.canEditPage
+
+        Button {
+            runtime.coordinator.run(.validate, store: store, runtime: runtime)
+        } label: {
+            Label("Validate", systemImage: "checkmark.circle")
+        }
+        .help("Validate")
+        .disabled(!canRun)
+
+        Button {
+            runtime.coordinator.run(.buildIR, store: store, runtime: runtime)
+        } label: {
+            Label("Build IR", systemImage: "hammer")
+        }
+        .help("Build IR")
+        .disabled(!canRun)
+
+        Button {
+            runtime.coordinator.stop(runtime: runtime)
+        } label: {
+            Label("Stop", systemImage: "stop.fill")
+        }
+        .help("Stop")
+        .disabled(!runtime.coordinator.canStop)
+
+        Button {
+            openWindow(id: CompanionID.preview)
+        } label: {
+            Label("Preview", systemImage: "safari")
+        }
+        .help("Open Preview")
+        .disabled(!hasSource)
+
+        Button {
+            openWindow(id: CompanionID.editor)
+        } label: {
+            Label("Editor", systemImage: "square.and.pencil")
+        }
+        .help("Open Editor")
+        .disabled(!canEdit)
+
+        Button {
+            openWindow(id: CompanionID.compose)
+        } label: {
+            Label("Compose", systemImage: "pencil")
+        }
+        .help("Compose")
+        .disabled(!canEdit)
     }
 
     private var statusBar: some View {

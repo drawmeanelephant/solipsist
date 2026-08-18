@@ -36,11 +36,7 @@ struct LocalPlay: PlaySurface {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle(source.title)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 0) {
-                Divider()
-                ProblemsPane(pages: loadedPages)
-                    .frame(minHeight: 88, idealHeight: 148, maxHeight: 220)
-            }
+            ProblemsPane(pages: loadedPages)
         }
         .task(id: source.id) {
             await load()
@@ -104,7 +100,11 @@ struct LocalPlay: PlaySurface {
         case .ready(let pages):
             VSplitView {
                 pageList(pages)
-                    .frame(minHeight: 120)
+                    .frame(
+                        minHeight: 88,
+                        idealHeight: listIdealHeight(pages.count),
+                        maxHeight: listIdealHeight(pages.count) + 24
+                    )
                 ReadingPane(
                     page: selectedPlayPage,
                     source: source,
@@ -119,19 +119,38 @@ struct LocalPlay: PlaySurface {
 
     private func pageList(_ pages: [PlayPage]) -> some View {
         let filtered = LocalPlayGraph.filter(pages: pages, query: searchText)
+        let selectedID = store.selection.noun?.kind == "page" ? store.selection.noun?.id : nil
         return Group {
             if filtered.isEmpty, !searchText.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             } else {
-                List(filtered, selection: selectedPageID) { page in
-                    PageRow(page: page, findings: runtime.coordinator.checkFindings)
-                        .tag(page.id)
-                        .simultaneousGesture(TapGesture(count: 2).onEnded {
-                            selectPage(page)
-                            openWindow(id: CompanionID.editor)
-                        })
+                // ScrollView, not List: macOS List paints empty zebra slots
+                // for leftover height. Mail's message list is only as tall
+                // as its rows.
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(filtered) { page in
+                            PageRow(page: page, findings: runtime.coordinator.checkFindings)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background {
+                                    if page.id == selectedID {
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .fill(Color.accentColor.opacity(0.18))
+                                    }
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture { selectPage(page) }
+                                .simultaneousGesture(TapGesture(count: 2).onEnded {
+                                    selectPage(page)
+                                    openWindow(id: CompanionID.editor)
+                                })
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
                 }
-                .listStyle(.inset(alternatesRowBackgrounds: true))
                 .onKeyPress(.return) {
                     guard store.selection.canEditPage else { return .ignored }
                     openWindow(id: CompanionID.editor)
@@ -139,31 +158,16 @@ struct LocalPlay: PlaySurface {
                 }
             }
         }
-        .searchable(text: $searchText, prompt: "Filter by title, id, tag, or status…")
+        .searchable(
+            text: $searchText,
+            placement: .toolbar,
+            prompt: "Filter by title, id, tag, or status…"
+        )
     }
 
-    private var selectedPageID: Binding<String?> {
-        Binding(
-            get: {
-                let noun = store.selection.noun
-                return noun?.kind == "page" ? noun?.id : nil
-            },
-            set: { newID in
-                let currentID = store.selection.noun?.kind == "page" ? store.selection.noun?.id : nil
-                if newID != nil, newID == currentID {
-                    loadGeneration += 1
-                }
-                guard
-                    let newID,
-                    case .ready(let pages) = state,
-                    let page = pages.first(where: { $0.id == newID })
-                else {
-                    store.select(noun: nil)
-                    return
-                }
-                selectPage(page)
-            }
-        )
+    private func listIdealHeight(_ count: Int) -> CGFloat {
+        let rows = CGFloat(min(max(count, 1), 8))
+        return 12 + rows * 44
     }
 
     private func selectPage(_ page: PlayPage) {

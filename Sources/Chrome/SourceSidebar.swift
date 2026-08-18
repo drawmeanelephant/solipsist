@@ -95,12 +95,6 @@ private struct SourceAccountHeader: View {
                         .font(.caption)
                         .foregroundStyle(.orange)
                         .lineLimit(1)
-                } else if let detail = item.detailLine {
-                    Text(detail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
                 }
             }
         } icon: {
