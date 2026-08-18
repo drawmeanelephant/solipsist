@@ -7,6 +7,7 @@ struct PlanPane: View {
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
+    @Environment(\.toolbarBand) private var toolbarBand
     @State private var plan: PublicationPlan?
 
     var body: some View {
@@ -144,6 +145,7 @@ struct PlanPane: View {
             }
         }
         .listStyle(.inset(alternatesRowBackgrounds: true))
+        .safeAreaPadding(.top, toolbarBand)
     }
 
     private func loadIfPossible() {

@@ -4,6 +4,7 @@ import SwiftUI
 /// tracking verb, exit code, execution timings duration, problem counts, and diagnostics.
 struct ActivityPane: View {
     @Environment(AppRuntime.self) private var runtime
+    @Environment(\.toolbarBand) private var toolbarBand
 
     var body: some View {
         Group {
@@ -37,6 +38,7 @@ struct ActivityPane: View {
             }
         }
         .listStyle(.inset(alternatesRowBackgrounds: true))
+        .safeAreaPadding(.top, toolbarBand)
     }
 }
 

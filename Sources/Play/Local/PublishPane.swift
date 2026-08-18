@@ -9,6 +9,7 @@ struct PublishPane: View {
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
+    @Environment(\.toolbarBand) private var toolbarBand
     @State private var profile: PublicationProfile?
     @State private var proofFiles: [ProofFileItem] = []
     @State private var proofPack: ProofPackDocument?
@@ -48,6 +49,7 @@ struct PublishPane: View {
             evidenceFilesSection
         }
         .listStyle(.inset(alternatesRowBackgrounds: true))
+        .safeAreaPadding(.top, toolbarBand)
         .task(id: source.id) {
             load()
         }
