@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UserNotifications
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pending: [URL] = []
@@ -47,6 +48,7 @@ struct SolipsistApp: App {
                 .environment(store)
                 .environment(runtime)
                 .onAppear {
+                    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
                     appDelegate.openFolder = { url in
                         Task { @MainActor in
                             store.openFromSystem(url)

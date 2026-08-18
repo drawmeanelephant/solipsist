@@ -9,6 +9,7 @@ final class AppRuntime {
     let engine: BorisEngine?
     let enginePath: String?
     let engineError: String?
+    private(set) var engineVersion: String
     let coordinator = Coordinator()
     let credentials = PublishCredentialManager()
 
@@ -16,26 +17,48 @@ final class AppRuntime {
         if let url = BorisBinary.locate() {
             enginePath = url.path
             do {
-                engine = try BorisEngine(binaryURL: url)
+                let eng = try BorisEngine(binaryURL: url)
+                engine = eng
                 engineError = nil
+                engineVersion = "boris"
+                Task { [weak self] in
+                    if let v = try? await eng.version() {
+                        await MainActor.run {
+                            self?.engineVersion = v.line
+                        }
+                    }
+                }
             } catch {
                 engine = nil
                 engineError = String(describing: error)
+                engineVersion = "boris not found"
             }
         } else {
             engine = nil
             enginePath = nil
             engineError = BorisEngineError.binaryNotFound.description
+            engineVersion = "boris not found"
         }
     }
 
-    var statusLine: String {
-        let engineBit: String
-        if let enginePath {
-            engineBit = "engine \(URL(fileURLWithPath: enginePath).lastPathComponent)"
+    func statusLine(selectedSourceTitle: String?) -> String {
+        let sourceTitle = selectedSourceTitle ?? "No source"
+        let verbText: String
+        let exitText: String
+        if coordinator.isRunning {
+            verbText = coordinator.verb?.rawValue ?? "running"
+            exitText = "running"
+        } else if let lastVerb = coordinator.lastVerb {
+            verbText = lastVerb.rawValue
+            exitText = coordinator.exitCode.map { "exit \($0)" } ?? "exit 0"
         } else {
-            engineBit = "engine not found"
+            verbText = coordinator.state == .watching ? "watching" : "idle"
+            exitText = coordinator.exitCode.map { "exit \($0)" } ?? "exit 0"
         }
-        return "\(coordinator.summary) · \(engineBit)"
+        return "\(sourceTitle) · \(verbText) · \(exitText) · \(engineVersion)"
+    }
+
+    var statusLine: String {
+        statusLine(selectedSourceTitle: nil)
     }
 }

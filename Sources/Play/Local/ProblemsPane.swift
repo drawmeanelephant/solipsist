@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Activity / problems under the graph list. Reads the coordinator only.
@@ -45,8 +46,34 @@ struct ProblemsPane: View {
                     let item = runtime.coordinator.problems.first(where: { $0.id == id }),
                     let path = item.path
                 else { return }
-                let pageID = (path as NSString).deletingPathExtension
-                store.select(noun: WorkspaceNoun(kind: "page", id: pageID, title: pageID))
+
+                let localSource: LocalSource?
+                if case .local(let src) = store.selectedSource {
+                    localSource = src
+                } else {
+                    localSource = nil
+                }
+
+                var graph: Graph?
+                if let localSource, let root = try? localSource.resolve().url {
+                    let graphURL = root
+                        .appendingPathComponent(".boris", isDirectory: true)
+                        .appendingPathComponent("graph.json")
+                    if let data = try? Data(contentsOf: graphURL) {
+                        graph = try? JSONDecoder().decode(Graph.self, from: data)
+                    }
+                }
+
+                guard let resolution = ProblemResolver.resolve(path: path, source: localSource, graph: graph) else {
+                    return
+                }
+
+                switch resolution {
+                case .page(let pageID, let pageTitle):
+                    store.select(noun: WorkspaceNoun(kind: "page", id: pageID, title: pageTitle))
+                case .revealFile(let url):
+                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                }
             }
         )
     }

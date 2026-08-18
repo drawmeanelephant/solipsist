@@ -95,6 +95,7 @@ targets:
       - path: Sources/Inspector/InspectorProfile.swift
       - path: Sources/Inspector/ThemeCatalog.swift
       - path: Sources/Play/Local/LocalPlayGraph.swift
+      - path: Sources/Play/Local/ProblemResolver.swift
       - path: Sources/App/CoordinatorProblems.swift
       - path: Sources/App/CoordinatorPolicy.swift
       - path: Sources/App/SaveValidateGate.swift

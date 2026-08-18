@@ -30,8 +30,8 @@ struct SourceSidebar: View {
             if store.sources.isEmpty {
                 EmptyStateView(
                     title: "No Sources",
-                    systemImage: "tray",
-                    message: "Open a local folder to add a source.",
+                    systemImage: "folder.badge.plus",
+                    message: "Open a folder with boris.json (e.g. Stunts/happy) to get started.",
                     actionTitle: "Open…",
                     action: { store.presentOpenPanel() }
                 )
