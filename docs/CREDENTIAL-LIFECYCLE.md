@@ -1,6 +1,8 @@
 # Publish Credential Lifecycle & Security Design Specification
 
-**Status:** Approved Design Spec (Issue #60 / Roadmap M8 Publish)  
+**Status:** Approved Design Spec (Issue #60 / Roadmap M8 Publish).
+Wired into `BorisRunner` / Coordinator (2026-08-17): publish verbs
+prompt, pipe the secret on stdin, wipe the buffer, optional Keychain.  
 **Author:** draw me an elephant / uncle-gravity  
 **Target:** macOS App Sandbox / Boris Publishing Targets  
 

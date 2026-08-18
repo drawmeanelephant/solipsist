@@ -96,6 +96,7 @@ targets:
       - path: Sources/Play/Local/LocalPlayGraph.swift
       - path: Sources/App/CoordinatorProblems.swift
       - path: Sources/Engine/ChildProcessControl.swift
+      - path: Sources/Engine/BorisRunner.swift
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
     settings:

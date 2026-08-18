@@ -10,6 +10,7 @@ final class AppRuntime {
     let enginePath: String?
     let engineError: String?
     let coordinator = Coordinator()
+    let credentials = PublishCredentialManager()
 
     init() {
         if let url = BorisBinary.locate() {

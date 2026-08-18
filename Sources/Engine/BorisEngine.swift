@@ -660,6 +660,28 @@ public actor BorisEngine {
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
+    /// Runs `boris standard-site login --app-password` with the password on stdin.
+    /// Identity is `--did` or `--handle` (never a secret).
+    public func standardSiteLogin(
+        did: String? = nil,
+        handle: String? = nil,
+        password: SecureBuffer,
+        workingDirectory: URL? = nil
+    ) throws -> BorisPublishResult {
+        var args = ["standard-site", "login", "--app-password"]
+        if let did, !did.isEmpty {
+            args += ["--did", did]
+        } else if let handle, !handle.isEmpty {
+            args += ["--handle", handle]
+        }
+        let out = try run(
+            arguments: args,
+            workingDirectory: workingDirectory,
+            stdin: password
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
     /// Runs `boris standard-site publish --profile PATH`.
     /// Preserves exit classes 4–9 (denial, timeout, compatibility, partial-publication, verification, session).
     public func standardSitePublish(profileURL: URL) throws -> BorisPublishResult {
@@ -675,6 +697,27 @@ public actor BorisEngine {
         let out = try run(
             arguments: ["nostr", "plan", "--profile", profileURL.lastPathComponent],
             workingDirectory: profileURL.deletingLastPathComponent()
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    /// Runs `boris nostr sign --plan PATH --key-stdin --out PATH`.
+    /// The key is written to stdin and wiped; it is never in argv or env.
+    public func nostrSign(
+        planURL: URL,
+        outURL: URL,
+        secret: SecureBuffer,
+        workingDirectory: URL? = nil
+    ) throws -> BorisPublishResult {
+        let out = try run(
+            arguments: [
+                "nostr", "sign",
+                "--plan", planURL.path,
+                "--key-stdin",
+                "--out", outURL.path,
+            ],
+            workingDirectory: workingDirectory ?? planURL.deletingLastPathComponent(),
+            stdin: secret
         )
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
@@ -708,13 +751,15 @@ public actor BorisEngine {
 
     private func run(
         arguments: [String],
-        workingDirectory: URL? = nil
+        workingDirectory: URL? = nil,
+        stdin: SecureBuffer? = nil
     ) throws -> RunOutput {
         try BorisRunner.run(
             binary: binaryURL,
             arguments: arguments,
             workingDirectory: workingDirectory,
-            handle: runHandle
+            handle: runHandle,
+            stdin: stdin
         )
     }
 

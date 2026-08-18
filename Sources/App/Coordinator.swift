@@ -16,10 +16,18 @@ enum CoordinatorVerb: String, Sendable {
     /// Jobs that write trees watch also owns (`dist/`, `.boris`, proof).
     var writesTree: Bool {
         switch self {
-        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite:
+        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite, .publishNostr:
             true
-        case .plan, .validate, .check, .impact, .publishNostr:
+        case .plan, .validate, .check, .impact:
             false
+        }
+    }
+
+    var secretTarget: String? {
+        switch self {
+        case .publishNostr: PublishTargets.nostr
+        case .publishStandardSite: PublishTargets.standardSite
+        default: nil
         }
     }
 }
@@ -115,6 +123,20 @@ final class Coordinator {
             return
         }
 
+        let secret: SecureBuffer?
+        if let target = verb.secretTarget {
+            guard let taken = Self.takeOrPromptSecret(
+                for: verb,
+                target: target,
+                credentials: runtime.credentials
+            ) else {
+                return
+            }
+            secret = taken
+        } else {
+            secret = nil
+        }
+
         isRunning = true
         state = verb.writesTree ? .building : .validating
         self.verb = verb
@@ -127,7 +149,13 @@ final class Coordinator {
 
         let noun = store.selection.noun
         task = Task {
-            let result = await Self.perform(verb, source: source, noun: noun, engine: engine)
+            let result = await Self.perform(
+                verb,
+                source: source,
+                noun: noun,
+                engine: engine,
+                secret: secret
+            )
             guard !Task.isCancelled else {
                 self.finish(verb: verb, exit: result.exit, summary: "cancelled", problems: result.problems)
                 return
@@ -196,11 +224,33 @@ final class Coordinator {
         var problems: [ProblemItem]
     }
 
+    private static func takeOrPromptSecret(
+        for verb: CoordinatorVerb,
+        target: String,
+        credentials: PublishCredentialManager
+    ) -> SecureBuffer? {
+        if let existing = credentials.takeSecretForUse(for: target) {
+            return existing
+        }
+        guard let answer = PublishSecretPrompt.present(for: verb) else { return nil }
+        do {
+            try credentials.setCredential(
+                answer.secret,
+                for: target,
+                rememberInKeychain: answer.rememberInKeychain
+            )
+        } catch {
+            return nil
+        }
+        return credentials.takeSecretForUse(for: target)
+    }
+
     private static func perform(
         _ verb: CoordinatorVerb,
         source: LocalSource,
         noun: WorkspaceNoun?,
-        engine: BorisEngine
+        engine: BorisEngine,
+        secret: SecureBuffer?
     ) async -> JobResult {
         do {
             switch verb {
@@ -382,42 +432,10 @@ final class Coordinator {
                 )
 
             case .publishStandardSite:
-                guard let profile = source.profileURL() else {
-                    return JobResult(
-                        exit: 3,
-                        summary: "publish: no boris.json",
-                        problems: CoordinatorProblems.fromFailure(code: "standard-site", message: "no boris.json")
-                    )
-                }
-                let result = try await engine.standardSitePublish(profileURL: profile)
-                return JobResult(
-                    exit: result.exitCode,
-                    summary: "Standard.site exit \(result.exitCode)",
-                    problems: CoordinatorProblems.fromCommand(
-                        code: "standard-site",
-                        exitCode: result.exitCode,
-                        stderr: result.stderr
-                    )
-                )
+                return try await publishStandardSite(source: source, engine: engine, secret: secret)
 
             case .publishNostr:
-                guard let profile = source.profileURL() else {
-                    return JobResult(
-                        exit: 3,
-                        summary: "publish: no boris.json",
-                        problems: CoordinatorProblems.fromFailure(code: "nostr", message: "no boris.json")
-                    )
-                }
-                let result = try await engine.nostrPlan(profileURL: profile)
-                return JobResult(
-                    exit: result.exitCode,
-                    summary: "Nostr plan exit \(result.exitCode)",
-                    problems: CoordinatorProblems.fromCommand(
-                        code: "nostr",
-                        exitCode: result.exitCode,
-                        stderr: result.stderr
-                    )
-                )
+                return try await publishNostr(source: source, engine: engine, secret: secret)
             }
         } catch {
             let message = String(describing: error)
@@ -540,6 +558,159 @@ final class Coordinator {
                 )
             )
         }
+    }
+
+    private static func publishStandardSite(
+        source: LocalSource,
+        engine: BorisEngine,
+        secret: SecureBuffer?
+    ) async throws -> JobResult {
+        defer { secret?.wipe() }
+        guard let profileURL = source.profileURL() else {
+            return JobResult(
+                exit: 3,
+                summary: "publish: no boris.json",
+                problems: CoordinatorProblems.fromFailure(code: "standard-site", message: "no boris.json")
+            )
+        }
+        guard let secret else {
+            return JobResult(
+                exit: 3,
+                summary: "publish: no app password",
+                problems: CoordinatorProblems.fromFailure(
+                    code: "standard-site",
+                    message: "no app password (cancelled or empty)"
+                )
+            )
+        }
+
+        let profile = try loadProfile(from: source)
+        let identity = standardSiteIdentity(from: profile?.publication)
+        guard identity.did != nil || identity.handle != nil else {
+            return JobResult(
+                exit: 2,
+                summary: "publish: profile needs publication.did",
+                problems: CoordinatorProblems.fromFailure(
+                    code: "standard-site",
+                    message: "publication.did (or a handle) is required for login --app-password"
+                )
+            )
+        }
+
+        let login = try await engine.standardSiteLogin(
+            did: identity.did,
+            handle: identity.handle,
+            password: secret,
+            workingDirectory: profileURL.deletingLastPathComponent()
+        )
+        if login.exitCode != 0 {
+            return JobResult(
+                exit: login.exitCode,
+                summary: "Standard.site login exit \(login.exitCode)",
+                problems: CoordinatorProblems.fromCommand(
+                    code: "standard-site",
+                    exitCode: login.exitCode,
+                    stderr: login.stderr
+                )
+            )
+        }
+
+        let published = try await engine.standardSitePublish(profileURL: profileURL)
+        return JobResult(
+            exit: published.exitCode,
+            summary: "Standard.site publish exit \(published.exitCode)",
+            problems: CoordinatorProblems.fromCommand(
+                code: "standard-site",
+                exitCode: published.exitCode,
+                stderr: published.stderr
+            )
+        )
+    }
+
+    private static func publishNostr(
+        source: LocalSource,
+        engine: BorisEngine,
+        secret: SecureBuffer?
+    ) async throws -> JobResult {
+        defer { secret?.wipe() }
+        guard let profileURL = source.profileURL() else {
+            return JobResult(
+                exit: 3,
+                summary: "publish: no boris.json",
+                problems: CoordinatorProblems.fromFailure(code: "nostr", message: "no boris.json")
+            )
+        }
+        guard let secret else {
+            return JobResult(
+                exit: 3,
+                summary: "publish: no signing key",
+                problems: CoordinatorProblems.fromFailure(
+                    code: "nostr",
+                    message: "no signing key (cancelled or empty)"
+                )
+            )
+        }
+
+        let work = try source.artifactDirectory(named: "_boris")
+        try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
+        let planURL = work.appendingPathComponent("nostr-plan.json")
+        let bundleURL = work.appendingPathComponent("nostr-bundle.json")
+        let reportURL = work.appendingPathComponent("nostr-publish.json")
+
+        let planned = try await engine.nostrPlan(profileURL: profileURL)
+        if planned.exitCode != 0 {
+            return JobResult(
+                exit: planned.exitCode,
+                summary: "Nostr plan exit \(planned.exitCode)",
+                problems: CoordinatorProblems.fromCommand(
+                    code: "nostr",
+                    exitCode: planned.exitCode,
+                    stderr: planned.stderr
+                )
+            )
+        }
+        try Data(planned.stdout.utf8).write(to: planURL, options: .atomic)
+
+        let signed = try await engine.nostrSign(
+            planURL: planURL,
+            outURL: bundleURL,
+            secret: secret,
+            workingDirectory: profileURL.deletingLastPathComponent()
+        )
+        if signed.exitCode != 0 {
+            return JobResult(
+                exit: signed.exitCode,
+                summary: "Nostr sign exit \(signed.exitCode)",
+                problems: CoordinatorProblems.fromCommand(
+                    code: "nostr",
+                    exitCode: signed.exitCode,
+                    stderr: signed.stderr
+                )
+            )
+        }
+
+        let published = try await engine.nostrPublish(bundleURL: bundleURL, reportURL: reportURL)
+        return JobResult(
+            exit: published.exitCode,
+            summary: "Nostr publish exit \(published.exitCode)",
+            problems: CoordinatorProblems.fromCommand(
+                code: "nostr",
+                exitCode: published.exitCode,
+                stderr: published.stderr
+            )
+        )
+    }
+
+    private static func standardSiteIdentity(
+        from publication: PublicationDeclaration?
+    ) -> (did: String?, handle: String?) {
+        guard let raw = publication?.did?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty
+        else { return (nil, nil) }
+        if raw.hasPrefix("did:") {
+            return (raw, nil)
+        }
+        return (nil, raw)
     }
 
     private static func loadProfile(from source: LocalSource) throws -> PublicationProfile? {
