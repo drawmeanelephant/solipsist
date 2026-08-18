@@ -95,7 +95,7 @@ public enum OliverRenderError: Error, Sendable, CustomStringConvertible {
 }
 
 /// The Engine seam for markup rendering. Lives in the Engine lane because
-/// only the Engine starts subprocesses (`agents.md` boundary 5) — it reuses
+/// only the Engine starts subprocesses (`AGENTS.md` boundary 5) — it reuses
 /// `BorisRunner` (same capture + interrupt machinery), never a new Process
 /// owner. Renders one buffer per call; cancellation terminates the child.
 public struct OliverRenderer: Sendable {

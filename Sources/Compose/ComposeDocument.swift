@@ -5,7 +5,7 @@ import Observation
 /// targets, and the save seam. Standalone by design — the window that hosts
 /// it is a later card; this type only knows about a URL it may write to.
 ///
-/// Boundary 4 of `agents.md` applies: the buffer is never written to disk
+/// Boundary 4 of `AGENTS.md` applies: the buffer is never written to disk
 /// except through an explicit `save()`. Nothing in the view layer calls
 /// `save()` implicitly.
 @MainActor

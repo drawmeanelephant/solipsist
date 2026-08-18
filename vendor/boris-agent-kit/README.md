@@ -50,6 +50,6 @@ kit** (build-config differences — the kit was a specific release build),
 but behavior is what's pinned and verified. When you have a rebuilt
 `bin/boris`, point the app at it via `SOLIPSIST_BORIS_BIN` or the
 `../boris/zig-out/bin/boris` fallback — the engine location order in
-`agents.md` covers both.
+`AGENTS.md` covers both.
 
 Full review and probe results: [`docs/AGENT-KIT-REVIEW.md`](../docs/AGENT-KIT-REVIEW.md).

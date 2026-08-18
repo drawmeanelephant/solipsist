@@ -69,7 +69,7 @@ Invariants (hold in every state):
    No orphaned `boris` processes, on any exit path (job end, Stop,
    timeout, hang, app quit).
 5. Cancel is detected as `terminationReason == .uncaughtSignal`
-   (agents.md boundary 5). A deliberate SIGTERM that exits 0 (watch,
+   (AGENTS.md boundary 5). A deliberate SIGTERM that exits 0 (watch,
    A12) is *not* a failure.
 
 ## 3. Watch vs build arbitration
