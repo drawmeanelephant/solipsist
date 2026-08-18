@@ -13,6 +13,10 @@ final class Coordinator {
     private(set) var summary = "idle"
     private(set) var exitCode: Int32?
     private(set) var problems: [ProblemItem] = []
+    private(set) var activityHistory: [CoordinatorActivity] = []
+    private(set) var latestPlan: PublicationPlan?
+    private(set) var latestCheckReport: AnalysisReport?
+    private(set) var checkFindings: [AnalysisFinding] = []
     private var jobStartTime: ContinuousClock.Instant?
     private var task: Task<Void, Never>?
     private var reapTask: Task<Void, Never>?
@@ -34,6 +38,10 @@ final class Coordinator {
     private enum JobOrigin {
         case manual
         case save
+    }
+
+    func clearActivity() {
+        activityHistory.removeAll()
     }
 
     var canRunVerb: Bool { state == .idle || state == .watching }
@@ -200,6 +208,7 @@ final class Coordinator {
             self.handleTimeout(runtime: runtime)
         }
 
+        let startTime = ContinuousClock.now
         let noun = store.selection.noun
         task = Task {
             let result = await Self.perform(
@@ -209,15 +218,29 @@ final class Coordinator {
                 engine: engine,
                 secret: secret
             )
+            let elapsed = startTime.duration(to: .now)
+            let (secs, attos) = elapsed.components
+            let elapsedNs = Int(secs * 1_000_000_000) + Int(attos / 1_000_000_000)
+            let durationNs = result.timings?.totalNs ?? result.totalDurationNs ?? elapsedNs
+
             guard !Task.isCancelled else {
-                self.finish(verb: verb, exit: result.exit, summary: "cancelled", problems: result.problems)
+                self.finish(
+                    verb: verb,
+                    exit: result.exit,
+                    summary: "cancelled",
+                    problems: result.problems,
+                    result: result,
+                    durationNs: durationNs
+                )
                 return
             }
             self.finish(
                 verb: verb,
                 exit: result.exit,
                 summary: result.summary,
-                problems: result.problems
+                problems: result.problems,
+                result: result,
+                durationNs: durationNs
             )
         }
     }
@@ -253,7 +276,9 @@ final class Coordinator {
         verb: CoordinatorVerb,
         exit: Int32?,
         summary: String,
-        problems: [ProblemItem]
+        problems: [ProblemItem],
+        result: JobResult? = nil,
+        durationNs: Int? = nil
     ) {
         if verb.writesTree {
             endTreeWrite()
@@ -286,6 +311,28 @@ final class Coordinator {
             self.summary = summary
             self.problems = problems
         }
+        if let plan = result?.plan {
+            self.latestPlan = plan
+        }
+        if let checkReport = result?.checkReport {
+            self.latestCheckReport = checkReport
+            self.checkFindings = checkReport.findings
+        }
+
+        let activity = CoordinatorActivity(
+            verb: verb,
+            exitCode: exit,
+            summary: self.summary,
+            timestamp: Date(),
+            durationNs: durationNs,
+            timings: result?.timings,
+            problemsCount: self.problems.count
+        )
+        activityHistory.insert(activity, at: 0)
+        if activityHistory.count > 50 {
+            activityHistory.removeLast(activityHistory.count - 50)
+        }
+
         task = nil
         state = (activeWatch?.isRunning == true) ? .watching : .idle
 
@@ -320,6 +367,10 @@ final class Coordinator {
         var exit: Int32?
         var summary: String
         var problems: [ProblemItem]
+        var plan: PublicationPlan? = nil
+        var checkReport: AnalysisReport? = nil
+        var timings: TimingsReport? = nil
+        var totalDurationNs: Int? = nil
     }
 
     private static func takeOrPromptSecret(
@@ -375,7 +426,7 @@ final class Coordinator {
                 } else {
                     problems = []
                 }
-                return JobResult(exit: result.exitCode, summary: summary, problems: problems)
+                return JobResult(exit: result.exitCode, summary: summary, problems: problems, plan: result.plan)
 
             case .validate:
                 let reportURL = FileManager.default.temporaryDirectory
@@ -422,7 +473,9 @@ final class Coordinator {
                 return JobResult(
                     exit: result.exitCode,
                     summary: "IR exit \(result.exitCode) · \(pages) · \(result.report.errorCount ?? items.count) error(s)",
-                    problems: items
+                    problems: items,
+                    timings: result.timings,
+                    totalDurationNs: result.timings?.totalNs
                 )
 
             case .buildHTML:
@@ -488,7 +541,7 @@ final class Coordinator {
                 let exit = result.isSuccess ? 0 : (result.results.last?.exitCode ?? 1)
                 let dur = result.totalDurationNs.map { "(\($0 / 1_000_000)ms)" } ?? ""
                 let summary = "Build all \(result.isSuccess ? "succeeded" : "failed") · \(result.results.count) entry(s) \(dur)"
-                return JobResult(exit: exit, summary: summary, problems: items)
+                return JobResult(exit: exit, summary: summary, problems: items, totalDurationNs: result.totalDurationNs)
 
             case .check:
                 let result = try await engine.check(
@@ -507,7 +560,8 @@ final class Coordinator {
                 return JobResult(
                     exit: result.exitCode,
                     summary: "check exit \(result.exitCode) · \(s.pages) pages · \(s.unreferencedPages) unreferenced",
-                    problems: items
+                    problems: items,
+                    checkReport: result.report
                 )
 
             case .impact:
@@ -746,7 +800,9 @@ final class Coordinator {
             return JobResult(
                 exit: result.exitCode,
                 summary: "\(target.name) exit \(result.exitCode) · \(items.count) problem(s)",
-                problems: items
+                problems: items,
+                timings: result.timings,
+                totalDurationNs: result.timings?.totalNs
             )
 
         case "edition":
@@ -780,7 +836,9 @@ final class Coordinator {
             return JobResult(
                 exit: result.exitCode,
                 summary: "\(spec.kind) exit \(result.exitCode) · \(items.count) problem(s)",
-                problems: items
+                problems: items,
+                timings: result.timings,
+                totalDurationNs: result.timings?.totalNs
             )
 
         default:

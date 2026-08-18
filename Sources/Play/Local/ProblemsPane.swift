@@ -3,6 +3,8 @@ import SwiftUI
 
 /// Activity / problems under the graph list. Reads the coordinator only.
 struct ProblemsPane: View {
+    var pages: [PlayPage] = []
+
     @Environment(AppRuntime.self) private var runtime
     @Environment(WorkspaceStore.self) private var store
 
@@ -46,7 +48,6 @@ struct ProblemsPane: View {
                     let item = runtime.coordinator.problems.first(where: { $0.id == id }),
                     let path = item.path
                 else { return }
-
                 let localSource: LocalSource?
                 if case .local(let src) = store.selectedSource {
                     localSource = src

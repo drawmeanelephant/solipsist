@@ -95,6 +95,7 @@ targets:
       - path: Sources/Engine
       - path: Sources/Inspector
       - path: Sources/Play/Local/LocalPlayGraph.swift
+      - path: Sources/App/CoordinatorActivity.swift
       - path: Sources/Play/Local/ProblemResolver.swift
       - path: Sources/App/CoordinatorProblems.swift
       - path: Sources/App/CoordinatorPolicy.swift
