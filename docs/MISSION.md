@@ -69,17 +69,16 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
 
 ## Where we are
 
-- **M0–M8 gates exist.** Spike, chassis, list, verbs, preview/editor
-  shells, output fan-out, stdin publish. That is not CLI parity and not
-  a usable workstation. Remaining board:
-  [#87](https://github.com/drawmeanelephant/solipsist/issues/87).
+- **M0–M8 gates plus depth.** Spike, chassis, list, verbs,
+  preview/editor, outputs, publish family, first-run, filter, profile
+  1:1, `recipe-scale`. Remaining card:
+  [#78](https://github.com/drawmeanelephant/solipsist/issues/78).
   Sequence: [ROADMAP.md](ROADMAP.md) §8.
 - **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `b82e9e2`.
   A3/A4/A13/A1/A14/A7 have merged after that pin — bump when we vendor
   a newer kit (#78).
-- **Next:** usability (#88), then play / inspector / publish depth
-  (#89–#91), then a clean-Mac ship (#78). Roadmap **P** is withdrawn —
-  the public site ships via Cloudflare Pages (`site/`).
+- **Next:** clean-Mac ship (#78). Roadmap **P** is withdrawn — the
+  public site ships via Cloudflare Pages (`site/`).
 
 ## What success looks like
 

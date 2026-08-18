@@ -8,10 +8,10 @@ Radio UserLand’s job in Mail’s body: sources on the left, play in the
 middle, inspector drawer on the right. Preview and the Svelte editor
 are companion windows we host. We do not invent a second compiler.
 
-**Status:** M2 chassis + play list. File → Open… a folder under
-[`Stunts/`](Stunts/) (start with `happy/`). `make test` decodes
-checked-in fixtures (no boris binary). Delegation queue:
-[`docs/cards/queue/`](docs/cards/queue/README.md).
+**Status:** M0–M8 gates plus depth. Next is M9 ship
+([#78](https://github.com/drawmeanelephant/solipsist/issues/78)).
+File → Open… a folder under [`Stunts/`](Stunts/) (start with
+`happy/`). `make test` decodes checked-in fixtures (no boris binary).
 
 ## Layout
 

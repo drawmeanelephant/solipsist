@@ -11,16 +11,16 @@ Solipsist is a **harness**, not a better compiler and not a Markdown IDE. Boris 
 
 ## Where we are
 
-M0–M8 **gates** exist: open a folder, see the graph, run the coordinator
-verbs, preview, host the editor, fan out targets, publish with secrets
-on stdin. That is not CLI parity and not a usable workstation yet.
+M0–M8 **gates** and the depth batch exist: first-run, filter, plan as
+a document, profile 1:1, `recipe-scale`, the rest of `standard-site`,
+readable proof. Remaining work is a notarized DMG on a clean Mac.
 
 | Track | Status |
 |-------|--------|
 | M0–M8 gates | landed |
 | P Project subdomain | withdrawn — this site is Cloudflare Pages |
-| Usability | next — first-run, status, click a problem and land on the page |
-| Play / inspector / publish depth | open — filter, plan as a document, profile 1:1, rest of `standard-site` |
+| Usability | landed — first-run, status, problem → page |
+| Play / inspector / publish depth | landed |
 | M9 Ship | open — notarized DMG on a clean Mac |
 
 ## v1 must

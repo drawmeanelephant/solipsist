@@ -18,12 +18,8 @@ with a dispatch comment — [#72 M3](https://github.com/drawmeanelephant/solipsi
 [#77 M8](https://github.com/drawmeanelephant/solipsist/issues/77) ·
 [#78 M9](https://github.com/drawmeanelephant/solipsist/issues/78).
 
-M3–M8 **gates** are closed (#72–#77). That is not depth. Active board:
-[#87 remaining](https://github.com/drawmeanelephant/solipsist/issues/87)
-· [#88 ux](https://github.com/drawmeanelephant/solipsist/issues/88) ·
-[#89 play](https://github.com/drawmeanelephant/solipsist/issues/89) ·
-[#90 inspector](https://github.com/drawmeanelephant/solipsist/issues/90) ·
-[#91 publish](https://github.com/drawmeanelephant/solipsist/issues/91) ·
+M3–M8 **gates** are closed (#72–#77). The #87 depth batch is closed
+(#88/#94 · #89/#96 · #90/#95 · #91/#93). Active card:
 [#78 ship](https://github.com/drawmeanelephant/solipsist/issues/78).
 
 **Legacy board (landed or withdrawn — do not pick):**
@@ -60,8 +56,8 @@ preview) in the entitlements matrix.
 
 ## Do not start yet
 
-Preview companion, Editor companion, GitHub-as-source, publication
-flows, Wasm in the app. A page must be selectable first (M3-play).
+GitHub as a source. Wasm in the app. The fart app. Preview, editor,
+and publish already have gates — do not rebuild them.
 
 ## Shared noun kinds (play writes, inspector reads)
 

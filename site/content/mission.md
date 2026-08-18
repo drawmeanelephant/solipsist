@@ -33,4 +33,4 @@ Boris ships its own browser-based editor. Solipsist is the complementary **nativ
 
 ## Where we are
 
-The engine spike decodes the IR contracts and the Mail-shaped chassis is in (sources / play / drawer / companion slots). Next up: play & inspect (M3) and the coordinator verbs (M4) — see [[roadmap]].
+M0–M8 gates and the depth batch (first-run, filter, profile 1:1, publish family) are in. Next is a clean-Mac ship — see [[roadmap]].

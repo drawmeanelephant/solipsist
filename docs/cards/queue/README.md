@@ -67,8 +67,7 @@ lives in the issue tracker (#58–#61; briefs in
 `docs/cards/B3-*.md`) — those own grind-lane paths, so they are not
 queue cards.
 
-The active board is **remaining work after the gates**
-([#87](https://github.com/drawmeanelephant/solipsist/issues/87)).
-#88–#91 own grind-lane paths (Chrome, Play, Inspector, Engine,
-PublishPane). They are not queue cards. The queue stays empty unless
-a child surfaces a docs-only or `Tests/`-only slice.
+The depth batch (#88–#91) landed. The remaining pickable card is
+[#78](https://github.com/drawmeanelephant/solipsist/issues/78) (M9
+ship). It owns the build lane, not this queue. The queue stays empty
+unless someone cuts a docs-only or `Tests/`-only slice.
