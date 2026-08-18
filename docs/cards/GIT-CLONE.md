@@ -1,6 +1,7 @@
 # Card — Add Git Repository… (clone into a Local source)
 
-**Issue:** [#131](https://github.com/drawmeanelephant/solipsist/issues/131)
+**Milestone:** M12 · **Issue:**
+[#131](https://github.com/drawmeanelephant/solipsist/issues/131)
 **Lane:** Settings / workspace. One worktree, one PR against `main`;
 branch suggestion `feat/git-clone-source`.
 

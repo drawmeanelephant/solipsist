@@ -42,21 +42,24 @@ A5 as a discussion (`docs/issues/README.md`).
 
 ## 2. North-star success
 
-Open a folder of Boris content → it is added as a **source** in
-Settings (File → Open… writes the same store) → it appears as an
-account header with mailboxes underneath → the reading place shows
-the selected mailbox’s messages and a reading pane for the selected
-page → the drawer shows the publication profile and that page’s
-fields from `completion.json` → Plan / Validate / Build are menu
-verbs that surface every diagnostic and exit code → Preview reloads
-the full site through `watch --serve` (the reading pane reuses that
-watch for the selected page) → Edit opens `boris-editor` against the
-selected page → Build All fans the profile out to HTML targets and
-editions (IR, RAG, Context, llms, RSS, sitemap, search) → Publish
-runs GitHub Pages evidence (Boris-powered, we do not need full
-GitHub access to *use* the target), Standard.site, or Nostr with the
-Proof Pack attached. This project’s own public face ships via
-Cloudflare Pages (`site/`).
+Open a folder of Boris content — or **File / Settings → Add Git
+Repository…** a clone URL into a user-chosen folder — → it is added
+as a **source** in Settings (File → Open… writes the same store) →
+it appears as an account header with mailboxes underneath (Pages
+folders come from `graph.parent`, not the disk) → the reading place
+shows the selected mailbox’s messages and a reading pane for the
+selected page → the drawer shows the publication profile and that
+page’s fields from `completion.json` → Plan / Validate / Build are
+menu verbs that surface every diagnostic and exit code → Preview
+reloads the full site through `watch --serve` (the reading pane
+reuses that watch; port and ready come from A1 `--watch-json`, not
+a regex) → Edit opens `boris-editor` against the selected page →
+Build All fans the profile out to HTML targets and editions (IR,
+RAG, Context, llms, RSS, sitemap, search) → Publish runs GitHub
+Pages evidence (Boris-powered, we do not need full GitHub access to
+*use* the target), Standard.site, or Nostr with the Proof Pack
+attached. This project’s own public face ships via Cloudflare Pages
+(`site/`).
 
 No scraped prose. No homegrown graph. No third settings store.
 
@@ -80,8 +83,11 @@ No scraped prose. No homegrown graph. No third settings store.
 | Outputs fan-out | Every profile target and edition, isolated, reported |
 | Publication console | GH Pages evidence (Boris-owned workflow + audit), Standard.site, Nostr — secrets on stdin |
 | Proof Pack visible | `boris-package` evidence, read-only |
-| Project subdomain | Early, parallel: `hosts/cloudflare-worker` + `compileBundle` Wasm + R2, Workers Free |
-| Sandboxed, bundled, pinned | D6, D7. Unknown `schemaVersion` degrades (D8) |
+| Clone a remote publication into a Local source | Settings is the account book. A URL is how people who do not live in this repo get a folder. Same store as Open…. |
+| Pages folders from the graph | Trunks as mailbox folders. From `graph.parent` only — never a disk walk. Dogfood gate is 7 trunks. |
+| Watch events from the A1 contract | Pin `6b930b7` already contains `--watch-json` / `serve-started`. Preview still sniffs a port line. |
+| Sandboxed, bundled, pinned | D6, D7. Unknown `schemaVersion` degrades (D8). Pipeline ✅ (#78). |
+| Notarized DMG a stranger can download | Operator. First `v*` release + clean-Mac proof (#110 / #111). |
 
 ### v1 must not
 
@@ -113,6 +119,9 @@ No scraped prose. No homegrown graph. No third settings store.
 - `validate --watch` once A5 exists (replaces save-triggered one-shots)
 - Cooklang recipe-scale as a first-class mailbox (v1: available from
   the page inspector when the corpus has recipes)
+- Fetch / pull / commit / push on a checkout (clone is M12; remotes
+  stay later)
+- Width-adaptive list-left-of-letter split (M10 default is stacked)
 - The fart app (CI job reserved, `make fart` refuses; do not build it)
 
 ---
@@ -134,6 +143,9 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M9** Ship | ✅ release pipeline, clean-Mac proof, testdata, pin bump (#78) |
 | **M10** Mail body | ✅ Settings, mailboxes, reading pane, hosted Edit, native Compose ([#98](https://github.com/drawmeanelephant/solipsist/issues/98); children #99–#102, #106) |
 | **M11** Prove the Mail body | ✅ Help audit + test pass ([#123](https://github.com/drawmeanelephant/solipsist/issues/123); #124/#125 → PRs #126/#127/#128) |
+| **M12** Clone | 📋 Add Git Repository… → Local source ([#131](https://github.com/drawmeanelephant/solipsist/issues/131)) |
+| **M13** Graph folders | 📋 trunk mailboxes from `graph.parent` ([#142](https://github.com/drawmeanelephant/solipsist/issues/142); #144–#146) |
+| **M14** Watch contract | 📋 A1 `--watch-json` + letter SSE ([#143](https://github.com/drawmeanelephant/solipsist/issues/143); #147/#148) |
 
 **Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
 batch then landed: first-run and problem→page (#88/#94), graph filter /
@@ -143,8 +155,10 @@ proof (#91/#93). Then **M9 ship** (#78), the **M10 Mail-body cut**
 (#98 + #99–#102, #106), and **M11 prove** (#123) all landed and
 closed. Remaining ship is Apple-account only (#110 notarized `v*`
 DMG, #111 clean-Mac proof) — operator, blocked on a paid team ID.
-Next product slice: git clone as a Local source (#131),
-`docs/cards/GIT-CLONE.md`. Do not grow `MainWindow`.
+Next product slice: **M12** git clone as a Local source (#131).
+**M13** graph folders and **M14** watch contract are filed and
+pickable in their own lanes after (or beside) M12. Do not grow
+`MainWindow`.
 
 ---
 
@@ -427,6 +441,95 @@ completed.
 tests 0 failures · `make lint` 0 violations · CI `app` / `fixtures`
 / `lint` / `spike` all pass.
 
+### M12 — Clone 📋
+
+**Goal.** A remote publication becomes a Local source the way a
+folder does. Settings → **Add Git Repository…** clones a URL into
+a user-chosen directory, then the existing `addLocal` bookmark.
+
+This is **not** GitHub OAuth and **not** a `SourceKind.github`
+payload. A clone is a folder. We already add folders.
+
+| Surface | Where |
+|---------|--------|
+| `/usr/bin/git clone` | Settings + File menu. One-shot `Process`, not `BorisEngine` |
+| Branch badge | Settings row (and sidebar detail if it already has a second line) when `workspaceRoot/.git` exists |
+
+**Gate.** Settings → Add Git Repository… a public `https://` URL
+into a new folder → it appears as a Local source and the sidebar
+can open it. An existing checkout shows its branch. Failed clone
+shows git’s exit / stderr. No live clone in CI.
+
+**Lane.** Settings / `Sources/Workspace/Git/`. Card:
+[`cards/GIT-CLONE.md`](cards/GIT-CLONE.md). Issue
+[#131](https://github.com/drawmeanelephant/solipsist/issues/131).
+Parallel with #110. Do not share files with M13 or M14.
+
+**Not this milestone.** Commit / push / pull / fetch UI. GitHub
+app password or OAuth. Fake **Add GitHub…**. Expanding #110 / #111.
+
+### M13 — Graph folders 📋
+
+**Goal.** Pages folders come from the graph. Dogfood shows **7
+trunk folders** under Pages. Selecting a trunk filters the letter
+list. Unknown `mailbox` is never rewritten to `pages`.
+
+M10 stored `mailbox` as an open string and displayed only five
+tokens. Trunks were named then and deferred. Do not invent a
+second selection field. `mailbox` becomes the trunk id.
+
+| Surface | Where |
+|---------|--------|
+| `graph.parent` / trunk nodes | Sidebar children under Pages |
+| Unknown `mailbox` | Display verbatim; center switch does **not** treat it as Pages |
+| Trunk mailbox | Reading list filters to that parent. Pages still means all |
+
+**Gate.** Open dogfood → Pages shows 7 trunk folders from
+`graph.json`. Selecting a trunk shows only that trunk’s pages.
+Selecting Pages shows all. A stored unknown mailbox survives
+relaunch and is not coerced to `pages`. `SKIP_EMBED_BORIS=1 make
+build` + `make test` green.
+
+**Lanes.** Workspace (unknown-mailbox rule) → Mailboxes (sidebar)
+→ Reading (filter). Tracker
+[#142](https://github.com/drawmeanelephant/solipsist/issues/142);
+children #144 / #145 / #146. Cards in [`cards/`](cards/README.md).
+
+**Not this milestone.** Walking `content/` as Finder. Status / tag
+folders. Persist outline expansion. Engine. GitHub source.
+
+### M14 — Watch contract 📋
+
+**Goal.** Preview and the letter take port / ready from A1
+`--watch-json` / `serve-started`, not a port regex. The reading
+pane reloads on the existing SSE `event: reload` without a second
+`Process`.
+
+The pin already contains A1 (boris#648). Watch still parses:
+
+```
+preview: http://127.0.0.1:PORT/  (auto-reload helper: http://127.0.0.1:PORT/__boris/)
+```
+
+| Boris surface | Where |
+|---------------|--------|
+| `--watch-json` + `serve-started` | Engine `WatchServer`; Preview binds the helper URL |
+| SSE `event: reload` | Reading pane observes the existing session |
+
+**Gate.** Preview ▶ starts with `--watch-json`. `serve-started`
+is how we learn the port. The letter reloads on rebuild without
+re-selecting the row. No second watch. No `file://`. Port regex
+is fallback then gone in the same PR if the pin is honest.
+
+**Lanes.** Engine + Preview (A1 consume), then Reading (letter
+SSE). Tracker
+[#143](https://github.com/drawmeanelephant/solipsist/issues/143);
+children #147 / #148. Cards in [`cards/`](cards/README.md).
+
+**Not this milestone.** A5 `validate --watch`. A15 `open=` (app
+already appends it; pin-follow). A second `Process`. Growing
+`WatchServer` argv on the letter card.
+
 ---
 
 ## 6. Capability coverage
@@ -438,11 +541,11 @@ here, it is not a v1 promise.
 |------------------|-----------|------------------------|
 | Markdown / Textile / Cooklang input | M3–M6 | Profile `input_format`; cook recipe-scale in the drawer |
 | Closed frontmatter | M3, M6 | Inspector from `completion.json`; editor owns the buffer |
-| Trunk/Satellite graph, wiki-links, includes, relations | M3 | Play list from `graph.json` |
+| Trunk/Satellite graph, wiki-links, includes, relations | M3, M13 | Play list from `graph.json`; M13 trunks as Pages folders |
 | HTML + layouts + theme catalog | M4, M7 | Build target; theme picker |
 | `validate` | M4 | Save-triggered problems; A5 later |
-| `watch --serve` + SSE | M5, M10 | Preview companion; M10 reading pane reuses the same session |
-| `--watch-json` (A1) | M5 once pinned | Replaces port regex + watch prose |
+| `watch --serve` + SSE | M5, M10, M14 | Preview companion; M10 reading pane reuses the same session; M14 letter listens to SSE |
+| `--watch-json` (A1) | M14 | Replaces port regex + watch prose. Pin already contains it. |
 | `plan --profile` | M4, M8 | Settings lint; publish prelude |
 | `build --report` / `--timings` | M4, M7 | Results + Activity |
 | IR (`manifest` / `graph` / `completion` / `build-report`) | M1, M3, M7 | Decode, list, inspect, export |
@@ -454,7 +557,7 @@ here, it is not a v1 promise.
 | `boris-editor` | M6, M10 | Companion (A14); M10 opens it from the selected page |
 | Oliver (`oliver render`) | M10 | Compose preview; Engine-owned subprocess; not a Swift parse |
 | GitHub Pages + audit | M8 | In-app evidence; Boris workflow owns push; we are not the GH operator |
-| `hosts/cloudflare-worker` + `compileBundle` Wasm | **P (now)** | This project’s subdomain. Free-tier host glue. Not in-app |
+| `hosts/cloudflare-worker` + `compileBundle` Wasm | **P withdrawn** | Public face is Cloudflare Pages (`site/`). Not in-app. |
 | `boris-job-runner` / CF Containers (#300) | parked | Different host (native binary in a container), not the Free Wasm path |
 | Standard.site family | M8 | Native flow, stdin secrets |
 | Nostr plan/sign/publish | M8 | Native flow, `--key-stdin` |
@@ -484,13 +587,16 @@ here, it is not a v1 promise.
 ## 8. Pickup (what to do next)
 
 M10 and M11 landed. Remaining **ship** is Apple-account only.
-Next **product** slice is git clone as a Local source.
+Next **product** slice is M12 clone. M13 and M14 are filed; pick
+them in their own worktrees once the lanes are free.
 
 | Order | Track | Issue | Why this next |
 |------:|-------|-------|----------------|
-| 1 | Git | [#131](https://github.com/drawmeanelephant/solipsist/issues/131) | Settings → Add Git Repository… clone URL → folder → `addLocal`. |
+| 1 | M12 Clone | [#131](https://github.com/drawmeanelephant/solipsist/issues/131) | Settings → Add Git Repository… clone URL → folder → `addLocal`. |
 | 2 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. Parallel with #131. |
 | 3 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
+| 4 | M13 Graph folders | [#142](https://github.com/drawmeanelephant/solipsist/issues/142) | After M12, or parallel if it stays out of Settings / `Workspace/Git/`. First pick #144. |
+| 5 | M14 Watch contract | [#143](https://github.com/drawmeanelephant/solipsist/issues/143) | Parallel with M13 (Engine / Preview / Reading). First pick #147. |
 
 [#131](https://github.com/drawmeanelephant/solipsist/issues/131) is
 clone-as-local, not GitHub OAuth. Do not start `SourceKind.github`
@@ -517,11 +623,12 @@ plan/sign/publish (per-relay verdicts), `boris-package`, `--version`,
 Quiet on the child.
 
 Named in this file and **not** a product surface yet: browser OAuth,
-`github-pages-audit`.
+`github-pages-audit`, A1 `--watch-json` (M14), trunk mailbox
+folders (M13).
 
 Out of v1 (unchanged): GitHub OAuth / `SourceKind.github` payload,
 content-audit, source-rag, migration labs, Wasm in the app,
-`validate --watch` until A5 + pin. Clone-as-local is #131.
+`validate --watch` until A5 + pin. Clone-as-local is M12 / #131.
 Compose **depth** (diagnostics, bundle `oliver`) stays Later; the
 M10 compose window is #106 / #108.
 
