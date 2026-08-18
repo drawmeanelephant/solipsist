@@ -480,6 +480,11 @@ public actor BorisEngine {
         runHandle.terminate()
     }
 
+    /// SIGKILL the in-flight one-shot if SIGTERM was ignored.
+    public func forceKill() {
+        runHandle.forceKill()
+    }
+
     // MARK: Preview (M4)
 
     /// Starts `boris watch --serve --port 0` for `contentRoot` (D5) and

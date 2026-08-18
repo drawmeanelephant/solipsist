@@ -13,15 +13,15 @@ watch"* (ROADMAP §7).
 
 | Piece | Current behavior |
 |-------|------------------|
-| `BorisEngine` (actor) | One `RunHandle` = one `Process?` slot for one-shots. `run()` is **synchronous** (`waitUntilExit`) — serialized by the actor, so one-shot jobs never overlap. |
-| `BorisRunner.run` | stdout/stderr → temp files (no pipe deadlock). `RunHandle.terminate()` = SIGTERM. Cancel detected via `terminationReason == .uncaughtSignal`. |
-| `Coordinator` (MainActor) | `isRunning` / `verb` / `summary` / `exitCode` / `problems`. One `Task` per job; `stop()` cancels + `engine.interrupt()`. Verbs: Plan, Validate, Build IR, Build HTML, Check, Impact, Stop (⌘.). |
-| `WatchServer` | Long-lived `boris watch --serve` subprocess, own `Process` + `terminationHandler`, stderr pipe for the port line. One-shot: `stop()` = SIGTERM (graceful exit 0, A12). |
-| `PreviewSession` | Owns the `WatchServer` per selected source; idempotent reuse per content root; 15 s port-line timeout; `onExit` → `idle`/`failed`. |
+| `BorisEngine` (actor) | One `RunHandle` = one `Process?` slot for one-shots. `run()` is **synchronous** (`waitUntilExit`) — serialized by the actor, so one-shot jobs never overlap. `interrupt()` = SIGTERM; `forceKill()` = SIGKILL. |
+| `BorisRunner.run` | stdout/stderr → temp files (no pipe deadlock). `RunHandle.terminate()` = SIGTERM; `forceKill()` = SIGKILL. |
+| `ChildProcessControl` | Shared SIGSTOP / SIGCONT / SIGKILL primitive. |
+| `Coordinator` (MainActor) | `state` (`idle` / `watching` / `validating` / `building` / `terminating`) plus `isRunning` / `verb` / `summary` / `exitCode` / `problems`. Weak watch registry. Tree-writing verbs (`buildIR` / `buildHTML` / `buildThis` / `buildAll` / `publishStandardSite`) SIGSTOP watch, resume on finish. Stop: SIGTERM then SIGKILL after 2s; with no job, Stop tears down preview watch. |
+| `WatchServer` | Long-lived `boris watch --serve`. `suspend()` / `resume()` / `forceKill()`. `stop()` continues a frozen child before SIGTERM. |
+| `PreviewSession` | Owns the `WatchServer`; registers/unregisters with the coordinator on start/stop/exit/timeout. |
 
-**Gaps the lane must close:** no watch registry (builds cannot see
-watch), no suspend/resume, no save-triggered validate, no debounce, no
-hang timeout, no SIGKILL escalation.
+**Still open:** save-triggered validate + debounce, job hang watchdog
+(timeouts in §5), moving `waitUntilExit` off the engine actor.
 
 ## 2. Canonical states
 

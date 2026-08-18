@@ -68,7 +68,8 @@ struct PreviewWindow: View {
             session.start(
                 contentRoot: contentRoot,
                 projectRoot: projectRoot,
-                engine: runtime.engine
+                engine: runtime.engine,
+                coordinator: runtime.coordinator
             )
         }
     }

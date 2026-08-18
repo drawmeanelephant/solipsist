@@ -6,38 +6,30 @@ enum CoordinatorVerb: String, Sendable {
     case validate
     case buildIR
     case buildHTML
+    case buildThis = "build this"
     case buildAll
     case check
     case impact
     case publishStandardSite = "publish Standard.site"
     case publishNostr = "publish Nostr"
+
+    /// Jobs that write trees watch also owns (`dist/`, `.boris`, proof).
+    var writesTree: Bool {
+        switch self {
+        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite:
+            true
+        case .plan, .validate, .check, .impact, .publishNostr:
+            false
+        }
+    }
 }
 
-struct ProblemItem: Identifiable, Hashable, Sendable {
-    let id: String
-    let severity: String
-    let code: String
-    let message: String
-    let path: String?
-    let line: Int?
-    let column: Int?
-
-    init(
-        severity: String,
-        code: String,
-        message: String,
-        path: String? = nil,
-        line: Int? = nil,
-        column: Int? = nil
-    ) {
-        self.id = "\(code)|\(path ?? "")|\(line ?? -1)|\(column ?? -1)|\(message)"
-        self.severity = severity
-        self.code = code
-        self.message = message
-        self.path = path
-        self.line = line
-        self.column = column
-    }
+enum CoordinatorState: String, Sendable {
+    case idle
+    case watching
+    case validating
+    case building
+    case terminating
 }
 
 /// Menu verbs against `BorisEngine`. One job at a time. Play and the
@@ -46,37 +38,96 @@ struct ProblemItem: Identifiable, Hashable, Sendable {
 @Observable
 final class Coordinator {
     private(set) var isRunning = false
+    private(set) var state: CoordinatorState = .idle
     private(set) var verb: CoordinatorVerb?
     private(set) var summary = "idle"
     private(set) var exitCode: Int32?
     private(set) var problems: [ProblemItem] = []
     private var task: Task<Void, Never>?
+    private var reapTask: Task<Void, Never>?
+    private weak var activeWatch: WatchServer?
+    private var watchSuspends = 0
+
+    var canRunVerb: Bool { state == .idle || state == .watching }
+
+    var canStop: Bool { state != .idle }
+
+    func registerWatch(_ server: WatchServer) {
+        if let old = activeWatch, old !== server {
+            old.resume()
+            old.stop()
+        }
+        activeWatch = server
+        if !isRunning {
+            state = .watching
+            if summary == "idle" { summary = "watching" }
+        }
+    }
+
+    func unregisterWatch(_ server: WatchServer) {
+        guard activeWatch === server else { return }
+        activeWatch = nil
+        watchSuspends = 0
+        if !isRunning {
+            state = .idle
+            if summary == "watching" || summary == "stopping preview…" {
+                summary = "idle"
+            }
+        }
+    }
+
+    /// Pause watch for any tree-writing invocation, including play's
+    /// implicit IR build. Nested; resume when the last writer ends.
+    func beginTreeWrite() {
+        watchSuspends += 1
+        if watchSuspends == 1 {
+            activeWatch?.suspend()
+        }
+    }
+
+    func endTreeWrite() {
+        guard watchSuspends > 0 else { return }
+        watchSuspends -= 1
+        if watchSuspends == 0 {
+            activeWatch?.resume()
+        }
+    }
 
     func run(_ verb: CoordinatorVerb, store: WorkspaceStore, runtime: AppRuntime) {
-        guard !isRunning else { return }
+        guard canRunVerb else { return }
         guard let engine = runtime.engine else {
+            let message = runtime.engineError ?? "engine not found"
             finish(
                 verb: verb,
                 exit: nil,
-                summary: runtime.engineError ?? "engine not found",
-                problems: []
+                summary: message,
+                problems: CoordinatorProblems.fromFailure(code: "engine", message: message)
             )
             return
         }
         guard case .local(let source) = store.selectedSource, source.isAvailable else {
-            finish(verb: verb, exit: nil, summary: "no local source", problems: [])
+            finish(
+                verb: verb,
+                exit: nil,
+                summary: "no local source",
+                problems: CoordinatorProblems.fromFailure(code: "source", message: "no local source")
+            )
             return
         }
 
         isRunning = true
+        state = verb.writesTree ? .building : .validating
         self.verb = verb
         summary = "\(verb.rawValue)…"
         exitCode = nil
         problems = []
+        if verb.writesTree {
+            beginTreeWrite()
+        }
 
-        let pageID = store.selection.noun?.kind == "page" ? store.selection.noun?.id : nil
+        let noun = store.selection.noun
         task = Task {
-            let result = await Self.perform(verb, source: source, pageID: pageID, engine: engine)
+            let result = await Self.perform(verb, source: source, noun: noun, engine: engine)
             guard !Task.isCancelled else {
                 self.finish(verb: verb, exit: result.exit, summary: "cancelled", problems: result.problems)
                 return
@@ -91,13 +142,31 @@ final class Coordinator {
     }
 
     func stop(runtime: AppRuntime) {
-        task?.cancel()
-        task = nil
-        if let engine = runtime.engine {
-            Task { await engine.interrupt() }
-        }
+        guard state != .terminating else { return }
+        reapTask?.cancel()
+
         if isRunning {
+            state = .terminating
             summary = "stopping…"
+            task?.cancel()
+            let engine = runtime.engine
+            reapTask = Task {
+                await engine?.interrupt()
+                try? await Task.sleep(for: ChildProcessControl.reapGrace)
+                guard !Task.isCancelled else { return }
+                await engine?.forceKill()
+            }
+            return
+        }
+
+        guard let watch = activeWatch, watch.isRunning else { return }
+        state = .terminating
+        summary = "stopping preview…"
+        watch.stop()
+        reapTask = Task {
+            try? await Task.sleep(for: ChildProcessControl.reapGrace)
+            guard !Task.isCancelled else { return }
+            watch.forceKill()
         }
     }
 
@@ -107,12 +176,18 @@ final class Coordinator {
         summary: String,
         problems: [ProblemItem]
     ) {
+        if verb.writesTree {
+            endTreeWrite()
+        }
+        reapTask?.cancel()
+        reapTask = nil
         self.verb = nil
         isRunning = false
         exitCode = exit
         self.summary = summary
         self.problems = problems
         task = nil
+        state = (activeWatch?.isRunning == true) ? .watching : .idle
     }
 
     private struct JobResult: Sendable {
@@ -124,28 +199,30 @@ final class Coordinator {
     private static func perform(
         _ verb: CoordinatorVerb,
         source: LocalSource,
-        pageID: String?,
+        noun: WorkspaceNoun?,
         engine: BorisEngine
     ) async -> JobResult {
         do {
             switch verb {
             case .plan:
                 guard let profile = source.profileURL() else {
-                    return JobResult(exit: 3, summary: "plan: no boris.json", problems: [])
+                    return JobResult(
+                        exit: 3,
+                        summary: "plan: no boris.json",
+                        problems: CoordinatorProblems.fromFailure(code: "plan", message: "no boris.json")
+                    )
                 }
                 let result = try await engine.plan(profileURL: profile)
                 let summary = result.plan == nil
                     ? "plan exit \(result.exitCode)"
                     : "plan ok (\(result.plan?.format ?? "declaration"))"
                 let problems: [ProblemItem]
-                if result.plan == nil, !result.stderr.isEmpty {
-                    problems = [
-                        ProblemItem(
-                            severity: "error",
-                            code: "plan",
-                            message: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
-                        )
-                    ]
+                if result.plan == nil {
+                    problems = CoordinatorProblems.fromCommand(
+                        code: "plan",
+                        exitCode: result.exitCode == 0 ? 1 : result.exitCode,
+                        stderr: result.stderr
+                    )
                 } else {
                     problems = []
                 }
@@ -160,7 +237,14 @@ final class Coordinator {
                     reportURL: reportURL,
                     workingDirectory: try source.workspaceRoot()
                 )
-                let items = Self.problems(from: result.report)
+                var items = CoordinatorProblems.from(report: result.report)
+                if items.isEmpty, result.exitCode != 0 {
+                    items = CoordinatorProblems.fromCommand(
+                        code: "validate",
+                        exitCode: result.exitCode,
+                        stderr: result.stderr
+                    )
+                }
                 let count = result.report?.errorCount ?? items.filter { $0.severity == "error" }.count
                 return JobResult(
                     exit: result.exitCode,
@@ -175,7 +259,14 @@ final class Coordinator {
                     outDir: outDir,
                     timings: true
                 )
-                let items = result.report.diagnostics.map(Self.problem(from:))
+                var items = CoordinatorProblems.fromIR(report: result.report)
+                if items.isEmpty, result.exitCode != 0 {
+                    items = CoordinatorProblems.fromCommand(
+                        code: "ir",
+                        exitCode: result.exitCode,
+                        stderr: result.stderr
+                    )
+                }
                 let pages = result.report.pageCount.map { "\($0) pages" } ?? "IR"
                 return JobResult(
                     exit: result.exitCode,
@@ -193,20 +284,38 @@ final class Coordinator {
                     htmlDir: htmlDir,
                     reportURL: reportURL
                 )
-                let items = Self.problems(from: result.report)
+                var items = CoordinatorProblems.from(report: result.report)
+                if items.isEmpty, result.exitCode != 0 {
+                    items = CoordinatorProblems.fromCommand(
+                        code: "html",
+                        exitCode: result.exitCode,
+                        stderr: result.stderr
+                    )
+                }
                 return JobResult(
                     exit: result.exitCode,
                     summary: "HTML exit \(result.exitCode) · \(result.report?.errorCount ?? items.count) error(s)",
                     problems: items
                 )
 
+            case .buildThis:
+                return try await buildThis(noun: noun, source: source, engine: engine)
+
             case .buildAll:
                 let workspaceRoot = try source.workspaceRoot()
-                var profile = PublicationProfile(format: "boris-publication-profile")
-                if let pair = try InspectorProfile.load(from: workspaceRoot),
-                   let prof = try? JSONDecoder().decode(PublicationProfile.self, from: pair.data)
-                {
-                    profile = prof
+                let profile: PublicationProfile
+                do {
+                    profile = try loadProfile(from: source)
+                        ?? PublicationProfile(format: "boris-publication-profile")
+                } catch {
+                    return JobResult(
+                        exit: 3,
+                        summary: "Build all: boris.json did not decode",
+                        problems: CoordinatorProblems.fromFailure(
+                            code: "profile",
+                            message: String(describing: error)
+                        )
+                    )
                 }
                 let result = try await engine.buildAll(
                     contentRoot: source.contentRoot(),
@@ -214,12 +323,15 @@ final class Coordinator {
                     workingDirectory: workspaceRoot,
                     timings: true
                 )
-                var items: [ProblemItem] = []
-                for res in result.results {
-                    if let report = res.report {
-                        items.append(contentsOf: Self.problems(from: report))
-                    }
-                }
+                let items = CoordinatorProblems.fromEntries(result.results.map {
+                    CoordinatorProblems.EntryProblemSource(
+                        name: $0.name,
+                        kind: $0.kind,
+                        exitCode: $0.exitCode,
+                        stderr: $0.stderr,
+                        report: $0.report
+                    )
+                })
                 let exit = result.isSuccess ? 0 : (result.results.last?.exitCode ?? 1)
                 let dur = result.totalDurationNs.map { "(\($0 / 1_000_000)ms)" } ?? ""
                 let summary = "Build all \(result.isSuccess ? "succeeded" : "failed") · \(result.results.count) entry(s) \(dur)"
@@ -245,8 +357,15 @@ final class Coordinator {
                 )
 
             case .impact:
-                guard let pageID else {
-                    return JobResult(exit: 2, summary: "impact: select a page", problems: [])
+                guard let pageID = noun?.kind == "page" ? noun?.id : nil else {
+                    return JobResult(
+                        exit: 2,
+                        summary: "impact: select a page",
+                        problems: CoordinatorProblems.fromFailure(
+                            code: "impact",
+                            message: "select a page"
+                        )
+                    )
                 }
                 let result = try await engine.impact(
                     contentRoot: source.contentRoot(),
@@ -264,49 +383,196 @@ final class Coordinator {
 
             case .publishStandardSite:
                 guard let profile = source.profileURL() else {
-                    return JobResult(exit: 3, summary: "publish: no boris.json", problems: [])
+                    return JobResult(
+                        exit: 3,
+                        summary: "publish: no boris.json",
+                        problems: CoordinatorProblems.fromFailure(code: "standard-site", message: "no boris.json")
+                    )
                 }
                 let result = try await engine.standardSitePublish(profileURL: profile)
-                let problems = result.exitCode == 0 ? [] : [
-                    ProblemItem(severity: "error", code: "standard-site", message: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))
-                ]
                 return JobResult(
                     exit: result.exitCode,
                     summary: "Standard.site exit \(result.exitCode)",
-                    problems: problems
+                    problems: CoordinatorProblems.fromCommand(
+                        code: "standard-site",
+                        exitCode: result.exitCode,
+                        stderr: result.stderr
+                    )
                 )
 
             case .publishNostr:
                 guard let profile = source.profileURL() else {
-                    return JobResult(exit: 3, summary: "publish: no boris.json", problems: [])
+                    return JobResult(
+                        exit: 3,
+                        summary: "publish: no boris.json",
+                        problems: CoordinatorProblems.fromFailure(code: "nostr", message: "no boris.json")
+                    )
                 }
                 let result = try await engine.nostrPlan(profileURL: profile)
-                let problems = result.exitCode == 0 ? [] : [
-                    ProblemItem(severity: "error", code: "nostr", message: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))
-                ]
                 return JobResult(
                     exit: result.exitCode,
                     summary: "Nostr plan exit \(result.exitCode)",
-                    problems: problems
+                    problems: CoordinatorProblems.fromCommand(
+                        code: "nostr",
+                        exitCode: result.exitCode,
+                        stderr: result.stderr
+                    )
                 )
             }
         } catch {
-            return JobResult(exit: nil, summary: String(describing: error), problems: [])
+            let message = String(describing: error)
+            return JobResult(
+                exit: nil,
+                summary: message,
+                problems: CoordinatorProblems.fromFailure(code: "coordinator", message: message)
+            )
         }
     }
 
-    private static func problems(from report: HTMLBuildReport?) -> [ProblemItem] {
-        (report?.diagnostics ?? []).map(problem(from:))
+    private static func buildThis(
+        noun: WorkspaceNoun?,
+        source: LocalSource,
+        engine: BorisEngine
+    ) async throws -> JobResult {
+        guard let noun else {
+            return JobResult(
+                exit: 2,
+                summary: "build this: select a target or edition",
+                problems: CoordinatorProblems.fromFailure(
+                    code: "build",
+                    message: "select a target or edition"
+                )
+            )
+        }
+
+        let workspaceRoot = try source.workspaceRoot()
+        let profile: PublicationProfile?
+        do {
+            profile = try loadProfile(from: source)
+        } catch {
+            return JobResult(
+                exit: 3,
+                summary: "build this: boris.json did not decode",
+                problems: CoordinatorProblems.fromFailure(
+                    code: "profile",
+                    message: String(describing: error)
+                )
+            )
+        }
+
+        switch noun.kind {
+        case "target":
+            let target: PublicationTarget
+            if let match = profile?.targets?.first(where: { $0.name == noun.id }) {
+                target = match
+            } else if noun.id == "default" {
+                target = PublicationTarget(name: "default", output: "dist")
+            } else {
+                return JobResult(
+                    exit: 2,
+                    summary: "build this: no target \"\(noun.id)\"",
+                    problems: CoordinatorProblems.fromFailure(
+                        code: "target",
+                        message: "no target \"\(noun.id)\" in boris.json"
+                    )
+                )
+            }
+            let result = try await engine.buildTarget(
+                contentRoot: source.contentRoot(),
+                target: target,
+                siteURL: profile?.site?.url,
+                workingDirectory: workspaceRoot,
+                timings: true
+            )
+            let items = CoordinatorProblems.fromEntry(
+                name: result.name,
+                kind: result.kind,
+                exitCode: result.exitCode,
+                stderr: result.stderr,
+                report: result.report
+            )
+            return JobResult(
+                exit: result.exitCode,
+                summary: "\(target.name) exit \(result.exitCode) · \(items.count) problem(s)",
+                problems: items
+            )
+
+        case "edition":
+            guard let spec = editionSpec(id: noun.id, profile: profile) else {
+                return JobResult(
+                    exit: 2,
+                    summary: "build this: no \(noun.id) edition in profile",
+                    problems: CoordinatorProblems.fromFailure(
+                        code: "edition",
+                        message: "no \(noun.id) edition in boris.json"
+                    )
+                )
+            }
+            let result = try await engine.buildEdition(
+                contentRoot: source.contentRoot(),
+                kind: spec.kind,
+                outputDir: spec.output,
+                scope: spec.scope,
+                splitSize: spec.splitSize,
+                workingDirectory: workspaceRoot,
+                timings: true
+            )
+            let items = CoordinatorProblems.fromEntry(
+                name: result.name,
+                kind: result.kind,
+                exitCode: result.exitCode,
+                stderr: result.stderr,
+                report: result.report
+            )
+            return JobResult(
+                exit: result.exitCode,
+                summary: "\(spec.kind) exit \(result.exitCode) · \(items.count) problem(s)",
+                problems: items
+            )
+
+        default:
+            return JobResult(
+                exit: 2,
+                summary: "build this: select a target or edition",
+                problems: CoordinatorProblems.fromFailure(
+                    code: "build",
+                    message: "select a target or edition"
+                )
+            )
+        }
     }
 
-    private static func problem(from diagnostic: Diagnostic) -> ProblemItem {
-        ProblemItem(
-            severity: diagnostic.severity,
-            code: diagnostic.code,
-            message: diagnostic.message,
-            path: diagnostic.sourcePath,
-            line: diagnostic.line,
-            column: diagnostic.column
-        )
+    private static func loadProfile(from source: LocalSource) throws -> PublicationProfile? {
+        let root = try source.workspaceRoot()
+        guard let pair = try InspectorProfile.load(from: root) else { return nil }
+        return try JSONDecoder().decode(PublicationProfile.self, from: pair.data)
+    }
+
+    private struct EditionSpec {
+        var kind: String
+        var output: String
+        var scope: String?
+        var splitSize: Int?
+    }
+
+    private static func editionSpec(id: String, profile: PublicationProfile?) -> EditionSpec? {
+        switch id {
+        case "ir":
+            guard let output = profile?.editions?.ir?.output else { return nil }
+            return EditionSpec(kind: "ir", output: output)
+        case "rag":
+            guard let rag = profile?.editions?.rag else { return nil }
+            return EditionSpec(kind: "rag", output: rag.output, scope: rag.scope, splitSize: rag.split_size)
+        case "context":
+            guard let context = profile?.editions?.context else { return nil }
+            return EditionSpec(
+                kind: "context",
+                output: context.output,
+                scope: context.scope,
+                splitSize: context.split_size
+            )
+        default:
+            return nil
+        }
     }
 }

@@ -42,20 +42,28 @@ struct OutputsPane: View {
             Section {
                 if let targets = profile.targets, !targets.isEmpty {
                     ForEach(targets, id: \.name) { target in
-                        TargetRow(target: target, onBuild: { buildTarget(target) })
-                            .tag("target:\(target.name)")
+                        TargetRow(
+                            target: target,
+                            isBusy: runtime.coordinator.isRunning,
+                            onBuild: { requestBuild(kind: "target", id: target.name, title: target.name) }
+                        )
+                        .tag("target:\(target.name)")
                     }
                 } else {
                     let defaultTarget = PublicationTarget(name: "default", output: "dist")
-                    TargetRow(target: defaultTarget, onBuild: { buildTarget(defaultTarget) })
-                        .tag("target:default")
+                    TargetRow(
+                        target: defaultTarget,
+                        isBusy: runtime.coordinator.isRunning,
+                        onBuild: { requestBuild(kind: "target", id: "default", title: "default") }
+                    )
+                    .tag("target:default")
                 }
             } header: {
                 HStack {
                     Text("HTML Targets")
                     Spacer()
                     Button("Build All") {
-                        buildAll(profile)
+                        runtime.coordinator.run(.buildAll, store: store, runtime: runtime)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
@@ -66,31 +74,33 @@ struct OutputsPane: View {
             if let editions = profile.editions {
                 Section("Editions") {
                     if let ir = editions.ir {
-                        EditionRow(name: "IR (.boris)", output: ir.output, kind: "ir", onBuild: {
-                            buildEdition(kind: "ir", output: ir.output)
-                        })
+                        EditionRow(
+                            name: "IR (.boris)",
+                            output: ir.output,
+                            kind: "ir",
+                            isBusy: runtime.coordinator.isRunning,
+                            onBuild: { requestBuild(kind: "edition", id: "ir", title: "IR") }
+                        )
                         .tag("edition:ir")
                     }
                     if let rag = editions.rag {
-                        EditionRow(name: "RAG", output: rag.output, kind: "rag", onBuild: {
-                            buildEdition(
-                                kind: "rag",
-                                output: rag.output,
-                                scope: rag.scope,
-                                splitSize: rag.split_size
-                            )
-                        })
+                        EditionRow(
+                            name: "RAG",
+                            output: rag.output,
+                            kind: "rag",
+                            isBusy: runtime.coordinator.isRunning,
+                            onBuild: { requestBuild(kind: "edition", id: "rag", title: "RAG") }
+                        )
                         .tag("edition:rag")
                     }
                     if let context = editions.context {
-                        EditionRow(name: "Context", output: context.output, kind: "context", onBuild: {
-                            buildEdition(
-                                kind: "context",
-                                output: context.output,
-                                scope: context.scope,
-                                splitSize: context.split_size
-                            )
-                        })
+                        EditionRow(
+                            name: "Context",
+                            output: context.output,
+                            kind: "context",
+                            isBusy: runtime.coordinator.isRunning,
+                            onBuild: { requestBuild(kind: "edition", id: "context", title: "Context") }
+                        )
                         .tag("edition:context")
                     }
                 }
@@ -129,8 +139,13 @@ struct OutputsPane: View {
         }
         do {
             if let pair = try InspectorProfile.load(from: root) {
-                profile = try? JSONDecoder().decode(PublicationProfile.self, from: pair.data)
-                loadError = nil
+                do {
+                    profile = try JSONDecoder().decode(PublicationProfile.self, from: pair.data)
+                    loadError = nil
+                } catch {
+                    profile = nil
+                    loadError = error.localizedDescription
+                }
             } else {
                 profile = nil
                 loadError = nil
@@ -140,63 +155,16 @@ struct OutputsPane: View {
         }
     }
 
-    private func buildTarget(_ target: PublicationTarget) {
-        guard let engine = runtime.engine else { return }
-        guard let contentRoot = try? source.contentRoot() else { return }
-        let cwd = try? source.workspaceRoot()
-
-        Task {
-            _ = try? await engine.buildTarget(
-                contentRoot: contentRoot,
-                target: target,
-                siteURL: profile?.site?.url,
-                workingDirectory: cwd,
-                timings: true
-            )
-        }
-    }
-
-    private func buildEdition(
-        kind: String,
-        output: String,
-        scope: String? = nil,
-        splitSize: Int? = nil
-    ) {
-        guard let engine = runtime.engine else { return }
-        guard let contentRoot = try? source.contentRoot() else { return }
-        let cwd = try? source.workspaceRoot()
-
-        Task {
-            _ = try? await engine.buildEdition(
-                contentRoot: contentRoot,
-                kind: kind,
-                outputDir: output,
-                scope: scope,
-                splitSize: splitSize,
-                workingDirectory: cwd,
-                timings: true
-            )
-        }
-    }
-
-    private func buildAll(_ profile: PublicationProfile) {
-        guard let engine = runtime.engine else { return }
-        guard let contentRoot = try? source.contentRoot() else { return }
-        let cwd = try? source.workspaceRoot()
-
-        Task {
-            _ = try? await engine.buildAll(
-                contentRoot: contentRoot,
-                profile: profile,
-                workingDirectory: cwd,
-                timings: true
-            )
-        }
+    /// Select the row, then ask the coordinator. Play never spawns `boris`.
+    private func requestBuild(kind: String, id: String, title: String) {
+        store.select(noun: WorkspaceNoun(kind: kind, id: id, title: title))
+        runtime.coordinator.run(.buildThis, store: store, runtime: runtime)
     }
 }
 
 private struct TargetRow: View {
     let target: PublicationTarget
+    let isBusy: Bool
     let onBuild: () -> Void
 
     var body: some View {
@@ -218,6 +186,7 @@ private struct TargetRow: View {
                 Spacer()
                 Button("Build", action: onBuild)
                     .controlSize(.small)
+                    .disabled(isBusy)
             }
             HStack(spacing: 12) {
                 Label(target.output, systemImage: "folder")
@@ -263,6 +232,7 @@ private struct EditionRow: View {
     let name: String
     let output: String
     let kind: String
+    let isBusy: Bool
     let onBuild: () -> Void
 
     var body: some View {
@@ -279,6 +249,7 @@ private struct EditionRow: View {
             Spacer()
             Button("Build", action: onBuild)
                 .controlSize(.small)
+                .disabled(isBusy)
         }
         .padding(.vertical, 2)
     }
