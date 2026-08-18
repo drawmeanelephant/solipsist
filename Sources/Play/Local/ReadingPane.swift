@@ -89,6 +89,13 @@ struct ReadingPane: View {
                 Label("Edit", systemImage: "square.and.pencil")
             }
             .help("Open the hosted editor for this page")
+
+            Button {
+                openWindow(id: CompanionID.compose)
+            } label: {
+                Label("Compose", systemImage: "pencil")
+            }
+            .help("Open the native Compose editor for this page")
         }
         .buttonStyle(.bordered)
         .controlSize(.small)

@@ -144,7 +144,7 @@ struct LocalPlay: PlaySurface {
                                 .onTapGesture { selectPage(page) }
                                 .simultaneousGesture(TapGesture(count: 2).onEnded {
                                     selectPage(page)
-                                    openWindow(id: CompanionID.editor)
+                                    openWindow(id: CompanionID.compose)
                                 })
                         }
                     }
@@ -153,7 +153,7 @@ struct LocalPlay: PlaySurface {
                 }
                 .onKeyPress(.return) {
                     guard store.selection.canEditPage else { return .ignored }
-                    openWindow(id: CompanionID.editor)
+                    openWindow(id: CompanionID.compose)
                     return .handled
                 }
             }

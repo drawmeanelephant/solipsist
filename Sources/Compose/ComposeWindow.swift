@@ -137,8 +137,23 @@ struct ComposeWindow: View {
         ContentUnavailableView {
             Label("Compose", systemImage: "square.and.pencil")
         } description: {
-            Text("Select a page in the main window, then open the compose window.")
+            Text(emptyStateMessage)
         }
+    }
+
+    /// Compose is the native buffer for the selected page's source file.
+    /// Say so here instead of a blank window that looks like the feature
+    /// is missing; name the missing selection so the gate reads clearly.
+    private var emptyStateMessage: String {
+        let intro = "Compose is the native editor for a page's source file. "
+        if store.selectedSource == nil {
+            return intro
+                + "Add a source first: File → Open… or Settings → Sources "
+                + "(try Stunts/happy), then select a page in the Pages mailbox."
+        }
+        return intro
+            + "Select a page in the Pages mailbox, then open it from "
+            + "View → Compose (⌘⇧C), the letter header, or the toolbar."
     }
 
     private var statusBar: some View {
