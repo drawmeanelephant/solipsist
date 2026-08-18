@@ -51,7 +51,15 @@ final class PlayGraphActivityPlanTests: XCTestCase {
     func testLocalPlayGraphFilterByTitleAndId() {
         let pages = [
             PlayPage(id: "index", title: "Home Page", status: "published", role: .trunk, depth: 0, tags: ["site"], sourcePath: "index.md"),
-            PlayPage(id: "guides/getting-started", title: "Getting Started", status: "published", role: .satellite, depth: 1, tags: ["guide"], sourcePath: "guides/getting-started.md"),
+            PlayPage(
+                id: "guides/getting-started",
+                title: "Getting Started",
+                status: "published",
+                role: .satellite,
+                depth: 1,
+                tags: ["guide"],
+                sourcePath: "guides/getting-started.md"
+            ),
             PlayPage(id: "guides/advanced", title: "Advanced Topics", status: "draft", role: .satellite, depth: 1, tags: ["guide", "deep-dive"], sourcePath: "guides/advanced.md"),
             PlayPage(id: "reference/api", title: "API Reference", status: "draft", role: .satellite, depth: 1, tags: ["reference"], sourcePath: "reference/api.md")
         ]
@@ -76,7 +84,15 @@ final class PlayGraphActivityPlanTests: XCTestCase {
     func testLocalPlayGraphFilterByTagAndStatus() {
         let pages = [
             PlayPage(id: "index", title: "Home Page", status: "published", role: .trunk, depth: 0, tags: ["site"], sourcePath: "index.md"),
-            PlayPage(id: "guides/getting-started", title: "Getting Started", status: "published", role: .satellite, depth: 1, tags: ["guide", "beginner"], sourcePath: "guides/getting-started.md"),
+            PlayPage(
+                id: "guides/getting-started",
+                title: "Getting Started",
+                status: "published",
+                role: .satellite,
+                depth: 1,
+                tags: ["guide", "beginner"],
+                sourcePath: "guides/getting-started.md"
+            ),
             PlayPage(id: "guides/advanced", title: "Advanced Topics", status: "draft", role: .satellite, depth: 1, tags: ["guide", "deep-dive"], sourcePath: "guides/advanced.md"),
             PlayPage(id: "reference/api", title: "API Reference", status: "draft", role: .satellite, depth: 1, tags: ["reference"], sourcePath: "reference/api.md")
         ]
@@ -173,52 +189,7 @@ final class PlayGraphActivityPlanTests: XCTestCase {
     }
 
     func testPublicationPlanDecoding() throws {
-        let json = """
-        {
-          "format": "boris-publication-plan",
-          "schema_version": 1,
-          "input": "content",
-          "input_format": "markdown",
-          "site": {
-            "url": "https://example.com",
-            "title": "Example Site",
-            "description": "A demo site"
-          },
-          "publication": {
-            "target": "standard-site",
-            "base_url": "https://example.com",
-            "origin": "https://example.com",
-            "base_path": "",
-            "did": "did:plc:12345",
-            "name": "Example"
-          },
-          "targets": [
-            {
-              "name": "public",
-              "output": "dist",
-              "public": true,
-              "theme": "themes/boris",
-              "layout": "default",
-              "layout_rules": [
-                { "selector": "id:index", "layout": "themes/boris/layouts/home.html" }
-              ],
-              "projections": {
-                "html": true,
-                "sitemap": { "path": "sitemap.xml", "limit": null },
-                "rss": { "path": "rss.xml", "limit": 20 },
-                "llms": { "path": "llms.txt", "limit": null }
-              }
-            }
-          ],
-          "editions": {
-            "ir": { "output": ".boris" },
-            "rag": { "output": "rag", "scope": "all", "split_size": 4096 },
-            "context": { "output": "context", "scope": "all", "split_size": 2048 }
-          }
-        }
-        """
-
-        let plan = try JSONDecoder().decode(PublicationPlan.self, from: Data(json.utf8))
+        let plan = try JSONDecoder().decode(PublicationPlan.self, from: Data(Self.samplePlanJSON.utf8))
         XCTAssertEqual(plan.format, "boris-publication-plan")
         XCTAssertEqual(plan.schema_version, 1)
         XCTAssertEqual(plan.site?.title, "Example Site")
@@ -226,6 +197,15 @@ final class PlayGraphActivityPlanTests: XCTestCase {
         XCTAssertEqual(plan.targets?.count, 1)
 
         let target = try XCTUnwrap(plan.targets?.first)
+        verifyPlanTarget(target)
+
+        XCTAssertEqual(plan.editions?.ir?.output, ".boris")
+        XCTAssertEqual(plan.editions?.rag?.output, "rag")
+        XCTAssertEqual(plan.editions?.rag?.split_size, 4096)
+        XCTAssertEqual(plan.editions?.context?.output, "context")
+    }
+
+    private func verifyPlanTarget(_ target: PublicationPlanTarget) {
         XCTAssertEqual(target.name, "public")
         XCTAssertEqual(target.output, "dist")
         XCTAssertEqual(target.public, true)
@@ -235,10 +215,50 @@ final class PlayGraphActivityPlanTests: XCTestCase {
         XCTAssertEqual(target.projections?.sitemap?.path, "sitemap.xml")
         XCTAssertEqual(target.projections?.rss?.path, "rss.xml")
         XCTAssertEqual(target.projections?.llms?.path, "llms.txt")
-
-        XCTAssertEqual(plan.editions?.ir?.output, ".boris")
-        XCTAssertEqual(plan.editions?.rag?.output, "rag")
-        XCTAssertEqual(plan.editions?.rag?.split_size, 4096)
-        XCTAssertEqual(plan.editions?.context?.output, "context")
     }
+
+    private static let samplePlanJSON = """
+    {
+      "format": "boris-publication-plan",
+      "schema_version": 1,
+      "input": "content",
+      "input_format": "markdown",
+      "site": {
+        "url": "https://example.com",
+        "title": "Example Site",
+        "description": "A demo site"
+      },
+      "publication": {
+        "target": "standard-site",
+        "base_url": "https://example.com",
+        "origin": "https://example.com",
+        "base_path": "",
+        "did": "did:plc:12345",
+        "name": "Example"
+      },
+      "targets": [
+        {
+          "name": "public",
+          "output": "dist",
+          "public": true,
+          "theme": "themes/boris",
+          "layout": "default",
+          "layout_rules": [
+            { "selector": "id:index", "layout": "themes/boris/layouts/home.html" }
+          ],
+          "projections": {
+            "html": true,
+            "sitemap": { "path": "sitemap.xml", "limit": null },
+            "rss": { "path": "rss.xml", "limit": 20 },
+            "llms": { "path": "llms.txt", "limit": null }
+          }
+        }
+      ],
+      "editions": {
+        "ir": { "output": ".boris" },
+        "rag": { "output": "rag", "scope": "all", "split_size": 4096 },
+        "context": { "output": "context", "scope": "all", "split_size": 2048 }
+      }
+    }
+    """
 }
