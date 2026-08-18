@@ -25,6 +25,8 @@ struct LocalPlay: PlaySurface {
     var body: some View {
         Group {
             switch WorkspaceMailbox.display(store.selection.mailbox) {
+            case WorkspaceMailbox.pages:
+                pagesMailbox
             case WorkspaceMailbox.outputs:
                 OutputsPane(source: source)
             case WorkspaceMailbox.publish:
@@ -34,7 +36,8 @@ struct LocalPlay: PlaySurface {
             case WorkspaceMailbox.activity:
                 ActivityPane()
             default:
-                pagesMailbox
+                // Unknown mailbox (e.g. a future trunk id) is not Pages.
+                unknownMailbox
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -47,6 +50,22 @@ struct LocalPlay: PlaySurface {
         .task(id: source.id) {
             await load()
         }
+    }
+
+    /// Placeholder until M13-2 lands the trunk folder filter. Unknown
+    /// mailboxes must not surface the full Pages list.
+    @ViewBuilder
+    private var unknownMailbox: some View {
+        ContentUnavailableView {
+            Label(rawMailboxName, systemImage: "folder")
+                .accessibilityLabel("\(source.title), \(rawMailboxName)")
+        } description: {
+            Text("This mailbox has no list in this build yet.")
+        }
+    }
+
+    private var rawMailboxName: String {
+        WorkspaceMailbox.displayName(store.selection.mailbox ?? "")
     }
 
     private var loadedPages: [PlayPage] {
