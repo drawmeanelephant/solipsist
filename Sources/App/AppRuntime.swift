@@ -7,15 +7,20 @@ import Observation
 @MainActor
 @Observable
 final class AppRuntime {
-    let engine: BorisEngine?
-    let enginePath: String?
-    let engineError: String?
+    private(set) var engine: BorisEngine?
+    private(set) var enginePath: String?
+    private(set) var engineError: String?
     private(set) var engineVersion: String
     let coordinator = Coordinator()
     let credentials = PublishCredentialManager()
     let previewSession = PreviewSession()
 
     init() {
+        engineVersion = "boris"
+        reloadEngine()
+    }
+
+    func reloadEngine() {
         if let url = BorisBinary.locate() {
             enginePath = url.path
             do {

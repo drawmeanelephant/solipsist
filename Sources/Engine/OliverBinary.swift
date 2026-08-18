@@ -19,6 +19,11 @@ public enum OliverBinary {
             fm.isExecutableFile(atPath: url.path)
         }
 
+        if let custom = UserDefaults.standard.string(forKey: "customOliverBinaryPath"), !custom.isEmpty {
+            let url = URL(fileURLWithPath: custom)
+            if isExecutable(url) { return url }
+        }
+
         if let override = environment["SOLIPSIST_OLIVER_BIN"], !override.isEmpty {
             let url = URL(fileURLWithPath: override)
             if isExecutable(url) { return url }

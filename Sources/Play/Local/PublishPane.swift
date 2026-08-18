@@ -48,7 +48,7 @@ struct PublishPane: View {
 
             evidenceFilesSection
         }
-        .listStyle(.inset(alternatesRowBackgrounds: true))
+        .listStyle(.inset)
         .safeAreaPadding(.top, toolbarBand)
         .task(id: source.id) {
             load()

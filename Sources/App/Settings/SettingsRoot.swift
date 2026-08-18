@@ -8,7 +8,11 @@ struct SettingsRoot: View {
                 .tabItem {
                     Label("Sources", systemImage: "folder")
                 }
+            EngineSettingsPane()
+                .tabItem {
+                    Label("Engine", systemImage: "cpu")
+                }
         }
-        .frame(minWidth: 520, minHeight: 360)
+        .frame(minWidth: 540, minHeight: 380)
     }
 }

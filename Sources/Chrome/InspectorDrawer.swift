@@ -12,7 +12,8 @@ struct InspectorDrawer: View {
             } else {
                 let snapshot = InspectorSnapshot(
                     sourceKind: store.selectedSource?.kind,
-                    nounKind: store.selection.noun?.kind
+                    nounKind: store.selection.noun?.kind,
+                    mailbox: store.selection.mailbox
                 )
                 if snapshot.inspectorSections.isEmpty {
                     drawerNote("Select a source to inspect its options.")
@@ -25,6 +26,8 @@ struct InspectorDrawer: View {
                         }
                     }
                     .formStyle(.grouped)
+                    .safeAreaPadding(.top, 6)
+                    .safeAreaPadding(.bottom, 54)
                 }
             }
         }
