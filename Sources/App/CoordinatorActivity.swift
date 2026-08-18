@@ -1,40 +1,5 @@
 import Foundation
 
-enum CoordinatorVerb: String, Sendable {
-    case plan
-    case validate
-    case buildIR
-    case buildHTML
-    case buildThis = "build this"
-    case buildAll
-    case check
-    case impact
-    case publishStandardSite = "publish Standard.site"
-    case publishNostr = "publish Nostr"
-
-    /// Jobs that write trees watch also owns (`dist/`, `.boris`, proof).
-    var writesTree: Bool {
-        switch self {
-        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite, .publishNostr:
-            true
-        case .plan, .validate, .check, .impact:
-            false
-        }
-    }
-
-    var timeout: Duration {
-        writesTree ? CoordinatorPolicy.buildTimeout : CoordinatorPolicy.oneShotTimeout
-    }
-
-    var secretTarget: String? {
-        switch self {
-        case .publishNostr: PublishTargets.nostr
-        case .publishStandardSite: PublishTargets.standardSite
-        default: nil
-        }
-    }
-}
-
 /// An execution record in the Coordinator activity history.
 struct CoordinatorActivity: Identifiable, Sendable {
     let id: UUID
