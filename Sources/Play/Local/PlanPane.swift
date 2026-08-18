@@ -78,14 +78,14 @@ struct PlanPane: View {
             if let pub = plan.publication {
                 Section("Publication Declaration") {
                     LabeledContent("Target", value: pub.target)
-                    if !pub.base_url.isEmpty {
-                        LabeledContent("Base URL", value: pub.base_url)
+                    if let baseUrl = pub.base_url, !baseUrl.isEmpty {
+                        LabeledContent("Base URL", value: baseUrl)
                     }
-                    if !pub.origin.isEmpty {
-                        LabeledContent("Origin", value: pub.origin)
+                    if let origin = pub.origin, !origin.isEmpty {
+                        LabeledContent("Origin", value: origin)
                     }
-                    if !pub.base_path.isEmpty {
-                        LabeledContent("Base Path", value: pub.base_path)
+                    if let basePath = pub.base_path, !basePath.isEmpty {
+                        LabeledContent("Base Path", value: basePath)
                     }
                     if let did = pub.did, !did.isEmpty {
                         LabeledContent("DID", value: did)
