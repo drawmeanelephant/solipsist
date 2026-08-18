@@ -25,6 +25,9 @@ struct ReadingPane: View {
                 } description: {
                     Text("Select a page to read it.")
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("No Page Selected")
+                .accessibilityHint("Select a page from the list to read it.")
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

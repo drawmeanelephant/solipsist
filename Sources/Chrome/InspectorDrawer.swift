@@ -49,7 +49,7 @@ struct InspectorDrawer: View {
             {
                 PageSection(source: source, noun: noun)
             } else {
-                Text("Select a page in the play place.")
+                Text("Select a page in the reading place.")
                     .foregroundStyle(.secondary)
             }
         case InspectorSectionID.target:

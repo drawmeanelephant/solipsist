@@ -14,6 +14,7 @@ struct SourceSidebar: View {
                             systemImage: WorkspaceMailbox.symbolName(box)
                         )
                         .tag(MailboxRowID(sourceID: item.id, mailbox: box))
+                        .accessibilityLabel("\(item.title), \(WorkspaceMailbox.displayName(box))")
                         .contextMenu { sourceMenu(item) }
                     }
                 } header: {
@@ -33,7 +34,7 @@ struct SourceSidebar: View {
                 EmptyStateView(
                     title: "No Sources",
                     systemImage: "folder.badge.plus",
-                    message: "Open a folder with boris.json (e.g. Stunts/happy) to get started.",
+                    message: "Add a folder with boris.json from Settings → Sources or File → Open… (for example Stunts/happy).",
                     actionTitle: "Open…",
                     action: { store.presentOpenPanel() }
                 )
@@ -111,6 +112,16 @@ private struct SourceAccountHeader: View {
             item.isAvailable
                 ? (item.detailLine ?? item.title)
                 : "Unreachable — Relocate / Remove"
+        )
+        .accessibilityLabel(
+            item.isAvailable
+                ? item.title
+                : "\(item.title), unreachable"
+        )
+        .accessibilityHint(
+            item.isAvailable
+                ? "Select this account"
+                : "Unreachable. Relocate or remove this source."
         )
     }
 }

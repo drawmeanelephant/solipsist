@@ -21,7 +21,7 @@ struct PlayHost: View {
                 EmptyStateView(
                     title: "No Sources",
                     systemImage: "folder.badge.plus",
-                    message: "Open a folder with boris.json (e.g. Stunts/happy) to begin.",
+                    message: "Add a folder with boris.json from Settings → Sources or File → Open… (for example Stunts/happy).",
                     actionTitle: "Open…",
                     action: { store.presentOpenPanel() }
                 )
@@ -29,7 +29,7 @@ struct PlayHost: View {
                 EmptyStateView(
                     title: "No Source Selected",
                     systemImage: "sidebar.left",
-                    message: "Select a source from the sidebar to view its publication."
+                    message: "Select an account in the mailbox sidebar, or add one from Settings → Sources or File → Open…."
                 )
             }
         }
