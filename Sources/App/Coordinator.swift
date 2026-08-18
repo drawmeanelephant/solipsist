@@ -23,6 +23,10 @@ enum CoordinatorVerb: String, Sendable {
         }
     }
 
+    var timeout: Duration {
+        writesTree ? CoordinatorPolicy.buildTimeout : CoordinatorPolicy.oneShotTimeout
+    }
+
     var secretTarget: String? {
         switch self {
         case .publishNostr: PublishTargets.nostr
@@ -30,14 +34,6 @@ enum CoordinatorVerb: String, Sendable {
         default: nil
         }
     }
-}
-
-enum CoordinatorState: String, Sendable {
-    case idle
-    case watching
-    case validating
-    case building
-    case terminating
 }
 
 /// Menu verbs against `BorisEngine`. One job at a time. Play and the
@@ -53,12 +49,29 @@ final class Coordinator {
     private(set) var problems: [ProblemItem] = []
     private var task: Task<Void, Never>?
     private var reapTask: Task<Void, Never>?
+    private var watchdogTask: Task<Void, Never>?
+    private var debounceTask: Task<Void, Never>?
     private weak var activeWatch: WatchServer?
     private var watchSuspends = 0
+    private var saveGate = SaveValidateGate()
+    @ObservationIgnored
+    private var saveWatcher = ContentTreeWatcher()
+    private var jobOrigin: JobOrigin = .manual
+    private var timedOut = false
+    private var watchingSourceID: SourceID?
+    @ObservationIgnored
+    private weak var boundStore: WorkspaceStore?
+    @ObservationIgnored
+    private weak var boundRuntime: AppRuntime?
+
+    private enum JobOrigin {
+        case manual
+        case save
+    }
 
     var canRunVerb: Bool { state == .idle || state == .watching }
 
-    var canStop: Bool { state != .idle }
+    var canStop: Bool { state != .idle && state != .terminating }
 
     func registerWatch(_ server: WatchServer) {
         if let old = activeWatch, old !== server {
@@ -101,7 +114,63 @@ final class Coordinator {
         }
     }
 
+    func syncSaveWatch(store: WorkspaceStore, runtime: AppRuntime) {
+        boundStore = store
+        boundRuntime = runtime
+        guard case .local(let source) = store.selectedSource, source.isAvailable,
+              let root = try? source.contentRoot(),
+              FileManager.default.fileExists(atPath: root.path)
+        else {
+            saveWatcher.stop()
+            watchingSourceID = nil
+            return
+        }
+        guard watchingSourceID != source.id else { return }
+        watchingSourceID = source.id
+        saveWatcher.handler = { [weak self] in
+            Task { @MainActor in
+                self?.noteSave()
+            }
+        }
+        saveWatcher.start(path: root.path)
+    }
+
+    func noteSave() {
+        if saveGate.noteSave(now: .now, state: state) == .armDebounce {
+            armDebounce()
+        }
+    }
+
+    func terminateAll(runtime: AppRuntime) {
+        saveGate.dropAll()
+        debounceTask?.cancel()
+        debounceTask = nil
+        watchdogTask?.cancel()
+        watchdogTask = nil
+        saveWatcher.stop()
+        watchingSourceID = nil
+        if state != .terminating {
+            stop(runtime: runtime)
+        }
+        runtime.engine?.forceKill()
+        activeWatch?.forceKill()
+    }
+
     func run(_ verb: CoordinatorVerb, store: WorkspaceStore, runtime: AppRuntime) {
+        start(verb, store: store, runtime: runtime, origin: .manual)
+    }
+
+    private func startSaveValidate() {
+        guard let store = boundStore, let runtime = boundRuntime else { return }
+        start(.validate, store: store, runtime: runtime, origin: .save)
+    }
+
+    private func start(
+        _ verb: CoordinatorVerb,
+        store: WorkspaceStore,
+        runtime: AppRuntime,
+        origin: JobOrigin
+    ) {
         guard canRunVerb else { return }
         guard let engine = runtime.engine else {
             let message = runtime.engineError ?? "engine not found"
@@ -137,14 +206,29 @@ final class Coordinator {
             secret = nil
         }
 
+        if origin == .manual {
+            saveGate.manualVerbStarted()
+            debounceTask?.cancel()
+            debounceTask = nil
+        }
+
         isRunning = true
         state = verb.writesTree ? .building : .validating
         self.verb = verb
+        jobOrigin = origin
+        timedOut = false
         summary = "\(verb.rawValue)…"
         exitCode = nil
         problems = []
         if verb.writesTree {
             beginTreeWrite()
+        }
+
+        watchdogTask?.cancel()
+        watchdogTask = Task { [timeout = verb.timeout] in
+            try? await Task.sleep(for: timeout)
+            guard !Task.isCancelled else { return }
+            self.handleTimeout(runtime: runtime)
         }
 
         let noun = store.selection.noun
@@ -172,17 +256,15 @@ final class Coordinator {
     func stop(runtime: AppRuntime) {
         guard state != .terminating else { return }
         reapTask?.cancel()
+        watchdogTask?.cancel()
 
         if isRunning {
             state = .terminating
-            summary = "stopping…"
+            summary = timedOut ? "timing out…" : "stopping…"
             task?.cancel()
             let engine = runtime.engine
             reapTask = Task {
-                await engine?.interrupt()
-                try? await Task.sleep(for: ChildProcessControl.reapGrace)
-                guard !Task.isCancelled else { return }
-                await engine?.forceKill()
+                await engine?.escalate()
             }
             return
         }
@@ -209,13 +291,56 @@ final class Coordinator {
         }
         reapTask?.cancel()
         reapTask = nil
+        watchdogTask?.cancel()
+        watchdogTask = nil
+
+        let origin = jobOrigin
+        let wasTimeout = timedOut
+        timedOut = false
+        jobOrigin = .manual
+
         self.verb = nil
         isRunning = false
         exitCode = exit
-        self.summary = summary
-        self.problems = problems
+        if wasTimeout {
+            self.summary = exit.map { "\(verb.rawValue) timed out · exit \($0)" }
+                ?? "\(verb.rawValue) timed out"
+            self.problems = CoordinatorProblems.fromFailure(
+                code: "timeout",
+                message: "\(verb.rawValue) exceeded its time limit"
+            )
+        } else {
+            self.summary = summary
+            self.problems = problems
+        }
         task = nil
         state = (activeWatch?.isRunning == true) ? .watching : .idle
+
+        if origin == .manual, verb == .validate, !wasTimeout {
+            saveGate.manualValidateFinished(now: .now, skip: CoordinatorPolicy.manualSkip)
+        }
+        if saveGate.jobFinished(now: .now, freshness: CoordinatorPolicy.queuedFreshness)
+            == .startValidate
+        {
+            startSaveValidate()
+        }
+    }
+
+    private func armDebounce() {
+        debounceTask?.cancel()
+        debounceTask = Task {
+            try? await Task.sleep(for: CoordinatorPolicy.saveDebounce)
+            guard !Task.isCancelled else { return }
+            if self.saveGate.debounceFired(now: .now, state: self.state) == .startValidate {
+                self.startSaveValidate()
+            }
+        }
+    }
+
+    private func handleTimeout(runtime: AppRuntime) {
+        guard isRunning, state != .terminating else { return }
+        timedOut = true
+        stop(runtime: runtime)
     }
 
     private struct JobResult: Sendable {

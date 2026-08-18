@@ -1,10 +1,10 @@
 import XCTest
 
 final class BorisRunnerStdinTests: XCTestCase {
-    func testStdinIsPipedAndWipedNeverArgv() throws {
+    func testStdinIsPipedAndWipedNeverArgv() async throws {
         let payload = "nsec1testpayload-not-a-real-key"
         let secret = SecureBuffer(utf8String: payload)
-        let output = try BorisRunner.run(
+        let output = try await BorisRunner.run(
             binary: URL(fileURLWithPath: "/bin/cat"),
             arguments: [],
             stdin: secret
@@ -15,9 +15,9 @@ final class BorisRunnerStdinTests: XCTestCase {
         XCTAssertFalse(output.stdoutText.contains("key-stdin"))
     }
 
-    func testNilStdinDoesNotHangCat() throws {
+    func testNilStdinDoesNotHangCat() async throws {
         // /bin/true ignores stdin and exits 0.
-        let output = try BorisRunner.run(
+        let output = try await BorisRunner.run(
             binary: URL(fileURLWithPath: "/usr/bin/true"),
             arguments: []
         )

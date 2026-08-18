@@ -138,7 +138,7 @@ public actor BorisEngine {
         contentRoot: URL,
         outDir: URL,
         timings: Bool = false
-    ) throws -> BorisBuild {
+    ) async throws -> BorisBuild {
         try FileManager.default.createDirectory(
             at: outDir, withIntermediateDirectories: true
         )
@@ -150,7 +150,7 @@ public actor BorisEngine {
         if timings {
             arguments.append("--timings")
         }
-        let out = try run(
+        let out = try await run(
             arguments: arguments,
             workingDirectory: outDir.deletingLastPathComponent()
         )
@@ -205,7 +205,7 @@ public actor BorisEngine {
         contentRoot: URL,
         htmlDir: URL,
         reportURL: URL? = nil
-    ) throws -> BorisHTMLBuild {
+    ) async throws -> BorisHTMLBuild {
         try FileManager.default.createDirectory(
             at: htmlDir, withIntermediateDirectories: true
         )
@@ -217,7 +217,7 @@ public actor BorisEngine {
         if let reportURL {
             arguments += ["--report", reportURL.path]
         }
-        let out = try run(
+        let out = try await run(
             arguments: arguments,
             workingDirectory: htmlDir.deletingLastPathComponent()
         )
@@ -239,7 +239,7 @@ public actor BorisEngine {
         siteURL: String? = nil,
         workingDirectory: URL? = nil,
         timings: Bool = false
-    ) throws -> BorisEntryBuildResult {
+    ) async throws -> BorisEntryBuildResult {
         let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
         let fm = FileManager.default
         let reportURL = fm.temporaryDirectory
@@ -279,7 +279,7 @@ public actor BorisEngine {
             args.append("--timings")
         }
 
-        let out = try run(arguments: args, workingDirectory: cwd)
+        let out = try await run(arguments: args, workingDirectory: cwd)
         var report: HTMLBuildReport?
         if FileManager.default.fileExists(atPath: reportURL.path),
            let reportData = try? Data(contentsOf: reportURL)
@@ -309,7 +309,7 @@ public actor BorisEngine {
         isComplete: Bool = false,
         workingDirectory: URL? = nil,
         timings: Bool = false
-    ) throws -> BorisEntryBuildResult {
+    ) async throws -> BorisEntryBuildResult {
         let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
         var args = ["--input", contentRoot.path, "--quiet"]
         switch kind {
@@ -343,7 +343,7 @@ public actor BorisEngine {
             args.append("--timings")
         }
 
-        let out = try run(arguments: args, workingDirectory: cwd)
+        let out = try await run(arguments: args, workingDirectory: cwd)
         let timingsReport = timings ? decodeJSON(TimingsReport.self, from: out.stdout) : nil
 
         return BorisEntryBuildResult(
@@ -365,14 +365,14 @@ public actor BorisEngine {
         profile: PublicationProfile,
         workingDirectory: URL? = nil,
         timings: Bool = true
-    ) throws -> BorisFanoutResult {
+    ) async throws -> BorisFanoutResult {
         let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
         var results: [BorisEntryBuildResult] = []
 
         // 1. Targets in profile order
         if let targets = profile.targets, !targets.isEmpty {
             for target in targets {
-                let res = try buildTarget(
+                let res = try await buildTarget(
                     contentRoot: contentRoot,
                     target: target,
                     siteURL: profile.site?.url,
@@ -389,7 +389,7 @@ public actor BorisEngine {
                 }
             }
         } else {
-            let res = try buildTarget(
+            let res = try await buildTarget(
                 contentRoot: contentRoot,
                 target: PublicationTarget(name: "default", output: "dist"),
                 siteURL: profile.site?.url,
@@ -409,7 +409,7 @@ public actor BorisEngine {
         // 2. Editions in profile order
         if let editions = profile.editions {
             if let ir = editions.ir {
-                let res = try buildEdition(
+                let res = try await buildEdition(
                     contentRoot: contentRoot,
                     kind: "ir",
                     outputDir: ir.output,
@@ -426,7 +426,7 @@ public actor BorisEngine {
                 }
             }
             if let rag = editions.rag {
-                let res = try buildEdition(
+                let res = try await buildEdition(
                     contentRoot: contentRoot,
                     kind: "rag",
                     outputDir: rag.output,
@@ -445,7 +445,7 @@ public actor BorisEngine {
                 }
             }
             if let context = editions.context {
-                let res = try buildEdition(
+                let res = try await buildEdition(
                     contentRoot: contentRoot,
                     kind: "context",
                     outputDir: context.output,
@@ -476,13 +476,18 @@ public actor BorisEngine {
     /// SIGTERM the in-flight process, if any. One-shot builds die; watch
     /// exits 0. The app treats `terminationReason == .uncaughtSignal` as
     /// cancel when we inspect it; here we surface the resulting exit.
-    public func interrupt() {
+    public nonisolated func interrupt() {
         runHandle.terminate()
     }
 
     /// SIGKILL the in-flight one-shot if SIGTERM was ignored.
-    public func forceKill() {
+    public nonisolated func forceKill() {
         runHandle.forceKill()
+    }
+
+    /// SIGTERM, wait, SIGKILL. Yields so Stop stays responsive.
+    public nonisolated func escalate(grace: Duration = ChildProcessControl.reapGrace) async {
+        await runHandle.escalate(grace: grace)
     }
 
     // MARK: Preview (M4)
@@ -540,12 +545,12 @@ public actor BorisEngine {
     /// `--report PATH` to write the rendered JSON to a file instead. On
     /// afterparty, `check` exits 0 with findings by default and only exits 1
     /// with `--fail-on-unreferenced` — either way the report decodes fine.
-    public func check(contentRoot: URL, workingDirectory: URL? = nil) throws -> BorisAnalysis {
+    public func check(contentRoot: URL, workingDirectory: URL? = nil) async throws -> BorisAnalysis {
         let fm = FileManager.default
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-check-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
-        let out = try run(
+        let out = try await run(
             arguments: [
                 "check",
                 "--input", contentRoot.path,
@@ -561,12 +566,12 @@ public actor BorisEngine {
 
     /// Runs `boris impact <pageID> --format json --report <file>` and decodes
     /// the report.
-    public func impact(contentRoot: URL, pageID: String, workingDirectory: URL? = nil) throws -> BorisAnalysis {
+    public func impact(contentRoot: URL, pageID: String, workingDirectory: URL? = nil) async throws -> BorisAnalysis {
         let fm = FileManager.default
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-impact-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
-        let out = try run(
+        let out = try await run(
             arguments: [
                 "impact", pageID,
                 "--input", contentRoot.path,
@@ -583,16 +588,16 @@ public actor BorisEngine {
     // MARK: Version / plan / validate / init
 
     /// Runs `boris --version` and returns the stdout line (e.g. `boris/0.8.1`).
-    public func version() throws -> BorisVersion {
-        let out = try run(arguments: ["--version"])
+    public func version() async throws -> BorisVersion {
+        let out = try await run(arguments: ["--version"])
         let line = out.stdoutText.trimmingCharacters(in: .whitespacesAndNewlines)
         return BorisVersion(exitCode: out.exitCode, line: line)
     }
 
     /// Runs `boris plan --profile PATH` with cwd = the profile's parent
     /// (the publication workspace). Does not invent a profile.
-    public func plan(profileURL: URL) throws -> BorisPlan {
-        let out = try run(
+    public func plan(profileURL: URL) async throws -> BorisPlan {
+        let out = try await run(
             arguments: ["plan", "--profile", profileURL.lastPathComponent],
             workingDirectory: profileURL.deletingLastPathComponent()
         )
@@ -610,8 +615,8 @@ public actor BorisEngine {
         contentRoot: URL,
         reportURL: URL,
         workingDirectory: URL? = nil
-    ) throws -> BorisValidate {
-        let out = try run(
+    ) async throws -> BorisValidate {
+        let out = try await run(
             arguments: [
                 "validate",
                 "--input", contentRoot.path,
@@ -635,16 +640,16 @@ public actor BorisEngine {
     }
 
     /// Runs `boris init` in `directory`.
-    public func initProject(in directory: URL) throws -> BorisInit {
-        let out = try run(arguments: ["init"], workingDirectory: directory)
+    public func initProject(in directory: URL) async throws -> BorisInit {
+        let out = try await run(arguments: ["init"], workingDirectory: directory)
         return BorisInit(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
     // MARK: Publication (M8)
 
     /// Runs `boris standard-site plan --profile PATH`.
-    public func standardSitePlan(profileURL: URL) throws -> BorisPublishResult {
-        let out = try run(
+    public func standardSitePlan(profileURL: URL) async throws -> BorisPublishResult {
+        let out = try await run(
             arguments: ["standard-site", "plan", "--profile", profileURL.lastPathComponent],
             workingDirectory: profileURL.deletingLastPathComponent()
         )
@@ -652,8 +657,8 @@ public actor BorisEngine {
     }
 
     /// Runs `boris standard-site records --profile PATH`.
-    public func standardSiteRecords(profileURL: URL) throws -> BorisPublishResult {
-        let out = try run(
+    public func standardSiteRecords(profileURL: URL) async throws -> BorisPublishResult {
+        let out = try await run(
             arguments: ["standard-site", "records", "--profile", profileURL.lastPathComponent],
             workingDirectory: profileURL.deletingLastPathComponent()
         )
@@ -667,14 +672,14 @@ public actor BorisEngine {
         handle: String? = nil,
         password: SecureBuffer,
         workingDirectory: URL? = nil
-    ) throws -> BorisPublishResult {
+    ) async throws -> BorisPublishResult {
         var args = ["standard-site", "login", "--app-password"]
         if let did, !did.isEmpty {
             args += ["--did", did]
         } else if let handle, !handle.isEmpty {
             args += ["--handle", handle]
         }
-        let out = try run(
+        let out = try await run(
             arguments: args,
             workingDirectory: workingDirectory,
             stdin: password
@@ -684,8 +689,8 @@ public actor BorisEngine {
 
     /// Runs `boris standard-site publish --profile PATH`.
     /// Preserves exit classes 4–9 (denial, timeout, compatibility, partial-publication, verification, session).
-    public func standardSitePublish(profileURL: URL) throws -> BorisPublishResult {
-        let out = try run(
+    public func standardSitePublish(profileURL: URL) async throws -> BorisPublishResult {
+        let out = try await run(
             arguments: ["standard-site", "publish", "--profile", profileURL.lastPathComponent],
             workingDirectory: profileURL.deletingLastPathComponent()
         )
@@ -693,8 +698,8 @@ public actor BorisEngine {
     }
 
     /// Runs `boris nostr plan --profile PATH`.
-    public func nostrPlan(profileURL: URL) throws -> BorisPublishResult {
-        let out = try run(
+    public func nostrPlan(profileURL: URL) async throws -> BorisPublishResult {
+        let out = try await run(
             arguments: ["nostr", "plan", "--profile", profileURL.lastPathComponent],
             workingDirectory: profileURL.deletingLastPathComponent()
         )
@@ -708,8 +713,8 @@ public actor BorisEngine {
         outURL: URL,
         secret: SecureBuffer,
         workingDirectory: URL? = nil
-    ) throws -> BorisPublishResult {
-        let out = try run(
+    ) async throws -> BorisPublishResult {
+        let out = try await run(
             arguments: [
                 "nostr", "sign",
                 "--plan", planURL.path,
@@ -723,12 +728,12 @@ public actor BorisEngine {
     }
 
     /// Runs `boris nostr publish --bundle PATH --out PATH`.
-    public func nostrPublish(bundleURL: URL, reportURL: URL? = nil) throws -> BorisPublishResult {
+    public func nostrPublish(bundleURL: URL, reportURL: URL? = nil) async throws -> BorisPublishResult {
         var args = ["nostr", "publish", "--bundle", bundleURL.path]
         if let reportURL {
             args.append(contentsOf: ["--out", reportURL.path])
         }
-        let out = try run(
+        let out = try await run(
             arguments: args,
             workingDirectory: bundleURL.deletingLastPathComponent()
         )
@@ -738,8 +743,8 @@ public actor BorisEngine {
     // MARK: Probe
 
     /// Sanity probe: runs `boris --help` and returns the first lines.
-    public func probe() throws -> String {
-        let out = try run(arguments: ["--help"])
+    public func probe() async throws -> String {
+        let out = try await run(arguments: ["--help"])
         let head = out.stdoutText
             .split(separator: "\n")
             .prefix(3)
@@ -753,8 +758,8 @@ public actor BorisEngine {
         arguments: [String],
         workingDirectory: URL? = nil,
         stdin: SecureBuffer? = nil
-    ) throws -> RunOutput {
-        try BorisRunner.run(
+    ) async throws -> RunOutput {
+        try await BorisRunner.run(
             binary: binaryURL,
             arguments: arguments,
             workingDirectory: workingDirectory,

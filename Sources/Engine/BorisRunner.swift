@@ -23,12 +23,6 @@ public enum BorisRunnerError: Error, Sendable, CustomStringConvertible {
     }
 }
 
-/// Runs the `boris` binary as a subprocess and captures its output.
-///
-/// stdout/stderr are redirected to temp files rather than pipes: regular
-/// files cannot deadlock (OS pipe buffers cap at ~64 KB and Boris JSON
-/// reports can exceed that) and need no concurrent reader threads. The
-/// child inherits the file descriptors; after exit we read the files back.
 /// Lets the engine interrupt an in-flight `Process` (Stop). Additive —
 /// capture/wait behavior is unchanged.
 public final class RunHandle: @unchecked Sendable {
@@ -41,6 +35,21 @@ public final class RunHandle: @unchecked Sendable {
         lock.lock()
         self.process = process
         lock.unlock()
+    }
+
+    public var isRunning: Bool {
+        lock.lock()
+        let process = self.process
+        lock.unlock()
+        return process?.isRunning == true
+    }
+
+    public var processIdentifier: Int32? {
+        lock.lock()
+        let process = self.process
+        lock.unlock()
+        guard let process, process.isRunning else { return nil }
+        return process.processIdentifier
     }
 
     public func terminate() {
@@ -58,17 +67,29 @@ public final class RunHandle: @unchecked Sendable {
         guard let process, process.isRunning else { return }
         ChildProcessControl.forceKill(pid: process.processIdentifier)
     }
+
+    /// SIGTERM, wait `grace`, then SIGKILL if the child is still up.
+    public func escalate(grace: Duration = ChildProcessControl.reapGrace) async {
+        terminate()
+        try? await Task.sleep(for: grace)
+        if isRunning {
+            forceKill()
+        }
+    }
 }
 
 public enum BorisRunner {
 
+    /// Launch and wait off the caller's executor. Completion uses
+    /// `terminationHandler` so an actor can still `interrupt()` / `forceKill()`
+    /// a wedged child.
     public static func run(
         binary: URL,
         arguments: [String],
         workingDirectory: URL? = nil,
         handle: RunHandle? = nil,
         stdin: SecureBuffer? = nil
-    ) throws -> RunOutput {
+    ) async throws -> RunOutput {
         let fm = FileManager.default
         let tmpDir = fm.temporaryDirectory
             .appendingPathComponent("boris-run-\(UUID().uuidString)")
@@ -84,10 +105,6 @@ public enum BorisRunner {
             let stderrHandle = FileHandle(forWritingAtPath: stderrURL.path)
         else {
             throw BorisRunnerError.launchFailed("could not create capture files")
-        }
-        defer {
-            stdoutHandle.closeFile()
-            stderrHandle.closeFile()
         }
 
         let process = Process()
@@ -110,21 +127,54 @@ public enum BorisRunner {
         }
 
         handle?.attach(process)
-        do {
-            try process.run()
-        } catch {
-            stdin?.wipe()
-            throw BorisRunnerError.launchFailed(String(describing: error))
+        defer {
+            stdoutHandle.closeFile()
+            stderrHandle.closeFile()
         }
 
-        if let stdin, let stdinPipe {
-            try StdinSecretWriter.writeAndWipe(stdin, to: stdinPipe.fileHandleForWriting)
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            let box = OnceResume()
+            process.terminationHandler = { _ in
+                box.resume {
+                    cont.resume()
+                }
+            }
+            do {
+                try process.run()
+            } catch {
+                box.resume {
+                    cont.resume(throwing: BorisRunnerError.launchFailed(String(describing: error)))
+                }
+                return
+            }
+            if let stdin, let stdinPipe {
+                do {
+                    try StdinSecretWriter.writeAndWipe(stdin, to: stdinPipe.fileHandleForWriting)
+                } catch {
+                    process.terminate()
+                    box.resume {
+                        cont.resume(throwing: error)
+                    }
+                }
+            }
         }
-
-        process.waitUntilExit()
 
         let stdout = (try? Data(contentsOf: stdoutURL)) ?? Data()
         let stderr = (try? Data(contentsOf: stderrURL)) ?? Data()
         return RunOutput(stdout: stdout, stderr: stderr, exitCode: process.terminationStatus)
+    }
+}
+
+/// `terminationHandler` and launch-failure can race; resume once.
+private final class OnceResume: @unchecked Sendable {
+    private let lock = NSLock()
+    private var done = false
+
+    func resume(_ body: () -> Void) {
+        lock.lock()
+        let first = !done
+        done = true
+        lock.unlock()
+        if first { body() }
     }
 }

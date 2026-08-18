@@ -13,15 +13,15 @@ watch"* (ROADMAP §7).
 
 | Piece | Current behavior |
 |-------|------------------|
-| `BorisEngine` (actor) | One `RunHandle` = one `Process?` slot for one-shots. `run()` is **synchronous** (`waitUntilExit`) — serialized by the actor, so one-shot jobs never overlap. `interrupt()` = SIGTERM; `forceKill()` = SIGKILL. |
-| `BorisRunner.run` | stdout/stderr → temp files (no pipe deadlock). `RunHandle.terminate()` = SIGTERM; `forceKill()` = SIGKILL. |
+| `BorisEngine` (actor) | One `RunHandle` = one `Process?` slot for one-shots. `run()` is **async** (`terminationHandler` + continuation) so `interrupt()` / `forceKill()` / `escalate()` stay responsive on a wedged child. One-shots never overlap (actor + one handle). `interrupt()` = SIGTERM; `forceKill()` = SIGKILL. |
+| `BorisRunner.run` | stdout/stderr → temp files (no pipe deadlock). Async wait. `RunHandle.terminate()` = SIGTERM; `forceKill()` = SIGKILL; `escalate()` = SIGTERM → grace → SIGKILL. |
 | `ChildProcessControl` | Shared SIGSTOP / SIGCONT / SIGKILL primitive. |
-| `Coordinator` (MainActor) | `state` (`idle` / `watching` / `validating` / `building` / `terminating`) plus `isRunning` / `verb` / `summary` / `exitCode` / `problems`. Weak watch registry. Tree-writing verbs (`buildIR` / `buildHTML` / `buildThis` / `buildAll` / `publishStandardSite`) SIGSTOP watch, resume on finish. Stop: SIGTERM then SIGKILL after 2s; with no job, Stop tears down preview watch. |
+| `Coordinator` (MainActor) | `state` (`idle` / `watching` / `validating` / `building` / `terminating`) plus `isRunning` / `verb` / `summary` / `exitCode` / `problems`. Weak watch registry. Tree-writing verbs SIGSTOP watch, resume on finish. Stop / hang watchdog: SIGTERM then SIGKILL after 2s. Save-triggered validate: FSEvents on the selected content root, 300 ms debounce, coalescing, skip window. `terminateAll()` on quit. |
 | `WatchServer` | Long-lived `boris watch --serve`. `suspend()` / `resume()` / `forceKill()`. `stop()` continues a frozen child before SIGTERM. |
 | `PreviewSession` | Owns the `WatchServer`; registers/unregisters with the coordinator on start/stop/exit/timeout. |
 
-**Still open:** save-triggered validate + debounce, job hang watchdog
-(timeouts in §5), moving `waitUntilExit` off the engine actor.
+**Landed (this card):** save-triggered validate + debounce, job hang
+watchdog (timeouts in §5), `waitUntilExit` moved off the engine actor.
 
 ## 2. Canonical states
 
@@ -108,10 +108,8 @@ never blocked on watch.
 
 ## 4. Save-triggered validate (debounce)
 
-Greenfield — no file watcher exists today. Add a per-selected-source
-tree watcher (FSEvents or `DispatchSourceFileSystemObject` on the
-content root) owned by the coordinator; every change →
-`coordinator.noteSave()`.
+A per-selected-source FSEvents watcher on the content root is owned
+by the coordinator; every change → `coordinator.noteSave()`.
 
 - **Debounce:** 300 ms from the *last* save before a validate may
   start (rapid typing coalesces into one run). Constant
