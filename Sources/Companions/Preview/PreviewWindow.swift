@@ -7,16 +7,19 @@ import WebKit
 /// window and leaves it closed; the Preview lane owns this file.
 ///
 /// When a source is selected the window starts a `WatchServer` for its
-/// content root via `PreviewSession`; the served helper URL (`…/__boris/`)
-/// is loaded into the web view, where the helper page owns the iframe + SSE
-/// auto-reload. The toolbar keeps the manual loopback-paste escape hatch.
+/// content root via the shared `AppRuntime.previewSession`; the served
+/// helper URL (`…/__boris/`) is loaded into the web view, where the helper
+/// page owns the iframe + SSE auto-reload. Closing this window does not
+/// stop the watch — Play's reading pane reuses it. The toolbar keeps the
+/// manual loopback-paste escape hatch.
 struct PreviewWindow: View {
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
 
     @State private var model = PreviewWebModel()
     @State private var urlText = ""
-    @State private var session = PreviewSession()
+
+    private var session: PreviewSession { runtime.previewSession }
 
     var body: some View {
         Group {
@@ -47,9 +50,6 @@ struct PreviewWindow: View {
             } else {
                 model.loadBlank()
             }
-        }
-        .onDisappear {
-            session.stop()
         }
     }
 

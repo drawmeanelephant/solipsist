@@ -1,60 +1,36 @@
 import SwiftUI
 
-/// Play surface for a local folder: the publication as a Mail-style list.
+/// Play surface for a local folder: mailbox contents plus, for Pages, a
+/// reading pane for the selected letter.
 ///
 /// Reads `<source>/.boris/graph.json` when present; otherwise asks
 /// `BorisEngine.buildIR` to produce it. Selection is written to
-/// `WorkspaceStore` as `noun.kind == "page"` — the drawer only reads it.
+/// `WorkspaceStore` as `noun.kind == "page"` with `sourcePath` — the
+/// drawer and companions only read it.
 struct LocalPlay: PlaySurface {
     let source: LocalSource
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
-
-    enum PlayTab: String, CaseIterable, Identifiable {
-        case pages = "Pages"
-        case outputs = "Outputs"
-        case publish = "Publish"
-        case plan = "Plan"
-        case activity = "Activity"
-
-        var id: String { rawValue }
-    }
+    @Environment(\.openWindow) private var openWindow
 
     @State private var state: LoadState = .idle
     @State private var searchText = ""
-
-    private var selectedTab: Binding<PlayTab> {
-        Binding(
-            get: { PlayTab(mailbox: store.selection.mailbox) },
-            set: { store.select(mailbox: $0.mailboxKey) }
-        )
-    }
+    @State private var loadGeneration = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("View", selection: selectedTab) {
-                ForEach(PlayTab.allCases) { tab in
-                    Text(tab.rawValue).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-
-            Divider()
-
-            switch selectedTab.wrappedValue {
-            case .pages:
-                pagesContent
-            case .outputs:
+        Group {
+            switch WorkspaceMailbox.display(store.selection.mailbox) {
+            case WorkspaceMailbox.outputs:
                 OutputsPane(source: source)
-            case .publish:
+            case WorkspaceMailbox.publish:
                 PublishPane(source: source)
-            case .plan:
+            case WorkspaceMailbox.plan:
                 PlanPane(source: source)
-            case .activity:
+            case WorkspaceMailbox.activity:
                 ActivityPane()
+            default:
+                pagesMailbox
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -78,8 +54,17 @@ struct LocalPlay: PlaySurface {
         return []
     }
 
+    private var selectedPlayPage: PlayPage? {
+        guard
+            let noun = store.selection.noun,
+            noun.kind == "page",
+            case .ready(let pages) = state
+        else { return nil }
+        return pages.first(where: { $0.id == noun.id })
+    }
+
     @ViewBuilder
-    private var pagesContent: some View {
+    private var pagesMailbox: some View {
         switch state {
         case .idle, .reading, .building:
             ProgressView(progressTitle)
@@ -113,7 +98,16 @@ struct LocalPlay: PlaySurface {
                 Button("Try Again") { reload() }
             }
         case .ready(let pages):
-            pageList(pages)
+            VSplitView {
+                pageList(pages)
+                    .frame(minHeight: 120)
+                ReadingPane(
+                    page: selectedPlayPage,
+                    source: source,
+                    loadGeneration: loadGeneration
+                )
+                .frame(minHeight: 160)
+            }
         }
     }
 
@@ -128,8 +122,17 @@ struct LocalPlay: PlaySurface {
                 List(filtered, selection: selectedPageID) { page in
                     PageRow(page: page, findings: runtime.coordinator.checkFindings)
                         .tag(page.id)
+                        .simultaneousGesture(TapGesture(count: 2).onEnded {
+                            selectPage(page)
+                            openWindow(id: CompanionID.editor)
+                        })
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))
+                .onKeyPress(.return) {
+                    guard store.selection.canEditPage else { return .ignored }
+                    openWindow(id: CompanionID.editor)
+                    return .handled
+                }
             }
         }
         .searchable(text: $searchText, prompt: "Filter by title, id, tag, or status…")
@@ -142,6 +145,10 @@ struct LocalPlay: PlaySurface {
                 return noun?.kind == "page" ? noun?.id : nil
             },
             set: { newID in
+                let currentID = store.selection.noun?.kind == "page" ? store.selection.noun?.id : nil
+                if newID != nil, newID == currentID {
+                    loadGeneration += 1
+                }
                 guard
                     let newID,
                     case .ready(let pages) = state,
@@ -150,10 +157,19 @@ struct LocalPlay: PlaySurface {
                     store.select(noun: nil)
                     return
                 }
-                store.select(
-                    noun: WorkspaceNoun(kind: "page", id: page.id, title: page.title)
-                )
+                selectPage(page)
             }
+        )
+    }
+
+    private func selectPage(_ page: PlayPage) {
+        store.select(
+            noun: WorkspaceNoun(
+                kind: "page",
+                id: page.id,
+                title: page.title,
+                sourcePath: page.sourcePath
+            )
         )
     }
 
@@ -246,6 +262,27 @@ struct LocalPlay: PlaySurface {
         }
         let pages = LocalPlayGraph.pages(from: graph)
         state = pages.isEmpty ? .empty : .ready(pages)
+        refreshNoun(against: pages)
+    }
+
+    /// Keep the page noun honest after a graph reload: rewrite title +
+    /// `sourcePath` when the id still exists, otherwise drop the letter.
+    private func refreshNoun(against pages: [PlayPage]) {
+        guard store.selection.noun?.kind == "page", let id = store.selection.noun?.id else {
+            return
+        }
+        if let page = pages.first(where: { $0.id == id }) {
+            store.select(
+                noun: WorkspaceNoun(
+                    kind: "page",
+                    id: page.id,
+                    title: page.title,
+                    sourcePath: page.sourcePath
+                )
+            )
+        } else {
+            store.select(noun: nil)
+        }
     }
 
     private func unknownSchemaMessage(_ version: String) -> String {
@@ -267,28 +304,6 @@ struct LocalPlay: PlaySurface {
         case empty
         case ready([PlayPage])
         case failed(String)
-    }
-}
-
-extension LocalPlay.PlayTab {
-    var mailboxKey: String {
-        switch self {
-        case .pages: return WorkspaceMailbox.pages
-        case .outputs: return WorkspaceMailbox.outputs
-        case .publish: return WorkspaceMailbox.publish
-        case .plan: return WorkspaceMailbox.plan
-        case .activity: return WorkspaceMailbox.activity
-        }
-    }
-
-    init(mailbox: String?) {
-        switch WorkspaceMailbox.display(mailbox) {
-        case WorkspaceMailbox.outputs: self = .outputs
-        case WorkspaceMailbox.publish: self = .publish
-        case WorkspaceMailbox.plan: self = .plan
-        case WorkspaceMailbox.activity: self = .activity
-        default: self = .pages
-        }
     }
 }
 

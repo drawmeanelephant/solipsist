@@ -28,6 +28,13 @@ final class PreviewSession {
         return nil
     }
 
+    /// Content-root path this session last started, if any.
+    var boundRootPath: String? { rootPath }
+
+    func isBound(to contentRoot: URL) -> Bool {
+        boundRootPath == contentRoot.standardizedFileURL.path
+    }
+
     var isFailure: Bool {
         if case .failed = phase { return true }
         return false
