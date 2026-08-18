@@ -20,6 +20,11 @@ final class WorkspaceStore {
     @ObservationIgnored
     private var scopedURLs: [SourceID: URL] = [:]
 
+    /// Decoded graph per source (M13-1 sidebar trunks). Play pushes the
+    /// decoded graph after a load/build; Chrome only reads it. Negative
+    /// lookups are never cached, so a later build can make it appear.
+    private(set) var graphs: [SourceID: Graph] = [:]
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         load()
@@ -180,6 +185,40 @@ final class WorkspaceStore {
     /// in place; nothing is added to the source list.
     func cancelClone() {
         activeCloneSession?.terminate()
+    }
+
+    // MARK: - Graph mirror (M13-1)
+
+    /// Sidebar read path for trunk folders. Cached value wins; otherwise
+    /// decode `<root>/.boris/graph.json` lazily. Chrome never parses JSON
+    /// itself — this is the store's mirror.
+    func graph(for id: SourceID) -> Graph? {
+        if let cached = graphs[id] { return cached }
+        guard let url = resolvedURL(for: id) else { return nil }
+        let fileURL = url
+            .appendingPathComponent(".boris", isDirectory: true)
+            .appendingPathComponent("graph.json")
+        guard FileManager.default.fileExists(atPath: fileURL.path),
+              let data = try? Data(contentsOf: fileURL),
+              let decoded = try? JSONDecoder().decode(Graph.self, from: data)
+        else { return nil }
+        graphs[id] = decoded
+        return decoded
+    }
+
+    /// Play pushes the graph it already decoded after a load/build so
+    /// the sidebar stays fresh without re-parsing JSON.
+    func updateGraph(_ graph: Graph, for id: SourceID) {
+        graphs[id] = graph
+    }
+
+    private func resolvedURL(for id: SourceID) -> URL? {
+        if let url = scopedURLs[id] { return url }
+        guard let item = sources.first(where: { $0.id == id }),
+              case .local(let local) = item,
+              let resolved = try? local.resolve().url
+        else { return nil }
+        return resolved.standardizedFileURL
     }
 
     func addLocal(url: URL) {

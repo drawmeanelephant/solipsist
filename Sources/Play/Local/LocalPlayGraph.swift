@@ -74,6 +74,12 @@ enum LocalPlayGraph {
         return rows
     }
 
+    /// The sidebar's folder rows under Pages (M13-1): roots whose role
+    /// is `trunk`. Satellites and non-trunk roots are not folders.
+    static func trunks(from graph: Graph) -> [PlayPage] {
+        pages(from: graph).filter { $0.depth == 0 && $0.role == .trunk }
+    }
+
     /// Filter pages by query string matching title, id, tag, or status.
     /// Supports prefixes: `tag:`, `status:`, `id:`, `title:`.
     static func filter(pages: [PlayPage], query: String) -> [PlayPage] {

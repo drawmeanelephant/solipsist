@@ -83,26 +83,86 @@ private struct SourceSection: View {
     var body: some View {
         Section(isExpanded: $isExpanded) {
             ForEach(WorkspaceMailbox.all, id: \.self) { box in
-                MailboxRow(item: item, box: box)
-                    .tag(MailboxRowID(sourceID: item.id, mailbox: box))
-                    .contextMenu { sourceMenu(item) }
+                if box == WorkspaceMailbox.pages {
+                    // Pages grows trunk-folder children from the decoded
+                    // graph (M13-1). No graph yet → no children, not an
+                    // error; Chrome never parses JSON.
+                    PagesGroup(item: item, store: store)
+                } else {
+                    MailboxRow(item: item, box: box)
+                        .tag(MailboxRowID(sourceID: item.id, mailbox: box))
+                        .contextMenu { sourceMenu(item, store: store) }
+                }
             }
         } header: {
             SourceAccountHeader(item: item)
-                .contextMenu { sourceMenu(item) }
+                .contextMenu { sourceMenu(item, store: store) }
         }
     }
+}
 
-    @ViewBuilder
-    private func sourceMenu(_ item: SourceItem) -> some View {
-        if !item.isAvailable {
-            Button("Relocate…") {
-                store.presentRelocatePanel(for: item.id)
+/// Pages plus its trunk-folder children. One child row per trunk;
+/// the selection value is the trunk **id**. Clicking Pages writes
+/// `pages`; clicking a trunk writes its raw id. Expansion is not
+/// persisted (resets to expanded each launch).
+private struct PagesGroup: View {
+    let item: SourceItem
+    let store: WorkspaceStore
+    @State private var expanded = true
+
+    private var pagesRowID: MailboxRowID {
+        MailboxRowID(sourceID: item.id, mailbox: WorkspaceMailbox.pages)
+    }
+
+    private var trunks: [PlayPage] {
+        guard let graph = store.graph(for: item.id) else { return [] }
+        return LocalPlayGraph.trunks(from: graph)
+    }
+
+    var body: some View {
+        DisclosureGroup(isExpanded: $expanded) {
+            ForEach(trunks, id: \.id) { trunk in
+                TrunkRow(item: item, trunk: trunk)
+                    .tag(MailboxRowID(sourceID: item.id, mailbox: trunk.id))
+                    .contextMenu { sourceMenu(item, store: store) }
             }
+        } label: {
+            MailboxRow(item: item, box: WorkspaceMailbox.pages)
+                .tag(pagesRowID)
+                .contextMenu { sourceMenu(item, store: store) }
         }
-        Button("Remove from Sidebar", role: .destructive) {
-            store.remove(item.id)
+    }
+}
+
+/// A trunk folder row under Pages. Label is the trunk title; the
+/// selection value is the trunk id (written raw to `mailbox`).
+private struct TrunkRow: View {
+    let item: SourceItem
+    let trunk: PlayPage
+
+    var body: some View {
+        Label {
+            Text(trunk.title)
+                .font(.system(size: 12.5, weight: .regular))
+                .lineLimit(1)
+        } icon: {
+            Image(systemName: "folder")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
         }
+        .accessibilityLabel("\(item.title), \(trunk.title)")
+    }
+}
+
+@ViewBuilder
+fileprivate func sourceMenu(_ item: SourceItem, store: WorkspaceStore) -> some View {
+    if !item.isAvailable {
+        Button("Relocate…") {
+            store.presentRelocatePanel(for: item.id)
+        }
+    }
+    Button("Remove from Sidebar", role: .destructive) {
+        store.remove(item.id)
     }
 }
 

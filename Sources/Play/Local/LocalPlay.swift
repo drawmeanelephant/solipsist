@@ -327,6 +327,9 @@ struct LocalPlay: PlaySurface {
         }
         let pages = LocalPlayGraph.pages(from: graph)
         state = pages.isEmpty ? .empty : .ready(pages)
+        // Push the decoded graph so the sidebar can show trunk folders
+        // without Chrome re-parsing JSON (M13-1).
+        store.updateGraph(graph, for: source.id)
         refreshNoun(against: pages)
     }
 
