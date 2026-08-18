@@ -212,6 +212,21 @@ final class CompanionURLTests: XCTestCase {
         XCTAssertEqual(cook.absoluteString, "http://127.0.0.1:49152/recipe/soup.html")
     }
 
+    func testPreviewURLPageURLUsesGraphIDVerbatimNotSourcePathStemSwap() throws {
+        // The letter URL is `/{GraphNode.id}.html` — the id is used
+        // verbatim. A slashed or extension-bearing id must never be
+        // derived from (or stem-swapped against) the page's sourcePath.
+        let helper = try XCTUnwrap(URL(string: "http://127.0.0.1:49152/__boris/"))
+        let slashed = try XCTUnwrap(PreviewURL.pageURL(helper: helper, pageID: "recipe/soup"))
+        XCTAssertEqual(slashed.absoluteString, "http://127.0.0.1:49152/recipe/soup.html")
+        // A sourcePath-shaped id keeps its own prefix: no `content/` injection.
+        let pathShaped = try XCTUnwrap(PreviewURL.pageURL(helper: helper, pageID: "content/recipe/soup"))
+        XCTAssertEqual(pathShaped.absoluteString, "http://127.0.0.1:49152/content/recipe/soup.html")
+        // An extension is appended, never swapped for `.html`.
+        let withExtension = try XCTUnwrap(PreviewURL.pageURL(helper: helper, pageID: "recipe/soup.md"))
+        XCTAssertEqual(withExtension.absoluteString, "http://127.0.0.1:49152/recipe/soup.md.html")
+    }
+
     func testPreviewURLPageURLTrimsSlashes() throws {
         let helper = try XCTUnwrap(URL(string: "http://127.0.0.1:8080/__boris/"))
         let url = try XCTUnwrap(PreviewURL.pageURL(helper: helper, pageID: "/guides/getting-started/"))
