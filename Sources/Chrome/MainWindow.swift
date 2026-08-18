@@ -66,6 +66,12 @@ struct MainWindow: View {
                 .disabled(store.selectedSource == nil)
             }
         }
+        .onAppear {
+            runtime.coordinator.syncSaveWatch(store: store, runtime: runtime)
+        }
+        .onChange(of: store.selection.sourceID) {
+            runtime.coordinator.syncSaveWatch(store: store, runtime: runtime)
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             statusBar
         }

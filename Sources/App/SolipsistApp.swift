@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 @main
@@ -11,6 +12,11 @@ struct SolipsistApp: App {
             MainWindow(inspectorPresented: $inspectorPresented)
                 .environment(store)
                 .environment(runtime)
+                .onReceive(NotificationCenter.default.publisher(
+                    for: NSApplication.willTerminateNotification
+                )) { _ in
+                    runtime.coordinator.terminateAll(runtime: runtime)
+                }
         }
         .defaultSize(width: 1100, height: 700)
         .commands {
