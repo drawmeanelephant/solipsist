@@ -10,9 +10,9 @@
 
 **Solipsist is a native Mac harness for Boris:** Radio UserLand’s job in
 Mail’s body. It turns the graph-native publication compiler into a
-one-window workstation for sources, play, inspection, preview, and
-broadcast — and it refuses to invent anything the HIG or a Boris
-contract already named.
+one-window workstation for sources (in Settings), mailboxes, a reading
+place, inspection, preview, and broadcast — and it refuses to invent
+anything the HIG or a Boris contract already named.
 
 ## The engine we harness
 
@@ -71,21 +71,26 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
 
 - **M0–M8 gates plus depth.** Spike, chassis, list, verbs,
   preview/editor, outputs, publish family, first-run, filter, profile
-  1:1, `recipe-scale`. Remaining card:
+  1:1, `recipe-scale`. Remaining **ship** card:
   [#78](https://github.com/drawmeanelephant/solipsist/issues/78).
-  Sequence: [ROADMAP.md](ROADMAP.md) §8.
+  Next **product cut:** M10 Mail body
+  ([#98](https://github.com/drawmeanelephant/solipsist/issues/98) —
+  Settings, mailbox sidebar, reading pane). Sequence:
+  [ROADMAP.md](ROADMAP.md) §8.
 - **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `b82e9e2`.
   A3/A4/A13/A1/A14/A7 have merged after that pin — bump when we vendor
   a newer kit (#78).
-- **Next:** clean-Mac ship (#78). Roadmap **P** is withdrawn — the
-  public site ships via Cloudflare Pages (`site/`).
+- **Next:** clean-Mac ship (#78), then the Mail-body recut. Roadmap
+  **P** is withdrawn — the public site ships via Cloudflare Pages
+  (`site/`).
 
 ## What success looks like
 
-Open any folder of Boris content on a Mac → it is a **source** → play
-shows the real graph from `graph.json` → the drawer shows the profile
-and the selected page → Plan / Validate / Build surface every diagnostic
-→ Preview reloads through `watch --serve` → Edit hosts `boris-editor` →
-publish to GitHub Pages, Standard.site, or Nostr with the Proof Pack
-attached. All of it driven by the compiler's contracts; none of it by
-scraped prose or reimplemented logic.
+Open any folder of Boris content on a Mac → it is a **source** in
+Settings → it appears as an account with mailboxes → the reading place
+shows the graph as messages and a pane for the selected page → the
+drawer shows the profile and that page → Plan / Validate / Build
+surface every diagnostic → Preview reloads through `watch --serve` →
+Edit hosts `boris-editor` → publish to GitHub Pages, Standard.site, or
+Nostr with the Proof Pack attached. All of it driven by the compiler's
+contracts; none of it by scraped prose or reimplemented logic.

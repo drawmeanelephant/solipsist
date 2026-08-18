@@ -12,13 +12,18 @@ Solipsist is built in Swift 6 with SwiftUI for macOS 14+.
 ## Spatial Model
 
 ```
+Settings → Sources (the account book)
+
 ┌──────────────────┬─────────────────────────────┬──────────────────┐
-│ SOURCES          │ PLAY                        │ DRAWER           │
-│ Local / GitHub   │ Graph, outputs, activity,   │ Profile, page    │
-│                  │ reports                     │ fields, options  │
+│ MAILBOXES        │ READING                     │ DRAWER           │
+│ Source as        │ Message list + reading      │ Profile, page    │
+│ account header   │ pane for the selected page  │ fields, options  │
 └──────────────────┴─────────────────────────────┴──────────────────┘
-Companion windows: Preview (watch --serve) · Editor (boris-editor)
+Companion windows: Preview (full site) · Editor (boris-editor)
 ```
+
+M2–M8 shipped a flatter cut (source list + tabbed play). M10 is the
+recut to the diagram above.
 
 ## Engine Integration
 
@@ -34,4 +39,4 @@ The subprocess boundary is a feature, not an accident:
 - Swift never reimplements compiler semantics. The JSON contracts (`manifest`, `graph`, `completion`, `build-report`, analysis reports) are the single source of truth; the app mirrors and renders them.
 - Diagnostics and exit codes are surfaced, never silently swallowed.
 
-These boundaries are the architectural form of the [[mission]]’s non-negotiables, and they are the reason the graph shown in the play list is the *real* graph from `graph.json` — not a Swift reconstruction.
+These boundaries are the architectural form of the [[mission]]’s non-negotiables, and they are the reason the graph shown in the reading place is the *real* graph from `graph.json` — not a Swift reconstruction.
