@@ -131,20 +131,20 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M6** Author | ✅ gate — `boris-editor` host + link-out (#75, #81) |
 | **M7** Outputs | ✅ gate — Build this / Build all fan-out (#76, #81) |
 | **M8** Publish | ✅ gate — stdin secrets, Standard.site / Nostr buttons (#77, #82/#84) |
-| **M9** Ship | 🔧 pipeline exists; clean-Mac proof + credentials + pin open (#78) |
-| **M10** Mail body | 📋 Settings, mailboxes, reading pane, hosted Edit, native Compose ([#98](https://github.com/drawmeanelephant/solipsist/issues/98), [#106](https://github.com/drawmeanelephant/solipsist/issues/106)) |
+| **M9** Ship | ✅ release pipeline, clean-Mac proof, testdata, pin bump (#78) |
+| **M10** Mail body | ✅ Settings, mailboxes, reading pane, hosted Edit, native Compose ([#98](https://github.com/drawmeanelephant/solipsist/issues/98); children #99–#102, #106) |
+| **M11** Prove the Mail body | ✅ Help audit + test pass ([#123](https://github.com/drawmeanelephant/solipsist/issues/123); #124/#125 → PRs #126/#127/#128) |
 
 **Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
 batch then landed: first-run and problem→page (#88/#94), graph filter /
 activity / plan document (#89/#96), profile 1:1 + execution knobs +
 `recipe-scale` (#90/#95), Standard.site family + package + readable
-proof (#91/#93). Remaining **ship** card is
-[#78](https://github.com/drawmeanelephant/solipsist/issues/78) (M9).
-M10 is the next product cut after ship; it does not expand #78. Do
-not grow `MainWindow`. Native compose is an M10 child
-([#106](https://github.com/drawmeanelephant/solipsist/issues/106),
-PR [#108](https://github.com/drawmeanelephant/solipsist/pull/108)),
-not a side lane.
+proof (#91/#93). Then **M9 ship** (#78), the **M10 Mail-body cut**
+(#98 + #99–#102, #106), and **M11 prove** (#123) all landed and
+closed. Remaining ship is Apple-account only (#110 notarized `v*`
+DMG, #111 clean-Mac proof) — operator, blocked on a paid team ID.
+Next product slice: git clone as a Local source (#131),
+`docs/cards/GIT-CLONE.md`. Do not grow `MainWindow`.
 
 ---
 
@@ -341,7 +341,7 @@ proof without performing the git push.
 source is its own folder (`Workspace/GitHub/`, `Play/GitHub/`) and must
 not block the local publish flows.
 
-### M9 — Ship
+### M9 — Ship ✅
 
 **Goal.** A notarized Mac app that does not need Zig at runtime.
 
@@ -356,7 +356,11 @@ not block the local publish flows.
 **Gate.** Download the build on a machine without this repo, open a
 folder, plan, validate, build, preview.
 
-### M10 — Mail body
+Landed 2026-08-18 (#78). Remaining ship is Apple-account only
+(#110 notarized `v*` DMG, #111 clean-Mac proof — operator, blocked on
+a paid team ID).
+
+### M10 — Mail body ✅
 
 **Goal.** The window is Mail, not a tabbed workbench. Sources live in
 Settings. The left pane is a mailbox tree. The center is messages plus
@@ -396,6 +400,32 @@ cards in [`cards/`](cards/README.md). Implementation design:
 
 **Not this milestone.** Compose depth (diagnostics, bundle `oliver`).
 GitHub as a source. Finder sidebar. In-app HTTP server. Growing #78.
+
+Landed 2026-08-18 (#98; children #99–#102, #106 → PRs #104/#105/#108/#113).
+
+### M11 — Prove the Mail body ✅
+
+**Goal.** Prove the recut: Help and empty states match the Mail-body
+window, and a contract test pass pins the drift that M10's recut
+introduced.
+
+| Track | Issue | PR |
+|-------|-------|----|
+| Chrome / Help | [#124](https://github.com/drawmeanelephant/solipsist/issues/124) | [#126](https://github.com/drawmeanelephant/solipsist/pull/126) |
+| Tests | [#125](https://github.com/drawmeanelephant/solipsist/issues/125) | [#127](https://github.com/drawmeanelephant/solipsist/pull/127), [#128](https://github.com/drawmeanelephant/solipsist/pull/128) |
+
+**What shipped.** `docs/help.md` rewritten from the M3 source-list /
+play-tabs model to the Mail body; every `Commands.swift` verb and
+shortcut rowed. Empty-state / first-run copy and VoiceOver labels
+match. Help-vs-Commands audit test (`HelpAuditTests`) fails loud on
+any undocumented verb or shortcut. Letter-URL rule pinned verbatim
+(`/{GraphNode.id}.html`, no `content/` injection, no extension
+swap). `WorkspaceMailbox.display`/displayName/symbolName coverage
+completed.
+
+**Gate.** `SKIP_EMBED_BORIS=1 make build` green · `make test` 205
+tests 0 failures · `make lint` 0 violations · CI `app` / `fixtures`
+/ `lint` / `spike` all pass.
 
 ---
 

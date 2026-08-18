@@ -59,8 +59,11 @@ Never hand-edit `Solipsist.xcodeproj` — edit `Project.yml`.
 M0 bootstrap ✅ · M1 spike ✅ · M2 chassis ✅ · **P** withdrawn ·
 **M3** play & inspect ✅ · **M4** coordinate ✅ · **M5** preview ✅
 · **M6** author ✅ · **M7** outputs ✅ · **M8** publish ✅ · **M9**
-ship 🔧 ([#78](https://github.com/drawmeanelephant/solipsist/issues/78))
-· **M10** Mail body 📋
+ship ✅ ([#78](https://github.com/drawmeanelephant/solipsist/issues/78))
+· **M10** Mail body ✅
 ([#98](https://github.com/drawmeanelephant/solipsist/issues/98) —
-Settings / mailboxes / reading / compose #106 — after #78, never
-inside it).
+Settings / mailboxes / reading / compose #106)
+· **M11** prove the Mail body ✅
+([#123](https://github.com/drawmeanelephant/solipsist/issues/123) —
+Help audit + test pass). Remaining ship is Apple-account only
+(#110 / #111).
