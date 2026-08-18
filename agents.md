@@ -62,4 +62,5 @@ M0 bootstrap ✅ · M1 spike ✅ · M2 chassis ✅ · **P** withdrawn ·
 ship 🔧 ([#78](https://github.com/drawmeanelephant/solipsist/issues/78))
 · **M10** Mail body 📋
 ([#98](https://github.com/drawmeanelephant/solipsist/issues/98) —
-Settings / mailboxes / reading — after #78, never inside it).
+Settings / mailboxes / reading / compose #106 — after #78, never
+inside it).

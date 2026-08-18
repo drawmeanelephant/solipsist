@@ -8,10 +8,10 @@
 | **Status** | Accepted |
 | **Repo** | [drawmeanelephant/solipsist](https://github.com/drawmeanelephant/solipsist) |
 | **Parent issue** | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) |
-| **Children** | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) Settings · [#100](https://github.com/drawmeanelephant/solipsist/issues/100) Mailboxes · [#101](https://github.com/drawmeanelephant/solipsist/issues/101) Reading · [#102](https://github.com/drawmeanelephant/solipsist/issues/102) Editor |
+| **Children** | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) Settings · [#100](https://github.com/drawmeanelephant/solipsist/issues/100) Mailboxes · [#101](https://github.com/drawmeanelephant/solipsist/issues/101) Reading · [#102](https://github.com/drawmeanelephant/solipsist/issues/102) Editor · [#106](https://github.com/drawmeanelephant/solipsist/issues/106) Compose |
 | **Parents** | [`HARNESS.md`](HARNESS.md) §2 (spatial) · [`ROADMAP.md`](ROADMAP.md) §5 M10 · [`Agents.md`](../Agents.md) |
 
-This is the extra planning [#98](https://github.com/drawmeanelephant/solipsist/issues/98) asked for. It is not a restatement of the cards. The four child cards, **HARNESS §4**, and the parent sequence are patched to match this file — **HARNESS wins on where a surface lives; the cards plus this design execute it.**
+This is the extra planning [#98](https://github.com/drawmeanelephant/solipsist/issues/98) asked for. It is not a restatement of the cards. The five child cards, **HARNESS §4**, and the parent sequence are patched to match this file — **HARNESS wins on where a surface lives; the cards plus this design execute it.** #106 / #108 adopted the native compose window into M10 after the original four-card cut.
 
 Implementation stays on new feature branches off `main`, one per card.
 
@@ -23,7 +23,7 @@ M2–M8 shipped a flatter chassis: a flat `SourceSidebar`, a segmented `PlayTab`
 
 The code already has the seams this recut fills. `WorkspaceStore` is the one observable inventory. `WorkspaceSelection` is a value the drawer and companions only read. The Preview companion’s `PreviewSession` (`@State` on `PreviewWindow` today) owns that window’s `WatchServer`; after M10-3 it is lifted and bound to the selected source. `EditorSession` already owns the one `boris-editor` host. None of those need a second process, a second store, or a Swift Markdown renderer.
 
-What is missing is the Mail body: a `mailbox` field on selection, a Settings scene over the same store, a recut sidebar, a reading pane that *observes* the existing watch, and an Edit verb that surfaces `sourcePath` because `boris-editor` has no fact-checked file-open deep link.
+What is missing is the Mail body: a `mailbox` field on selection, a Settings scene over the same store, a recut sidebar, a reading pane that *observes* the existing watch, an Edit verb that surfaces `sourcePath` because `boris-editor` has no fact-checked file-open deep link, and — now in this milestone — the native Compose window over that `sourcePath`.
 
 ---
 
@@ -58,7 +58,7 @@ Settings → Sources (the account book; not a column)
 │ folders under it │ message                     │                  │
 └──────────────────┴─────────────────────────────┴──────────────────┘
 Companions: Preview (full site) · Editor (boris-editor)
-Native buffer: named Later, not this milestone.
+Compose: native buffer window (`Sources/Compose/`, ⌘⇧C) + Oliver preview
 ```
 
 Mail, not Finder, not Xcode. Nested folders under Pages come from `graph.json` `parent` only — and **not in this milestone** (see Key Decisions).
@@ -74,12 +74,13 @@ Mail, not Finder, not Xcode. Nested folders under Pages come from `graph.json` `
 3. Center switches on `selection.mailbox`. Pages is a graph list plus a reading pane. Other mailboxes are the existing full-height panes.
 4. Reading pane loads the selected page's served URL when watch is up; otherwise a contract-backed summary. No `file://`. No Swift Markdown. No second `Process`.
 5. File → Edit Page / toolbar / double-click / Return open the hosted editor and surface title + `sourcePath`. No invented deep link.
-6. Every PR: `SKIP_EMBED_BORIS=1 make build` + `make test` green. One card = one worktree = one PR.
+6. Compose ▶ (`⌘⇧C`) opens the native buffer for the selected page. Explicit save. Oliver preview via `Engine/OliverRenderer`. Not a Swift parse.
+7. Every PR: `SKIP_EMBED_BORIS=1 make build` + `make test` green. One card = one worktree = one PR.
 
 ### Non-Goals
 
 - M9 ship (#78): `scripts/embed-boris.sh`, **all of** `Project.yml` (entitlements *and* target membership), release paths.
-- Native `NSTextView` / `TextEditor` buffer.
+- Compose **depth** (span diagnostics, incremental highlight, bundling `oliver`). The window itself is M10-5 / #106.
 - GitHub as a source.
 - Walking `content/` as a Finder tree; showing `.boris/`, `themes/`, `dist/` as mailboxes.
 - Nested Pages trunk folders in the sidebar (later; see §Mailbox sidebar).
@@ -94,7 +95,7 @@ Mail, not Finder, not Xcode. Nested folders under Pages come from `graph.json` `
 2. Never silently ignore diagnostics or exit codes.
 3. Never mutate the user’s content tree except on an explicit save.
 4. One `Process?` slot in `BorisEngine`. Cancel = `Process.terminationReason == .uncaughtSignal`.
-5. Do not grow `MainWindow`. Fill `Play/`, `Inspector/`, `Companions/`, `App/Settings/`. Recut `SourceSidebar`; do not start a second sidebar.
+5. Do not grow `MainWindow`. Fill `Play/`, `Inspector/`, `Companions/`, `Compose/`, `App/Settings/`. Recut `SourceSidebar`; do not start a second sidebar.
 6. D2: output-changing settings write `boris.json`; machine state writes the plist; Settings and the drawer are views, never a third store.
 7. Unknown/newer `schemaVersion` degrades, never crashes (D8).
 8. Menus first. If it is not in the menu bar, it is not a feature.

@@ -1,6 +1,6 @@
 # M10 — Mail body (tracker)
 
-**Milestone:** M10 · **Lane:** design (this file) + four child cards.
+**Milestone:** M10 · **Lane:** design (this file) + five child cards.
 Does **not** own `Sources/`. Children do.
 
 Parent issue:
@@ -18,7 +18,7 @@ Edit. That is the M2–M8 chassis. It is not Mail's body.
 [`HARNESS.md`](../HARNESS.md) §2 is now the destination: Settings for
 the account book, mailboxes on the left, messages + reading pane in
 the middle, drawer for minutiae, companions for the full site and
-`boris-editor`. A native buffer is named Later, not this milestone.
+`boris-editor`, and a native Compose window over the selected page.
 
 ## Children
 
@@ -33,11 +33,12 @@ Reading follows Mailboxes. Editor wiring **merges after Reading**
 | [M10-2 Mailboxes](M10-mailbox-sidebar.md) | [#100](https://github.com/drawmeanelephant/solipsist/issues/100) | Mailboxes | Sidebar is account headers + mailboxes; writes `selection.mailbox` |
 | [M10-3 Reading](M10-reading-pane.md) | [#101](https://github.com/drawmeanelephant/solipsist/issues/101) | Reading | Tabs gone; list + reading pane; no `file://`, no Swift Markdown |
 | [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | Editor wiring | File → Edit Page; header shows title + `sourcePath` |
+| [M10-5 Compose](COMPOSE-EDITOR.md) | [#106](https://github.com/drawmeanelephant/solipsist/issues/106) | Compose | `⌘⇧C` opens the selected page; explicit save; Oliver preview |
 
 ## Not this tracker
 
 - #78 ship (build lane)
-- A native `TextView` / from-scratch editor
+- Compose **depth** (span diagnostics, incremental highlight, bundle `oliver`)
 - GitHub as a source
 - Walking the content directory as a Finder tree
 - An app-side HTTP server or `file://` preview
@@ -71,3 +72,7 @@ Existing `WorkspaceNoun.kind` values (`page`, `profile`, `target`,
 3. M10-4 **merges after M10-3**. It may be *developed* after M10-2
    (`sourcePath` on the type) but must not touch `LocalPlay.swift`
    or `MainWindow.swift`.
+4. M10-5 Compose keys off `noun.kind == "page"`, owns
+   `Sources/Compose/` + the Oliver engine seam, and does not block
+   #101 or #102. PR
+   [#108](https://github.com/drawmeanelephant/solipsist/pull/108).

@@ -60,42 +60,25 @@ preview) in the entitlements matrix.
 ## M10 — Mail body (after #78, not instead of it)
 
 Spatial recut. Settings for sources, mailbox sidebar, reading pane,
-editor from the selected page. Native editor stays Later.
+hosted Edit from the selected page, native Compose.
 
 | Card | Issue | Lane | Parallel with | Gate |
 |------|-------|------|----------------|------|
 | [M10 tracker](M10-mail-body.md) | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) | design | — | children filed; [`M10-DESIGN.md`](../M10-DESIGN.md) + HARNESS §2 |
-| [M10-1 Settings](M10-settings-sources.md) | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) | Settings | #100 | Settings → Sources adds/removes/relocates |
-| [M10-2 Mailboxes](M10-mailbox-sidebar.md) | [#100](https://github.com/drawmeanelephant/solipsist/issues/100) | Mailboxes | #99 | account headers + mailboxes; writes `mailbox` |
+| [M10-1 Settings](M10-settings-sources.md) | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) | Settings | #100 | Settings → Sources adds/removes/relocates ✅ |
+| [M10-2 Mailboxes](M10-mailbox-sidebar.md) | [#100](https://github.com/drawmeanelephant/solipsist/issues/100) | Mailboxes | #99 | account headers + mailboxes; writes `mailbox` ✅ |
 | [M10-3 Reading](M10-reading-pane.md) | [#101](https://github.com/drawmeanelephant/solipsist/issues/101) | Reading | — (after #100) | tabs gone; list + reading pane |
 | [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | Editor wiring | — (merge after #101) | File → Edit Page; header `sourcePath` |
+| [M10-5 Compose](COMPOSE-EDITOR.md) | [#106](https://github.com/drawmeanelephant/solipsist/issues/106) | Compose | #101, #102 | `⌘⇧C` on a selected page; Oliver preview; PR [#108](https://github.com/drawmeanelephant/solipsist/pull/108) |
 
 #78 stays build-lane only. Do not pick an M10 card by growing ship.
 
-## New lane — compose editor element (#106, the Later native buffer)
-
-[COMPOSE-EDITOR.md](COMPOSE-EDITOR.md) is the depth lane M10 explicitly
-defers ("Native editor stays Later" above; #98's do-not list): a native
-Markdown / Textile / Cooklang compose surface, built in `Sources/Compose/`
-with Oliver as the language reference. It deliberately amends the "no
-from-scratch editor" lines in HARNESS/ROADMAP for that lane only — the
-amendment is recorded in the card and issue
-[#106](https://github.com/drawmeanelephant/solipsist/issues/106).
-
-Landed: **phase 1** (the element: language model, buffer, highlighter,
-editor view, render seam), the **hook-in** (a `Compose` window (`⌘⇧C`)
-sourced from the selected page, open/save under the source's
-security-scoped bookmark, save → coordinator validate gate), and the
-**Oliver-backed preview** (`OliverRenderer` in the Engine lane renders
-buffers through the oliver CLI; options mirror Oliver's `ParseOptions`;
-render tests run when `SOLIPSIST_OLIVER_BIN` is set). Remaining phases
-(diagnostics mapping, depth) are not pickable yet.
-
 ## Do not start yet
 
-GitHub as a source. Wasm in the app. The fart app. A native
-`TextView` editor. Preview, editor host, and publish already have
-gates — M10 wires them into Mail's shape; it does not rebuild them.
+GitHub as a source. Wasm in the app. The fart app. Compose **depth**
+(diagnostics, bundle `oliver`). Preview, editor host, and publish
+already have gates — M10 wires them into Mail's shape; it does not
+rebuild them.
 
 ## Shared noun kinds (play writes, inspector reads)
 

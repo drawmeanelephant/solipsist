@@ -1,10 +1,12 @@
 # Card COMPOSE-1 — Native compose editor element (Markdown / Textile / Cooklang)
 
-**Milestone:** depth (post-M9) · **Lane:** compose (new) · **Reference:**
+**Milestone:** M10 · **Lane:** compose · **Reference:**
 [Oliver](https://github.com/drawmeanelephant/oliver) · **Issue:**
-[#106](https://github.com/drawmeanelephant/solipsist/issues/106) (filed as
-off-roadmap "Later" per the M10 parent #98) · **Branch suggestion:**
-`compose/editor-element`
+[#106](https://github.com/drawmeanelephant/solipsist/issues/106)
+(M10-5, parent
+[#98](https://github.com/drawmeanelephant/solipsist/issues/98)) ·
+**PR:** [#108](https://github.com/drawmeanelephant/solipsist/pull/108)
+· **Branch:** `compose/editor-element`
 
 **Status:** ✅ phase 1 (the element) landed — `Sources/Compose/` builds
 into the app and `make test` covers language detection, the front-matter
@@ -21,18 +23,18 @@ debounced, cancellation-terminates the child, and surfaces render errors
 `SOLIPSIST_OLIVER_BIN` is set and skip in CI. Remaining phases below
 (diagnostics mapping, depth) are future cards.
 
-**One sentence:** build a full-featured Markdown / Textile / Cooklang
-compose surface as a **standalone element** (`Sources/Compose/`), with
-Oliver — the rendering engine behind Boris — as the language reference, and
-hook it into the app in a later card. It is a big undertaking; this card is
-phase 1 (the element itself) and the record of the whole shape.
+**One sentence:** M10's native compose window (`Sources/Compose/`,
+`⌘⇧C`) — Markdown / Textile / Cooklang buffer over the selected page,
+Oliver as the language reference and preview renderer, explicit save
+into the coordinator. Remaining phases (diagnostics, depth, bundle
+`oliver`) are Later, not the M10 gate.
 
 ## Why this card exists — and what it amends
 
-`HARNESS.md` and `ROADMAP.md` carry the rule "if you are about to write a
-Markdown editor, a graph algorithm, a frontmatter parser, or an HTTP server —
-stop" and "v1 must not: a from-scratch native editor or frontmatter parser."
-This card **amends both, in writing, for this lane only**:
+This started as the off-roadmap Later buffer. It is now **M10-5**.
+`HARNESS.md` and `ROADMAP.md` still refuse a frontmatter parser, a
+graph algorithm, and a surprise `TextView` in Play. This card is the
+named exception for a native compose *window*:
 
 - The compose window is **authoring chrome** — Mail's compose analog, the
   one surface Boris's hosted `boris-editor` (a browser surface) does not give
