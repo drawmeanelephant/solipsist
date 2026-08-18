@@ -36,16 +36,16 @@ final class WorkspaceSelectionTests: XCTestCase {
     }
 
     func testMailboxRowIDHashEquality() {
-        let a = MailboxRowID(sourceID: sourceA, mailbox: WorkspaceMailbox.pages)
-        let b = MailboxRowID(sourceID: sourceA, mailbox: WorkspaceMailbox.pages)
-        XCTAssertEqual(a, b)
-        XCTAssertEqual(Set([a, b]).count, 1)
+        let firstRow = MailboxRowID(sourceID: sourceA, mailbox: WorkspaceMailbox.pages)
+        let sameRow = MailboxRowID(sourceID: sourceA, mailbox: WorkspaceMailbox.pages)
+        XCTAssertEqual(firstRow, sameRow)
+        XCTAssertEqual(Set([firstRow, sameRow]).count, 1)
         XCTAssertNotEqual(
-            a,
+            firstRow,
             MailboxRowID(sourceID: sourceA, mailbox: WorkspaceMailbox.outputs)
         )
         XCTAssertNotEqual(
-            a,
+            firstRow,
             MailboxRowID(sourceID: sourceB, mailbox: WorkspaceMailbox.pages)
         )
     }

@@ -64,12 +64,12 @@ final class WorkspacePersistenceTests: XCTestCase {
         let encodedSelected = try JSONSerialization.jsonObject(
             with: try JSONEncoder().encode(source.id)
         )
-        let v1: [String: Any] = [
+        let legacyPayload: [String: Any] = [
             "sources": [encodedSource],
             "selected": encodedSelected,
         ]
         let decoded = try WorkspacePersistence.decode(
-            try JSONSerialization.data(withJSONObject: v1)
+            try JSONSerialization.data(withJSONObject: legacyPayload)
         )
         XCTAssertNil(decoded.mailbox)
         XCTAssertEqual(decoded.selected, source.id)
