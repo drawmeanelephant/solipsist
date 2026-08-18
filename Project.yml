@@ -90,6 +90,8 @@ targets:
         type: folder
       - path: Sources/Models
       - path: Sources/Security
+      - path: Sources/Inspector/InspectorProfile.swift
+      - path: Sources/Play/Local/LocalPlayGraph.swift
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
     settings:

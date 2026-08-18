@@ -11,8 +11,19 @@ enum InspectorCompletion {
 
     static func load(from root: URL) -> Completion? {
         let fileURL = url(in: root)
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
-        guard let data = try? Data(contentsOf: fileURL) else { return nil }
-        return try? JSONDecoder().decode(Completion.self, from: data)
+        if FileManager.default.fileExists(atPath: fileURL.path),
+           let data = try? Data(contentsOf: fileURL),
+           let decoded = try? JSONDecoder().decode(Completion.self, from: data)
+        {
+            return decoded
+        }
+        let parentURL = url(in: root.deletingLastPathComponent())
+        if FileManager.default.fileExists(atPath: parentURL.path),
+           let data = try? Data(contentsOf: parentURL),
+           let decoded = try? JSONDecoder().decode(Completion.self, from: data)
+        {
+            return decoded
+        }
+        return nil
     }
 }

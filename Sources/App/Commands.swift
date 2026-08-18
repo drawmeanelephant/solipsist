@@ -9,6 +9,11 @@ struct SolipsistCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
+            Button("New Project…") {
+                store.presentNewProjectPanel(runtime: runtime)
+            }
+            .keyboardShortcut("n", modifiers: .command)
+
             Button("Open…") {
                 store.presentOpenPanel()
             }

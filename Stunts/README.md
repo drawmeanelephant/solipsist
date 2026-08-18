@@ -7,6 +7,7 @@ have a kit binary.
 
 | Stunt | What it is | Open in Solipsist as |
 |-------|------------|----------------------|
+| `dogfood/` | 45-page / 7-trunk M3 gate corpus, theme, `boris.json` | the **folder** (project root) |
 | `happy/` | `boris init` shape: 3 pages, theme, `boris.json` | the **folder** (project root) |
 | `broken-duplicate-id/` | two pages share an `id` → `EDUPLICATEID` | the folder |
 | `broken-frontmatter/` | unknown key `category` → `EFRONTMATTER` | the folder (content root) |
@@ -16,8 +17,9 @@ have a kit binary.
 | `cook-one/` | one `.cook` recipe | the folder; needs `--cooklang` later |
 | `happy-textile/` | 2 `.textile` pages (`input_format: "textile"`) | the folder (project root) |
 
-Happy is the default dogfood. Broken stunts exist so Validate / Build
-IR have diagnostics to show. Do not “fix” the broken ones.
+`dogfood` is the 45-page / 7-trunk M3 gate corpus. `happy` is the starter
+dogfood. Broken stunts exist so Validate / Build IR have diagnostics to
+show. Do not “fix” the broken ones.
 
 ## Manual check: D8 unknown-schemaVersion degrade (#56)
 
