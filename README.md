@@ -35,8 +35,8 @@ Never commit `SUPPORT-NOT-FOR-GITHUB/` or engine binaries.
 
 ## Prerequisites
 
-- macOS 14+ arm64
-- Xcode 16+ (tested Xcode 27 / Swift 6)
+- macOS 27+ (arm64 + x86_64)
+- Xcode 27+ (Swift 6)
 - Zig 0.16+ only if you must *rebuild* the engine
 - XcodeGen is vendored into `.tools/` by `make tools`
 

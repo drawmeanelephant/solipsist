@@ -7,7 +7,7 @@ tags: [architecture]
 
 # Architecture
 
-Solipsist is built in Swift 6 with SwiftUI for macOS 14+.
+Solipsist is built in Swift 6 with SwiftUI for macOS 27+.
 
 ## Spatial Model
 

@@ -19,6 +19,7 @@ struct MainWindow: View {
         } detail: {
             PlayHost()
         }
+        .glassEffect()
         .navigationTitle("Solipsist")
         .inspector(isPresented: $inspectorPresented) {
             InspectorDrawer()

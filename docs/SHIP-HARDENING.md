@@ -2,7 +2,7 @@
 
 **Status:** Approved Design & Verification Document (Issue #61 / Milestone M9 Ship)  
 **Author:** draw me an elephant / uncle-gravity  
-**Target:** macOS App Sandbox / Universal Binary Distribution (`arm64` + `x86_64`)  
+**Target:** macOS 27+ · App Sandbox / Universal Binary Distribution (`arm64` + `x86_64`)  
 
 ---
 

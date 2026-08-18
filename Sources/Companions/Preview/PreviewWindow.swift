@@ -106,6 +106,7 @@ struct PreviewWindow: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 6)
+        .glassEffect()
     }
 
     private var toolbar: some View {

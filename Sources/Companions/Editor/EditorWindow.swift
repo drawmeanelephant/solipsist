@@ -120,6 +120,7 @@ struct EditorWindow: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 6)
+        .glassEffect()
     }
 
     /// Mail-compose chrome: when the editor was opened from a page, name that
