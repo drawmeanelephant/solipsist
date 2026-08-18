@@ -68,9 +68,10 @@ Run `make test` to execute contract decoding tests against checked-in fixtures, 
 
 ## CI
 
-PRs to `main` run GitHub Actions (`spike` compile, `app` compile, `fixtures` contract tests, and `lint`).
-There is no boris binary in CI, so the spike is compile-only and the
-app embeds nothing. A `fart` job is reserved and disabled.
+PRs to `main` run GitHub Actions (`spike` against a pin-built boris,
+`app` compile, `fixtures` contract tests, and `lint`). The app job
+still sets `SKIP_EMBED_BORIS=1` — no engine binary is vendored. A
+`fart` job is reserved and disabled.
 
 ## Boundaries
 

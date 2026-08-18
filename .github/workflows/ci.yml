@@ -27,9 +27,34 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
-      - name: Generate project and compile spike
-        run: make spike
-      # Running the spike needs a boris binary. We do not vendor that.
+
+      # Same pin as release-notarize.yml (D7). #109 will advance both.
+      - name: Checkout pinned Boris engine
+        uses: actions/checkout@v7
+        with:
+          repository: drawmeanelephant/boris
+          path: boris
+          ref: b82e9e2eace74d9ca61df23dffc1329d2a2fe628
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      # Host-only (macos-15 is arm64). Release still cross-builds fat slices.
+      - name: Build host Boris
+        run: |
+          cd boris
+          zig build -Doptimize=ReleaseFast
+
+      - name: Generate project, compile, and run spike
+        env:
+          SOLIPSIST_BORIS_BIN: ${{ github.workspace }}/boris/zig-out/bin/boris
+        run: |
+          set -euo pipefail
+          test -x "$SOLIPSIST_BORIS_BIN"
+          make run-spike SPIKE_CONTENT="${{ github.workspace }}/boris/content" | tee "$RUNNER_TEMP/spike.out"
+          grep -q "SPIKE OK" "$RUNNER_TEMP/spike.out"
 
   app:
     name: app

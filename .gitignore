@@ -34,6 +34,7 @@ zig-out/
 # Transport binaries — never GitHub
 SUPPORT-NOT-FOR-GITHUB/
 /boris-agent-kit/
+/boris/
 *.tar.gz
 
 # Stunt harvest leftovers
