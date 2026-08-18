@@ -17,6 +17,9 @@ struct LocalPlay: PlaySurface {
     @State private var state: LoadState = .idle
     @State private var searchText = ""
     @State private var loadGeneration = 0
+    /// Height of the floating glass toolbar band, measured from the window.
+    /// See `ToolbarBandReader` for why this is not the SwiftUI safe area.
+    @State private var toolbarBand: CGFloat = 0
 
     var body: some View {
         Group {
@@ -38,6 +41,7 @@ struct LocalPlay: PlaySurface {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             ProblemsPane(pages: loadedPages)
         }
+        .background(ToolbarBandReader { toolbarBand = $0 })
         .task(id: source.id) {
             await load()
         }
@@ -99,12 +103,13 @@ struct LocalPlay: PlaySurface {
             }
         case .ready(let pages):
             VSplitView {
+                // Fixed height — not min/ideal/max: the VSplitView ignores a
+                // later ideal-height change from the async band measurement
+                // and clips the last row (#130). The list is a short stack
+                // only as tall as its rows; the splitter still resizes the
+                // reading pane below.
                 pageList(pages)
-                    .frame(
-                        minHeight: 88,
-                        idealHeight: listIdealHeight(pages.count),
-                        maxHeight: listIdealHeight(pages.count) + 24
-                    )
+                    .frame(height: listIdealHeight(pages.count))
                 ReadingPane(
                     page: selectedPlayPage,
                     source: source,
@@ -156,6 +161,12 @@ struct LocalPlay: PlaySurface {
                     openWindow(id: CompanionID.compose)
                     return .handled
                 }
+                // #130: the main window is `.fullSizeContentView` glass, so
+                // the floating toolbar is not in the SwiftUI safe area and
+                // the first row would paint underneath the title band. Inset
+                // the scroll content by the measured band — the system's own
+                // number, not an invented spacer.
+                .contentMargins(.top, toolbarBand, for: .scrollContent)
             }
         }
         .searchable(
@@ -167,7 +178,7 @@ struct LocalPlay: PlaySurface {
 
     private func listIdealHeight(_ count: Int) -> CGFloat {
         let rows = CGFloat(min(max(count, 1), 8))
-        return 12 + rows * 44
+        return toolbarBand + 12 + rows * 44
     }
 
     private func selectPage(_ page: PlayPage) {
@@ -312,6 +323,33 @@ struct LocalPlay: PlaySurface {
         case empty
         case ready([PlayPage])
         case failed(String)
+    }
+}
+
+/// Measures the window's floating toolbar band height for #130.
+///
+/// The main window uses `.fullSizeContentView` + `.glassEffect()`, so the
+/// toolbar floats *over* the content and is deliberately absent from the
+/// SwiftUI safe area (a `GeometryReader` here reports top == 0). AppKit still
+/// reserves the band in `contentLayoutRect`; `frame.height - maxY` is the
+/// exact band, which the Pages list uses as its scroll-content inset instead
+/// of a hardcoded spacer.
+private struct ToolbarBandReader: NSViewRepresentable {
+    var onBand: (CGFloat) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { measure(view) }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { measure(nsView) }
+    }
+
+    private func measure(_ view: NSView) {
+        guard let window = view.window else { return }
+        onBand(max(0, window.frame.height - window.contentLayoutRect.maxY))
     }
 }
 
