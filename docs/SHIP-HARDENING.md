@@ -91,10 +91,14 @@ phase lipo-merges a fat engine (no `GITHUB_ACTIONS` skip — that opt-out is
 now explicit `SKIP_EMBED_BORIS=1`, set by the PR compile job only), pins
 `ARCHS="arm64 x86_64"` for the app build, and **fails** if
 `Contents/Resources/boris` is missing from the release bundle. Signing and
-notarization steps are gated on `secrets.*` (not step-level `env.*`, which
-is invisible to `if:`), and `spctl --assess -vvv` on the app bundle is a
+notarization steps are gated on **job-level** `env.*` mapped from
+`secrets.*` (`secrets` is illegal in `steps.if` and GitHub rejects the
+workflow at startup; step-level `env.*` is invisible to that step's
+`if:`), and `spctl --assess -vvv` on the app bundle is a
 **hard** gate when a Developer ID is configured (skipped only for ad-hoc
-dev builds, where it cannot pass).
+dev builds, where it cannot pass). The publish step sets
+`permissions: contents: write` because this repo's default `GITHUB_TOKEN`
+is read-only.
 
 ---
 
