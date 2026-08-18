@@ -42,6 +42,7 @@ struct LocalPlay: PlaySurface {
             ProblemsPane(pages: loadedPages)
         }
         .background(ToolbarBandReader { toolbarBand = $0 })
+        .environment(\.toolbarBand, toolbarBand)
         .task(id: source.id) {
             await load()
         }
@@ -323,33 +324,6 @@ struct LocalPlay: PlaySurface {
         case empty
         case ready([PlayPage])
         case failed(String)
-    }
-}
-
-/// Measures the window's floating toolbar band height for #130.
-///
-/// The main window uses `.fullSizeContentView` + `.glassEffect()`, so the
-/// toolbar floats *over* the content and is deliberately absent from the
-/// SwiftUI safe area (a `GeometryReader` here reports top == 0). AppKit still
-/// reserves the band in `contentLayoutRect`; `frame.height - maxY` is the
-/// exact band, which the Pages list uses as its scroll-content inset instead
-/// of a hardcoded spacer.
-private struct ToolbarBandReader: NSViewRepresentable {
-    var onBand: (CGFloat) -> Void
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async { measure(view) }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async { measure(nsView) }
-    }
-
-    private func measure(_ view: NSView) {
-        guard let window = view.window else { return }
-        onBand(max(0, window.frame.height - window.contentLayoutRect.maxY))
     }
 }
 

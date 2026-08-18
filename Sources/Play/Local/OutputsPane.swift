@@ -9,6 +9,7 @@ struct OutputsPane: View {
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
+    @Environment(\.toolbarBand) private var toolbarBand
     @State private var profile: PublicationProfile?
     @State private var loadError: String?
 
@@ -107,6 +108,7 @@ struct OutputsPane: View {
             }
         }
         .listStyle(.inset(alternatesRowBackgrounds: true))
+        .safeAreaPadding(.top, toolbarBand)
     }
 
     private var selectedOutputID: Binding<String?> {
