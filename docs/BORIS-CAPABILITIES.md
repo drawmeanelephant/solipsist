@@ -57,13 +57,13 @@ verification, session-layer).
 
 | Projection | Artifacts |
 |---|---|
-| **HTML** | `<target-dir>/**/*.html` (+ sitemap.xml, rendered-search index, head-link surfaces); `.boris-cache/manifest.json` + `heading-harvest.json` (incremental/watch); staged atomic publish |
+| **HTML** | `<target-dir>/**/*.html` (+ sitemap.xml, rendered-search index, head-link surfaces); `.boris-cache/manifest.json` + `heading-harvest.json` (incremental/watch); staged atomic publish; **multi-target isolation verified** (`--target public=dist/public --target preview=dist/preview` → two independent roots, each with its own `_boris/` + `assets/`) |
 | **IR** | `manifest.json`, `graph.json` (nodes/edges/reverseIndex/nav), **`completion.json`** (editor completion surface), `build-report.json` (written on success *and* failure); **Draft 2020-12 JSON Schemas** for all of them |
 | **RAG** | Default: bounded **working-context packs** (`working-N.md`, sidecar manifest, scope/counts/hashes) — model-facing, site-only; `--rag --complete` for the full corpus (INDEX, UPLOAD-GUIDE, `catalog.jsonl`, `catalog_meta.json`, `system/**`, `content/pages/**`, graph tables); `--scope`, `--split-size`, `--bundles-only` |
 | **Context** | `bundle.md`, `manifest.json`, `graph.json`, `pages/<id>.md`, `parts/part-N.md` (with `--split-size`) |
-| **llms.txt** | Deterministic export, UTF-8-boundary-safe truncation, location-aware URLs |
-| **RSS 2.0** | Strict UTC metadata, safe deployed URLs, atomic single-file publish |
-| **Sitemap** | Deterministic XML, strict public-URL validation, obsolete-output cleanup |
+| **llms.txt** | Deterministic export, UTF-8-boundary-safe truncation, location-aware URLs. **Standalone projection** — `--llms` conflicts with HTML mode (exit 2) in pin `b82e9e2` |
+| **RSS 2.0** | Strict UTC metadata, safe deployed URLs, atomic single-file publish. **Standalone projection** — `--rss` conflicts with HTML mode (exit 2); needs `--site-url` + `--rss-title` + `--rss-description` |
+| **Sitemap** | Deterministic XML, strict public-URL validation, obsolete-output cleanup. **HTML-target add-on** — the only projection that composes with `--html-dir`; needs `--site-url` |
 | **Search** | Compiler-owned rendered-search index (`search-index.json`) published by a normal build; layout markers `data-boris-search-root` / `-exclude` / `-noindex`; no-JS UI |
 
 ## 4. Watch & preview (the app's live surface)
@@ -84,7 +84,7 @@ verification, session-layer).
 | Surface | What it gives |
 |---|---|
 | `--version` / `-V` | `boris/0.8.1` on stdout, exit 0, no content scan (pinned by `test-version-pin`) |
-| `--timings` | `boris-timings` JSON on **stdout**: per-phase durations + counters (scan/parse/graph/dependency; full HTML pipeline) |
+| `--timings` | `boris-timings` JSON on **stdout** (verified shape): `format`/`schemaVersion` (`"1"`)/`mode` (`ir` or `html`), `phases` (`scan`, `parse`, `graph_validate`, `dependency_resolve`), `counters` (`page_reads`, `include_reads`, `hash_bytes`, `link_resolutions`, `fast_path_hits`), `totalNs` |
 | `build --report PATH` | **`html-build-report-0.1.0`** JSON on success *and* failure — every HTML diagnostic class (`E*`, new `ELAYOUT*`, `EROUTE*`, `EPUBLICATIONLOCATION`), stable codes, content-root-relative paths, line/column, `compilerId`; rejected on watch/non-HTML |
 | `check`/`impact --report` | Analysis report to file (default render: stderr) |
 | JSON Schemas | IR artifacts, frontmatter, completion — consumers never hand-roll parsers |
@@ -97,8 +97,8 @@ verification, session-layer).
 | Target | Status | Surface |
 |---|---|---|
 | **GitHub Pages** | ✅ verified | `.nojekyll` policy, artifact packaging, retained evidence, official Actions workflow; `github-pages-audit` observer |
-| **Standard.site / AT Protocol** | ✅ verified | `standard-site` family: `publish` (reconciliation, CAS, prune authority), `plan`/`records` (offline), `verify`, `login`/`sessions`/`logout` (DPoP OAuth **and** opt-in app-password), `smoke` (live, opt-in); DPoP/ES256, XRPC client, DID/PDS discovery with SSRF checks; exit classes 4–9 |
-| **Nostr NIP-23** | 🚢 shipped (not a verified target) | `plan` (offline), `sign` (`--key-stdin`, BIP-340/secp256k1, never from argv/env), `publish` (in-repo RFC-6455 WebSocket client, per-relay evidence, verdicts `complete`/`partial`/`failed`/`incomplete`) |
+| **Standard.site / AT Protocol** | ✅ verified | `standard-site` family: `publish` (reconciliation, CAS, prune authority), `plan`/`records` (offline), `verify`, `login`/`sessions`/`logout` (DPoP OAuth **and** opt-in app-password), `smoke` (live, opt-in); DPoP/ES256, XRPC client, DID/PDS discovery with SSRF checks; exit classes 4–9. **Profile prerequisite (probed):** `plan`/`records` exit 2 (`invalid publication profile: InvalidPublication`) unless the profile declares a `publication` target |
+| **Nostr NIP-23** | 🚢 shipped (not a verified target) | `plan` (offline), `sign` (`--key-stdin`, BIP-340/secp256k1, never from argv/env), `publish` (in-repo RFC-6455 WebSocket client, per-relay evidence, verdicts `complete`/`partial`/`failed`/`incomplete`). **Profile prerequisite (probed):** `plan` exits 2 (`profile declares no nostr section`) unless the profile declares a `nostr` section |
 | **Cloudflare Containers** | ⏸ parked | `boris-job-runner` example Worker; not a `publication.target` |
 | **Wasm embed** | ⏸ parked | `compileBundle` ABI (`wasm32-wasi` exports files-in → diagnostics/IR/HTML-out), source-provider + artifact-sink seams, official Worker host example |
 
@@ -110,6 +110,12 @@ semantics) → `checks.json` (verification checks) → `claims.json`
 index over the committed bytes) → `proof-pack.json` + `index.html` (final
 presentation layer with embedded model digest). Everything atomic,
 deterministic, bound to exact committed bytes.
+
+The standalone **`boris-package`** archive (verified `--help`):
+`--input`, `--packages-dir` (default `packages`), `--archive` (default
+`boris-package.tar`), `--with-rag` (default) / `--no-rag`; produces
+`ir/`, optional `rag/`, `MACHINE-READABLE-VERSION.json`, `SHA256SUMS`.
+**HTML is never included.**
 
 ## 8. Editor (boris ships one — important for our D4 decision)
 

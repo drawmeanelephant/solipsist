@@ -81,6 +81,21 @@ flowchart LR
 - `APPLE_API_KEY_ISSUER`: Issuer UUID from App Store Connect.
 - `CODE_SIGN_IDENTITY`: Name of signing certificate (e.g. `Developer ID Application: draw me an elephant`).
 
+### CI implementation (landed 2026-08-17, #78 gaps 1–3)
+
+The workflow now: checks out the pinned boris (`b82e9e2`) and cross-builds
+both macOS slices with Zig (`-Dtarget=aarch64-macos` / `x86_64-macos`),
+feeds the discrete binaries to `scripts/embed-boris.sh` via
+`SOLIPSIST_BORIS_ARM64_BIN` / `SOLIPSIST_BORIS_X86_64_BIN` so the embed
+phase lipo-merges a fat engine (no `GITHUB_ACTIONS` skip — that opt-out is
+now explicit `SKIP_EMBED_BORIS=1`, set by the PR compile job only), pins
+`ARCHS="arm64 x86_64"` for the app build, and **fails** if
+`Contents/Resources/boris` is missing from the release bundle. Signing and
+notarization steps are gated on `secrets.*` (not step-level `env.*`, which
+is invisible to `if:`), and `spctl --assess -vvv` on the app bundle is a
+**hard** gate when a Developer ID is configured (skipped only for ad-hoc
+dev builds, where it cannot pass).
+
 ---
 
 ## 5. Clean-Mac Proof Checklist
@@ -107,8 +122,9 @@ codesign -dvvv --entitlements - /Applications/Solipsist.app
 codesign -dvvv /Applications/Solipsist.app/Contents/Resources/boris
 
 # 4. Verify Gatekeeper notarization acceptance
-spctl --assess -vvv --type exec /Applications/Solipsist.app
+spctl --assess -vvv /Applications/Solipsist.app
 # Expected output: /Applications/Solipsist.app: accepted (source=Notarized Developer ID)
+# (app-bundle invocation — `--type exec` is not a valid spctl type value)
 ```
 
 ### Step 3: End-to-End Functional Verification

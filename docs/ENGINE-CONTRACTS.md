@@ -1,13 +1,15 @@
-# Engine Contracts — probed hands-on against afterparty (M2–M4 design input)
+# Engine Contracts — probed hands-on against afterparty (M2–M8 design input)
 
-**Date:** 2026-08-17 · **Engine:** afterparty, `boris/0.8.1` · **Content:**
-the afterparty dogfood site (25 pages, /tmp/apws)
+**Date:** 2026-08-17 · **Engine:** afterparty, `boris/0.8.1` (kit pin
+`b82e9e2`) · **Content:** the afterparty dogfood site (25 pages, /tmp/apws)
+for §1–§4; the in-repo `Stunts/happy` corpus for §5–§7.
 
 Everything here was verified by running the binary and reading the real
 responses/artifacts. It is the concrete contract surface the app's M3
-(editor completion), M4 (live preview), and M5 (problems panel) are built
-against. Authoritative schema twins live in the boris repo under
-`docs/contracts/schemas/` — consume those, don't hand-roll.
+(editor completion), M4 (live preview), M5 (problems panel), M7 (outputs
+fan-out), and M8 (publish) are built against. Authoritative schema twins
+live in the boris repo under `docs/contracts/schemas/` — consume those,
+don't hand-roll.
 
 ---
 
@@ -217,3 +219,179 @@ report carries only errors/diagnostics.
 All probes ran against a fresh afterparty build with the dogfood content;
 exact commands are preserved in the session history if re-verification is
 needed.
+
+---
+
+## 5. M7 — outputs fan-out: targets, editions, projections (probed 2026-08-17)
+
+All of §5–§7 were re-probed against the **pinned kit `b82e9e2`
+(`boris/0.8.1`)** on the in-repo `Stunts/happy` corpus (3 pages), not the
+older apws corpus. Every row below is a real invocation + observed
+artifact/exit code.
+
+### 5.1 Multi-target HTML — isolated targets, one invocation
+
+```
+boris build --target public=dist/public --target preview=dist/preview
+```
+
+- ✅ exit 0; **two isolated target roots**, each with its own `index.html`,
+  `_boris/` (proof + search), and `assets/`.
+- Target names are CLI-side (`public=`, `preview=`); the profile's single
+  public target is synthesized as `default` (verified in the site deploy:
+  `boris build --profile boris.json` reports `target default`).
+- Per-target layout/theme: `--target-layout NAME=PATH`;
+  `--target-profile NAME=html|xhtml` (Oliver serialization).
+- Per-target theme: `--theme ROOT` (sugar for `ROOT/layouts/main.html` +
+  managed `assets/`); layout **rules**:
+  `--layout-rule TARGET SELECTOR LAYOUT` with selectors `id:<entity-id>`
+  (byte-exact), `glob:<segment-pattern>` (`*` = one full segment), and
+  `role:trunk` / `role:satellite`. Precedence: id → glob → role →
+  target fallback → global fallback → product default
+  `themes/boris/layouts/main.html`. Max 256 rules/target.
+
+### 5.2 Editions — each is its own invocation in this pin
+
+| Edition | Invocation (verified) | Artifacts |
+|---|---|---|
+| **IR** | `boris build --out .boris` | `manifest.json`, `graph.json`, `completion.json`, `build-report.json` (all four; exit 0) |
+| **RAG** | `boris build --rag` | `rag/` — `working-N.md` working packs + `manifest.json` non-upload sidecar (counts/hashes). `--complete`/`--scope`/`--split-size`/`--bundles-only` accepted |
+| **Context** | `boris build --context` | `context/` — `bundle.md`, `manifest.json`, `graph.json`, `pages/<id>.md` (3 pages in the probe) |
+| **llms.txt** | `boris build --llms` | `llms.txt` (exit 0; UTF-8-safe truncation) |
+| **RSS** | `boris build --rss --rss-title T --rss-description D --site-url URL` | `rss.xml` (exit 0) |
+
+**Conflict matrix (verified — important for M7):**
+
+- `--sitemap` is an **HTML-target add-on**: `boris build --html-dir dist
+  --sitemap --site-url URL` → `sitemap.xml` in the target root. Requires
+  `--site-url`.
+- `--rss` and `--llms` **conflict with HTML mode** in this pin: `boris
+  build --html-dir dist --rss …` and `… --llms` both exit **2**
+  (`conflicting options`). They are **standalone projections** — run them
+  as separate invocations (or IR-mode). `--rss` alone needs `--site-url` +
+  `--rss-title` + `--rss-description`; `--llms` alone needs nothing extra.
+- M7's "Build all" must therefore fan out per projection, not assume one
+  invocation emits everything.
+
+### 5.3 `plan --profile` — the declaration surface (M4/M8)
+
+```
+boris plan --profile boris.json
+```
+
+✅ exit 0, stdout-only `boris-publication-plan` v1. Verified shape:
+
+```json
+{
+  "format": "boris-publication-plan",
+  "schema_version": 1,
+  "input": "content",
+  "input_format": "markdown",
+  "site": { "url": null, "title": "My Boris Site", "description": null },
+  "targets": [
+    {
+      "name": "public", "output": "dist", "public": true,
+      "theme": "themes/boris", "layout": null, "layout_rules": [],
+      "projections": { "html": true, "sitemap": null, "rss": null, "llms": null }
+    }
+  ]
+}
+```
+
+- `targets[].theme` reflects the profile/default theme; `projections`
+  carries the per-target html/sitemap/rss/llms switches.
+- Profile schema v1 (`boris-publication-profile`) is closed: `format`,
+  `schema_version` (exact `1`), `input`, `input_format`, `site`,
+  `publication`, `targets`, `editions`. See
+  `docs/contracts/publication-profile.md`.
+
+### 5.4 `--timings` (verified shape)
+
+```
+boris build --out .boris --timings
+```
+
+stdout JSON:
+
+```json
+{
+  "format": "boris-timings", "schemaVersion": "1", "mode": "ir",
+  "phases": { "scan": …, "parse": …, "graph_validate": …, "dependency_resolve": … },
+  "counters": { "page_reads": 3, "include_reads": 0, "hash_bytes": 0,
+                 "link_resolutions": 0, "fast_path_hits": 0 },
+  "totalNs": …
+}
+```
+
+- `mode` is `ir` for IR builds, `html` for HTML builds; phase/counter keys
+  differ accordingly. Parse it as JSON (not stderr prose).
+
+---
+
+## 6. M7 — search & theme catalog (probed 2026-08-17)
+
+### 6.1 Rendered search index
+
+A normal HTML build emits `_boris/search/search-index.json`
+(`boris-rendered-search-index` v1) **automatically** — verified in the site
+build and the multi-target probe (each target's `_boris/` carries it). The
+first-party consumer is an inline script using the
+`data-boris-search-root` / `-exclude` / `-noindex` markers; there is no
+vendored JS. The standalone `boris-search-index` tool exists for indexing
+already-built HTML (`tools/search-index`), but the compiler-owned index is
+what a normal build produces.
+
+### 6.2 Theme catalog
+
+`themes/` at the pinned commit ships **20 first-class themes**: `boris`
+(default), `reference`, `press`, `showcase`, `archive`, `field-notes`,
+`compact`, `cards`, `cozy`, `journal`, `ledger`, `reading`, `semantic`,
+`columns`, `service`, `engineering`, `civic`, `tokens`, `corporate`,
+`minimal` (verified `ls`). A theme = `layouts/*.html` + optional
+`footer.html` + `assets/`; the catalog README documents each theme's
+voice and the selection flag (`--theme themes/<name>`).
+
+---
+
+## 7. M8 — publish family (probed 2026-08-17, offline surface)
+
+### 7.1 Standard.site / AT Protocol
+
+- Family (verified `--help`): `plan`, `records`, `publish`, `verify`,
+  `login`, `sessions`, `logout`, `smoke`. `plan`/`records` are **offline**;
+  `login`/`logout`/`sessions` manage a persisted DPoP OAuth session
+  (app-password opt-in); `smoke` is a live opt-in interop test.
+- **Profile prerequisite (verified):** `boris standard-site plan --profile
+  boris.json` on a plain profile exits **2** `invalid publication profile:
+  InvalidPublication`. The profile must declare a `publication` target
+  (`github-pages` or `standard-site`) with `base_url`/`origin`/`base_path`
+  (and for standard-site: `did`, `name`, `description`,
+  `show_in_discover`, `include`/`exclude`, `prune`, optional `pds`).
+  M8 must validate the profile before offering publish.
+- Exit classes **4–9** (denial, timeout, compatibility,
+  partial-publication, verification, session-layer) — surface them, don't
+  collapse to 1/2/3.
+
+### 7.2 Nostr NIP-23
+
+- Family (verified): `plan` (offline), `sign` (`--key-stdin`, BIP-340;
+  never argv/env/profile/logs), `publish` (in-repo WebSocket client,
+  per-relay evidence, verdicts `complete`/`partial`/`failed`/
+  `incomplete`).
+- **Profile prerequisite (verified):** `boris nostr plan --profile
+  boris.json` on a plain profile exits **2** `profile declares no nostr
+  section`.
+
+### 7.3 Proof Pack — `boris-package` (verified `--help`)
+
+```
+boris-package [--input DIR] [--packages-dir DIR] [--archive NAME]
+              [--with-rag | --no-rag] [--quiet]
+```
+
+Produces `packages/<archive>` (default `boris-package.tar`) containing
+`ir/`, optional `rag/`, `MACHINE-READABLE-VERSION.json`, and
+`SHA256SUMS`. **HTML is never included.** The per-publication evidence
+chain (`_boris/proof/`) is separate and emitted by the compiler build
+(`artifacts.json` → `checks.json` → `claims.json` → `touches.json` →
+`proof-pack.json` + `index.html`).

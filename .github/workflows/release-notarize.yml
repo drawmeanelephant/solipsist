@@ -27,10 +27,34 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Same pin the app bundles and the site deploys (D7): `main` on boris
+      # is the stale v0.8.0 line; moving pins are not reproducible.
+      - name: Checkout Boris engine
+        uses: actions/checkout@v7
+        with:
+          repository: drawmeanelephant/boris
+          path: boris
+          ref: b82e9e2eace74d9ca61df23dffc1329d2a2fe628
+
       - name: Set up Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
+
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      # embed-boris.sh lipo-merges discrete arches when both are provided;
+      # zig cross-compiles macOS slices from either host arch.
+      - name: Build universal Boris engine
+        run: |
+          cd boris
+          zig build -Dtarget=aarch64-macos -Doptimize=ReleaseFast --prefix /tmp/boris-arm64
+          zig build -Dtarget=x86_64-macos -Doptimize=ReleaseFast --prefix /tmp/boris-x86_64
+          lipo -create -output /tmp/boris-universal /tmp/boris-arm64/bin/boris /tmp/boris-x86_64/bin/boris
+          lipo -info /tmp/boris-universal
 
       - name: Install tools & generate project
         run: |
@@ -38,7 +62,7 @@ jobs:
           make generate
 
       - name: Set up Signing Keychain
-        if: ${{ env.APPLE_CERTIFICATE_BASE64 != '' }}
+        if: ${{ secrets.APPLE_CERTIFICATE_BASE64 != '' }}
         env:
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -56,11 +80,14 @@ jobs:
 
       - name: Build Universal Release App
         env:
-          SKIP_EMBED_BORIS: ${{ env.SOLIPSIST_BORIS_BIN == '' && '1' || '0' }}
+          # Discrete arches so scripts/embed-boris.sh lipo-merges a fat engine.
+          SOLIPSIST_BORIS_ARM64_BIN: /tmp/boris-arm64/bin/boris
+          SOLIPSIST_BORIS_X86_64_BIN: /tmp/boris-x86_64/bin/boris
           CODE_SIGN_IDENTITY: ${{ secrets.CODE_SIGN_IDENTITY || '-' }}
         run: |
           xcodebuild -project Solipsist.xcodeproj -scheme Solipsist -configuration Release \
             -derivedDataPath build \
+            ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
             ENABLE_HARDENED_RUNTIME=YES \
             build
@@ -78,14 +105,14 @@ jobs:
             "$DMG_PATH"
 
       - name: Sign DMG
-        if: ${{ env.CODE_SIGN_IDENTITY != '' && env.CODE_SIGN_IDENTITY != '-' }}
+        if: ${{ secrets.CODE_SIGN_IDENTITY != '' && secrets.CODE_SIGN_IDENTITY != '-' }}
         env:
           CODE_SIGN_IDENTITY: ${{ secrets.CODE_SIGN_IDENTITY }}
         run: |
           codesign --force --sign "$CODE_SIGN_IDENTITY" --timestamp dist/Solipsist.dmg
 
       - name: Notarize App & DMG
-        if: ${{ inputs.skip_notarize != true && env.APPLE_API_KEY_BASE64 != '' }}
+        if: ${{ inputs.skip_notarize != true && secrets.APPLE_API_KEY_BASE64 != '' }}
         env:
           APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
@@ -105,19 +132,27 @@ jobs:
           xcrun stapler staple "dist/Solipsist.dmg"
           xcrun stapler staple "build/Build/Products/Release/Solipsist.app"
 
-      - name: Verify Gate Assessment
+      - name: Inspect bundle & embedded engine
         run: |
           APP_PATH="build/Build/Products/Release/Solipsist.app"
           echo "==> Inspecting Mach-O bundle structure:"
           file "$APP_PATH/Contents/MacOS/Solipsist"
           if [ -f "$APP_PATH/Contents/Resources/boris" ]; then
             lipo -info "$APP_PATH/Contents/Resources/boris"
+            "$APP_PATH/Contents/Resources/boris" --version
+          else
+            echo "FAIL: Contents/Resources/boris missing from the release bundle" >&2
+            exit 1
           fi
 
-          echo "==> Assessing code signature and Gatekeeper evaluation:"
-          spctl --assess -vvv --type exec "$APP_PATH" || {
-            echo "notice: spctl assessment returned non-zero (expected for ad-hoc / local developer signatures without developer ID root)"
-          }
+      # Hard Gatekeeper gate for real releases (a Developer ID is configured).
+      # Ad-hoc/dev builds skip: spctl cannot pass without a Developer ID root.
+      - name: Verify Gatekeeper assessment
+        if: ${{ secrets.CODE_SIGN_IDENTITY != '' && secrets.CODE_SIGN_IDENTITY != '-' }}
+        run: |
+          APP_PATH="build/Build/Products/Release/Solipsist.app"
+          echo "==> spctl --assess -vvv (app-bundle invocation)"
+          spctl --assess -vvv "$APP_PATH"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4

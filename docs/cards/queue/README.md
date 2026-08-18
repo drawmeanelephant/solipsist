@@ -66,3 +66,8 @@ No open batch-2 cards remain — batch 2 is fully landed. Batch 3
 lives in the issue tracker (#58–#61; briefs in
 `docs/cards/B3-*.md`) — those own grind-lane paths, so they are not
 queue cards.
+
+The active board is the **roadmap batch** (#72–#78, one card per
+milestone gate, dispatch comments on each issue — see
+[`../README.md`](../README.md)). M3/M4 (#72/#73) are done; the queue
+stays empty until M5–M9 surface data-only or docs-only slices.

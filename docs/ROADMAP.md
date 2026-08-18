@@ -104,19 +104,19 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M0** Bootstrap | ✅ |
 | **M1** Engine spike | ✅ `make run-spike` decodes the IR contracts |
 | **M2** Chassis | ✅ sources / play / drawer / companion slots; File → Open… adds a local source |
-| **P** Project subdomain | next (parallel) — CF Worker + Wasm, no GitHub required |
-| **M3** Play & inspect | next |
-| **M4** Coordinate | — |
-| **M5** Preview | — |
+| **P** Project subdomain | ⛔ withdrawn — the public site ships via Cloudflare Pages (`site/`) |
+| **M3** Play & inspect | ✅ — dogfood corpus (45 pages / 7 trunks, verified), completion drawer, profile write (#72, #80) |
+| **M4** Coordinate | ✅ — coordinator verbs: plan / validate / build / check / impact / init (#73, #80) |
+| **M5** Preview | next |
 | **M6** Author | — |
 | **M7** Outputs | — |
 | **M8** Publish | — |
 | **M9** Ship | — |
 
-Chassis is the serial bottleneck and it has landed. M3+ can fan out by
-lane (`HARNESS.md`). Do not grow `MainWindow`.
-
-**Parallel, start now (does not wait on M3):** **P** — project subdomain.
+Chassis was the serial bottleneck and it has landed. M3/M4 gates closed
+(#72/#73 via PR #80) — the dogfood corpus (`Stunts/dogfood/`, 45 pages /
+7 trunks from `graph.json`) proves the play gate against the pinned
+engine. Do not grow `MainWindow`.
 
 ---
 
@@ -185,7 +185,12 @@ no-credentials check.
 operator steps stay out of `Sources/`. Does not touch Chrome, Play, or
 Engine.
 
-### M3 — Play & inspect
+### M3 — Play & inspect ✅ (#72, PR #80)
+
+**Gate-verified 2026-08-17:** `Stunts/dogfood/` builds against the pinned
+kit (`boris/0.8.1`, `b82e9e2`) to **45 pages / 7 trunks** in `graph.json`
+(`boris build --out .boris` → `ok: wrote IR under .boris (45 page(s))`,
+`graph.json` role count: 7 trunks).
 
 **Goal.** Selecting a local source shows the publication as a list you
 can act on, and the drawer shows minutiae of that selection.
@@ -206,7 +211,7 @@ completion-backed fields → profile keys are editable and write
 **Lanes.** Local play, Inspector, Contracts (profile / completion /
 graph mirrors).
 
-### M4 — Coordinate
+### M4 — Coordinate ✅ (#73, PR #80)
 
 **Goal.** Solipsist is the coordinator Boris does not ship: it maps
 profile entries to discrete invocations and aggregates machine results.
@@ -377,13 +382,22 @@ here, it is not a v1 promise.
 
 ## 8. Pickup (what to do next)
 
-Session briefs: [`docs/cards/`](cards/README.md). Pick one.
+The active board is the roadmap batch in the issue tracker — one card per
+milestone gate, each with a dispatch comment:
+[#72 M3](https://github.com/drawmeanelephant/solipsist/issues/72) (done) ·
+[#73 M4](https://github.com/drawmeanelephant/solipsist/issues/73) (done) ·
+[#74 M5](https://github.com/drawmeanelephant/solipsist/issues/74) (preview)
+· [#75 M6](https://github.com/drawmeanelephant/solipsist/issues/75) (author)
+· [#76 M7](https://github.com/drawmeanelephant/solipsist/issues/76) (outputs)
+· [#77 M8](https://github.com/drawmeanelephant/solipsist/issues/77) (publish)
+· [#78 M9](https://github.com/drawmeanelephant/solipsist/issues/78) (ship).
 
-1. **P — project subdomain**
-2. **M3 Local play**
-3. **M4 Engine S0** (parallel with play)
-4. **M3 Inspector** (after or beside S0’s Codable mirrors)
-5. **File A1, A14, A7** when GitHub is back
+1. **M5 Preview** — `watch --serve` companion window (#74)
+2. **M7 Outputs** — target/edition fan-out (#76; contract probes in
+   [`ENGINE-CONTRACTS.md`](ENGINE-CONTRACTS.md) §5–§7)
+3. **M8 Publish** — Standard.site / Nostr / Proof Pack (#77)
+4. **M9 Ship** — release pipeline is fixed (#78 gaps 1–3); credentials +
+   clean-Mac proof + pin bump remain
 
 Do not start the editor companion or GitHub-as-source until a page in
 play is selectable. Do not put Wasm in the app.

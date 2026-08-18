@@ -6,16 +6,30 @@ need the same file, stop and recut.
 Read first: `agents.md` → `docs/HARNESS.md` → `docs/ROADMAP.md`.
 These cards win on *what to do now*; those docs win on *what we are*.
 
-## Board
+## Board — superseded by the roadmap batch
 
-| Card | Lane | Parallel with | Gate |
-|------|------|----------------|------|
-| [P-subdomain](P-subdomain.md) | project site (`site/`) | everything | `https://<subdomain>` serves a Boris-built Solipsist page |
-| [M3-local-play](M3-local-play.md) | `Sources/Play/Local/`, `Workspace/Local/` | P, M4 | Open dogfood content → graph list → select a page |
-| [M4-engine-s0](M4-engine-s0.md) | `Sources/Engine/`, `Sources/Models/`, `Spike/` | P, M3-play | spike runs `plan` + `validate` + `--report` + `--timings` |
-| [M4-coordinate](M4-coordinate.md) | `App/Coordinator`, Play problems, menu verbs | after engine S0 | Plan / Validate / Build / Check / Impact / Stop |
-| [M3-inspector](M3-inspector.md) | `Sources/Inspector/`, `Chrome/InspectorDrawer.swift` | P, M3-play, M4 (do not edit `Models/`) | select a page → drawer shows fields; profile writes `boris.json` |
-| [ISSUES-file](ISSUES-file-A1-A14-A7.md) | `docs/issues/` | everything | A1, A14, A7 pasted when GitHub is back |
+The old one-card-per-session board below has been **replaced by the
+roadmap batch in the issue tracker**: one card per milestone gate, each
+with a dispatch comment — [#72 M3](https://github.com/drawmeanelephant/solipsist/issues/72) ·
+[#73 M4](https://github.com/drawmeanelephant/solipsist/issues/73) ·
+[#74 M5](https://github.com/drawmeanelephant/solipsist/issues/74) ·
+[#75 M6](https://github.com/drawmeanelephant/solipsist/issues/75) ·
+[#76 M7](https://github.com/drawmeanelephant/solipsist/issues/76) ·
+[#77 M8](https://github.com/drawmeanelephant/solipsist/issues/77) ·
+[#78 M9](https://github.com/drawmeanelephant/solipsist/issues/78).
+
+M3 and M4 are **done** (#72/#73, PR #80). Active: M5–M9.
+
+**Legacy board (landed or withdrawn — do not pick):**
+
+| Card | Fate |
+|------|------|
+| [P-subdomain](P-subdomain.md) | ⛔ withdrawn — site ships via Cloudflare Pages (`site/`) |
+| [M3-local-play](M3-local-play.md) | ✅ landed (M3, #72/#80) |
+| [M4-engine-s0](M4-engine-s0.md) | ✅ landed (M1 engine spike + S0 methods) |
+| [M4-coordinate](M4-coordinate.md) | ✅ landed (M4, #73/#80) |
+| [M3-inspector](M3-inspector.md) | ✅ landed (M3, #72/#80) |
+| [ISSUES-file](ISSUES-file-A1-A14-A7.md) | ✅ rolled — A1/A14/A7/A5 filed |
 
 ## Batch 3 (production readiness)
 

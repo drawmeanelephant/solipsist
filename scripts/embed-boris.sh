@@ -122,10 +122,13 @@ if BIN="$(find_prebuilt)"; then
   exit 0
 fi
 
-# CI compiles the app without a bundled engine. Local `make build` still
-# requires a kit or a boris checkout.
-if [[ "${SKIP_EMBED_BORIS:-}" == "1" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
-  echo "embed-boris: no engine available — compiling without a bundle"
+# Explicit opt-out only (ci.yml sets SKIP_EMBED_BORIS=1 for the PR/app
+# compile job, which cannot vendor an engine). Release CI now provides
+# discrete arm64/x86_64 binaries via SOLIPSIST_BORIS_*_BIN, so it must NOT
+# be skipped on GITHUB_ACTIONS: a release without an embedded engine is a
+# silent failure.
+if [[ "${SKIP_EMBED_BORIS:-}" == "1" ]]; then
+  echo "embed-boris: SKIP_EMBED_BORIS=1 — compiling without a bundle"
   exit 0
 fi
 

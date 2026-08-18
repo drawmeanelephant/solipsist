@@ -69,15 +69,16 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
 
 ## Where we are
 
-- **M0 / M1 / M2 done.** Spike decodes the contracts. Chassis is in
-  (sources / play / drawer / companion slots; File → Open… adds a local
-  source). Full sequence: [ROADMAP.md](ROADMAP.md).
+- **M0 / M1 / M2 / M3 / M4 done.** Spike decodes the contracts; chassis is
+  in; play & inspect land the dogfood corpus (45 pages / 7 trunks) with
+  completion-backed drawer fields and profile write; the coordinator verbs
+  (plan / validate / build / check / impact / init) are menu items
+  (#72/#73, PR #80). Full sequence: [ROADMAP.md](ROADMAP.md).
 - **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `b82e9e2`.
   A3/A4/A13 have merged after that pin.
-- **Next:** M3 play & inspect (`graph.json` in the middle, profile +
-  completion in the drawer), then M4 coordinator verbs. Parallel:
-  project subdomain on Boris’s Cloudflare Worker + Wasm host (roadmap
-  **P**) — we do not have full GitHub access and do not wait on it.
+- **Next:** M5 preview companion (`watch --serve`), then M7 outputs
+  fan-out and M8 publish. Roadmap **P** (Worker/Wasm subdomain) is
+  withdrawn — the public site ships via Cloudflare Pages (`site/`).
 
 ## What success looks like
 
