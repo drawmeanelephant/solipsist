@@ -1,6 +1,6 @@
 # Solipsist — Roadmap
 
-**Date:** 2026-08-17
+**Date:** 2026-08-18
 **Status:** the goals document. Spatial model:
 [`HARNESS.md`](HARNESS.md). Boris surface:
 [`BORIS-CAPABILITIES.md`](BORIS-CAPABILITIES.md).
@@ -105,18 +105,18 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M1** Engine spike | ✅ `make run-spike` decodes the IR contracts |
 | **M2** Chassis | ✅ sources / play / drawer / companion slots; File → Open… adds a local source |
 | **P** Project subdomain | ⛔ withdrawn — the public site ships via Cloudflare Pages (`site/`) |
-| **M3** Play & inspect | ✅ — dogfood corpus (45 pages / 7 trunks, verified), completion drawer, profile write (#72, #80) |
-| **M4** Coordinate | ✅ — coordinator verbs: plan / validate / build / check / impact / init (#73, #80) |
-| **M5** Preview | next |
-| **M6** Author | — |
-| **M7** Outputs | — |
-| **M8** Publish | — |
-| **M9** Ship | — |
+| **M3** Play & inspect | ✅ gate — list from `graph.json`, drawer fields (#72, #80) |
+| **M4** Coordinate | ✅ gate — menu verbs, exits visible (#73, #80) |
+| **M5** Preview | ✅ gate — `watch --serve` companion (#74, #81) |
+| **M6** Author | ✅ gate — `boris-editor` host + link-out (#75, #81) |
+| **M7** Outputs | ✅ gate — Build this / Build all fan-out (#76, #81) |
+| **M8** Publish | ✅ gate — stdin secrets, Standard.site / Nostr buttons (#77, #82/#84) |
+| **M9** Ship | 🔧 pipeline exists; clean-Mac proof + credentials + pin open (#78) |
 
-Chassis was the serial bottleneck and it has landed. M3/M4 gates closed
-(#72/#73 via PR #80) — the dogfood corpus (`Stunts/dogfood/`, 45 pages /
-7 trunks from `graph.json`) proves the play gate against the pinned
-engine. Do not grow `MainWindow`.
+**Gates are not depth.** M3–M8 closed because a list, a verb, or a window
+existed. The app is not at CLI parity and it is not usable as a Mac
+workstation. Remaining work is [#87](https://github.com/drawmeanelephant/solipsist/issues/87).
+Do not grow `MainWindow`.
 
 ---
 
@@ -382,25 +382,39 @@ here, it is not a v1 promise.
 
 ## 8. Pickup (what to do next)
 
-The active board is the roadmap batch in the issue tracker — one card per
-milestone gate, each with a dispatch comment:
-[#72 M3](https://github.com/drawmeanelephant/solipsist/issues/72) (done) ·
-[#73 M4](https://github.com/drawmeanelephant/solipsist/issues/73) (done) ·
-[#74 M5](https://github.com/drawmeanelephant/solipsist/issues/74) (preview)
-· [#75 M6](https://github.com/drawmeanelephant/solipsist/issues/75) (author)
-· [#76 M7](https://github.com/drawmeanelephant/solipsist/issues/76) (outputs)
-· [#77 M8](https://github.com/drawmeanelephant/solipsist/issues/77) (publish)
-· [#78 M9](https://github.com/drawmeanelephant/solipsist/issues/78) (ship).
+The gate batch (#72–#77) is closed. The active board is
+[#87](https://github.com/drawmeanelephant/solipsist/issues/87).
 
-1. **M5 Preview** — `watch --serve` companion window (#74)
-2. **M7 Outputs** — target/edition fan-out (#76; contract probes in
-   [`ENGINE-CONTRACTS.md`](ENGINE-CONTRACTS.md) §5–§7)
-3. **M8 Publish** — Standard.site / Nostr / Proof Pack (#77)
-4. **M9 Ship** — release pipeline is fixed (#78 gaps 1–3); credentials +
-   clean-Mac proof + pin bump remain
+| Order | Track | Issue | Why this next |
+|------:|-------|-------|----------------|
+| 1 | Usability | [#88](https://github.com/drawmeanelephant/solipsist/issues/88) | First-run, status, problem → page. Nothing else matters if this is still a chassis. |
+| 2 | Play depth | [#89](https://github.com/drawmeanelephant/solipsist/issues/89) | Filter, check badges, activity + timings, plan as a document. |
+| 3 | Inspector depth | [#90](https://github.com/drawmeanelephant/solipsist/issues/90) | Profile 1:1, execution knobs that reach boris, `recipe-scale`. |
+| 4 | Publish depth | [#91](https://github.com/drawmeanelephant/solipsist/issues/91) | Rest of `standard-site`, `boris-package`, readable proof. |
+| 5 | Ship | [#78](https://github.com/drawmeanelephant/solipsist/issues/78) | Credentials, clean-Mac proof, pin bump, testdata. Parallel with 1–4 when someone has Apple certs. |
 
-Do not start the editor companion or GitHub-as-source until a page in
-play is selectable. Do not put Wasm in the app.
+#88 and #89 can run in parallel (Chrome vs `Play/Local`). #90 owns
+`Inspector/` plus a thin Engine flag pass. #91 owns `PublishPane` plus
+publication methods. #78 stays build-lane only.
+
+### CLI vs app (honest)
+
+Wired as a menu or pane: `build` (IR/HTML/target/edition/all),
+`validate`, `watch --serve`, `check`, `impact`, `plan --profile`,
+`init`, `standard-site login` + `publish`, `nostr plan|sign|publish`,
+`--version`, `--timings` (decoded, not shown), `--report`.
+
+Named in this file and **not** a product surface yet: `recipe-scale`,
+`boris-package`, `standard-site` plan/records/verify/sessions/logout/smoke,
+browser OAuth, `github-pages-audit`, per-relay Nostr evidence, Jobs /
+Incremental / Quiet actually reaching the child.
+
+Out of v1 (unchanged): GitHub as a source, content-audit, source-rag,
+migration labs, Wasm in the app, `validate --watch` until A5 + pin.
+
+#30 is a pr-cop dump, not a card.
+
+Do not put Wasm in the app.
 
 If another doc disagrees with this file about *when* a surface lands,
 this file wins.
