@@ -68,15 +68,9 @@ struct InspectorSnapshot: Inspectable {
             }
 
         default:
-            if nounKind == InspectorNounKind.page {
-                sections.append(InspectorSection(id: InspectorSectionID.page, title: "Page"))
-            }
-            if nounKind == InspectorNounKind.target {
-                sections.append(InspectorSection(id: InspectorSectionID.target, title: "Target"))
-            }
-            if sourceKind == .local {
-                sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Profile"))
-            }
+            // Unknown mailbox (e.g. a future trunk id): not the Pages
+            // surface. Execution controls only, until M13-2 lands the
+            // trunk folder filter.
             sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
         }
 

@@ -35,8 +35,8 @@ struct MailboxRowID: Hashable, Sendable {
 }
 
 /// M10 mailbox tokens. Open vocabulary — not a closed enum.
-/// M10 UI admits only `all`; unknown values display as Pages
-/// without being rewritten to `pages` in the plist.
+/// M10 UI admits only `all`; unknown values (a future trunk id)
+/// stay themselves and are never rewritten to `pages` in the plist.
 enum WorkspaceMailbox {
     static let pages = "pages"
     static let outputs = "outputs"
@@ -52,10 +52,12 @@ enum WorkspaceMailbox {
         return all.contains(raw)
     }
 
-    /// M10 display/switch value. Does **not** write back.
-    /// A later trunk card must stop using this for persist.
+    /// Center-switch token. Known five pass through; nil (no mailbox
+    /// chosen yet) is the default Pages surface; unknown (including a
+    /// future trunk id) stays itself — it is **not** Pages. Does not
+    /// write back, and the switch never treats unknown as Pages.
     static func display(_ raw: String?) -> String {
-        guard let raw, isKnown(raw) else { return defaultMailbox }
+        guard let raw else { return defaultMailbox }
         return raw
     }
 

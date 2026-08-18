@@ -15,20 +15,22 @@ final class WorkspaceSelectionTests: XCTestCase {
         XCTAssertNil(noun.sourcePath)
     }
 
-    func testDisplayMapsUnknownAndNilToPagesWithoutRewriting() {
+    func testDisplayKeepsUnknownItselfAndNilDefaultsToPages() {
+        // nil (no mailbox chosen yet) is the default Pages surface.
         XCTAssertEqual(WorkspaceMailbox.display(nil), WorkspaceMailbox.pages)
-        XCTAssertEqual(WorkspaceMailbox.display("trunk:guides"), WorkspaceMailbox.pages)
-        XCTAssertEqual(WorkspaceMailbox.display("guides/overview"), WorkspaceMailbox.pages)
+        // Unknown stays itself — never coerced to Pages (M13, #144).
+        XCTAssertEqual(WorkspaceMailbox.display("trunk:guides"), "trunk:guides")
+        XCTAssertEqual(WorkspaceMailbox.display("guides/overview"), "guides/overview")
+        XCTAssertEqual(WorkspaceMailbox.display("index"), "index")
+        XCTAssertEqual(WorkspaceMailbox.display(""), "")
         // Every known token round-trips through display unchanged.
         for token in WorkspaceMailbox.all {
             XCTAssertEqual(WorkspaceMailbox.display(token), token)
         }
-        // Unknown and nil both display as Pages without being written back
-        // (display is a view value; persist keeps the raw string).
-        XCTAssertEqual(WorkspaceMailbox.display(""), WorkspaceMailbox.pages)
 
         XCTAssertFalse(WorkspaceMailbox.isKnown(nil))
         XCTAssertFalse(WorkspaceMailbox.isKnown("trunk:guides"))
+        XCTAssertFalse(WorkspaceMailbox.isKnown("index"))
         XCTAssertTrue(WorkspaceMailbox.isKnown(WorkspaceMailbox.pages))
         XCTAssertTrue(WorkspaceMailbox.isKnown(WorkspaceMailbox.outputs))
         XCTAssertEqual(WorkspaceMailbox.all, [
