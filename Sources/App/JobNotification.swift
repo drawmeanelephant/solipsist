@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import UserNotifications
 
+@MainActor
 enum JobNotificationDispatcher {
     static func notifyIfBackgrounded(
         verb: CoordinatorVerb,
