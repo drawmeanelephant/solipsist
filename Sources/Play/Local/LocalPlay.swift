@@ -13,6 +13,7 @@ struct LocalPlay: PlaySurface {
     enum PlayTab: String, CaseIterable, Identifiable {
         case pages = "Pages"
         case outputs = "Outputs"
+        case publish = "Publish"
 
         var id: String { rawValue }
     }
@@ -38,6 +39,8 @@ struct LocalPlay: PlaySurface {
                 pagesContent
             case .outputs:
                 OutputsPane(source: source)
+            case .publish:
+                PublishPane(source: source)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

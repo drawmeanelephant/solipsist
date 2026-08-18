@@ -9,6 +9,8 @@ enum CoordinatorVerb: String, Sendable {
     case buildAll
     case check
     case impact
+    case publishStandardSite = "publish Standard.site"
+    case publishNostr = "publish Nostr"
 }
 
 struct ProblemItem: Identifiable, Hashable, Sendable {
@@ -258,6 +260,34 @@ final class Coordinator {
                     exit: result.exitCode,
                     summary: "impact \(pageID) · \(items.count) item(s)",
                     problems: items
+                )
+
+            case .publishStandardSite:
+                guard let profile = source.profileURL() else {
+                    return JobResult(exit: 3, summary: "publish: no boris.json", problems: [])
+                }
+                let result = try await engine.standardSitePublish(profileURL: profile)
+                let problems = result.exitCode == 0 ? [] : [
+                    ProblemItem(severity: "error", code: "standard-site", message: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))
+                ]
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: "Standard.site exit \(result.exitCode)",
+                    problems: problems
+                )
+
+            case .publishNostr:
+                guard let profile = source.profileURL() else {
+                    return JobResult(exit: 3, summary: "publish: no boris.json", problems: [])
+                }
+                let result = try await engine.nostrPlan(profileURL: profile)
+                let problems = result.exitCode == 0 ? [] : [
+                    ProblemItem(severity: "error", code: "nostr", message: result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))
+                ]
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: "Nostr plan exit \(result.exitCode)",
+                    problems: problems
                 )
             }
         } catch {
