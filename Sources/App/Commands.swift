@@ -49,6 +49,13 @@ struct SolipsistCommands: Commands {
                 }
             }
             .disabled(store.selection.sourceID == nil)
+
+            Divider()
+
+            Button("Edit Page") {
+                openWindow(id: CompanionID.editor)
+            }
+            .disabled(!store.selection.canEditPage)
         }
 
         CommandMenu("Boris") {

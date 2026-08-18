@@ -19,7 +19,7 @@ concurrency:
 jobs:
   build-and-notarize:
     name: Build, Sign & Notarize Universal macOS App
-    runs-on: macos-15
+    runs-on: xcode-27
     # Repo default GITHUB_TOKEN is read-only; softprops/action-gh-release needs write.
     permissions:
       contents: write

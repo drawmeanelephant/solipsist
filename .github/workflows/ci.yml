@@ -12,7 +12,7 @@ concurrency:
 jobs:
   lint:
     name: lint
-    runs-on: macos-15
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
       - name: Install swiftformat & swiftlint
@@ -24,7 +24,7 @@ jobs:
 
   spike:
     name: spike
-    runs-on: macos-15
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
 
@@ -58,7 +58,7 @@ jobs:
 
   app:
     name: app
-    runs-on: macos-15
+    runs-on: xcode-27
     env:
       SKIP_EMBED_BORIS: "1"
     steps:
@@ -68,7 +68,7 @@ jobs:
 
   fixtures:
     name: fixtures
-    runs-on: macos-15
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
       - name: Decode checked-in contract fixtures
