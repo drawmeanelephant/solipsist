@@ -3,7 +3,7 @@
 Session briefs. Pick **one**. Paths are the contract — if two sessions
 need the same file, stop and recut.
 
-Read first: `agents.md` → `docs/HARNESS.md` → `docs/ROADMAP.md`.
+Read first: `AGENTS.md` → `docs/HARNESS.md` → `docs/ROADMAP.md`.
 These cards win on *what to do now*; those docs win on *what we are*.
 
 ## Board — superseded by the roadmap batch
