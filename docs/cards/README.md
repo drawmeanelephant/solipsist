@@ -19,11 +19,11 @@ with a dispatch comment — [#72 M3](https://github.com/drawmeanelephant/solipsi
 [#78 M9](https://github.com/drawmeanelephant/solipsist/issues/78).
 
 M3–M8 **gates** are closed (#72–#77). The #87 depth batch is closed
-(#88/#94 · #89/#96 · #90/#95 · #91/#93). Active **ship** card:
-[#78 ship](https://github.com/drawmeanelephant/solipsist/issues/78).
-Next **product cut** is [M10 Mail body](M10-mail-body.md)
-([#98](https://github.com/drawmeanelephant/solipsist/issues/98)) —
-after #78, never inside it.
+(#88/#94 · #89/#96 · #90/#95 · #91/#93). **M9 ship** (#78), **M10
+Mail body** (#98), and **M11 prove** (#123) landed. Remaining ship
+is Apple-account only (#110 / #111). Pickable product: **M12
+clone** ([#131](https://github.com/drawmeanelephant/solipsist/issues/131)).
+M13 graph folders and M14 watch contract are filed below.
 
 **Legacy board (landed or withdrawn — do not pick):**
 
@@ -57,32 +57,48 @@ stdin wiring merges after B3-1. B3-4 must keep
 `files.user-selected.read-write` (B3-2) and `network.server` (M5
 preview) in the entitlements matrix.
 
-## M10 — Mail body (after #78, not instead of it)
+## M10 — Mail body ✅
 
-Spatial recut. Settings for sources, mailbox sidebar, reading pane,
-hosted Edit from the selected page, native Compose.
+Landed. Settings, mailboxes, reading pane, hosted Edit, native
+Compose. Do not pick.
 
-| Card | Issue | Lane | Parallel with | Gate |
-|------|-------|------|----------------|------|
-| [M10 tracker](M10-mail-body.md) | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) | design | — | children filed; [`M10-DESIGN.md`](../M10-DESIGN.md) + HARNESS §2 |
-| [M10-1 Settings](M10-settings-sources.md) | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) | Settings | #100 | Settings → Sources adds/removes/relocates ✅ |
-| [M10-2 Mailboxes](M10-mailbox-sidebar.md) | [#100](https://github.com/drawmeanelephant/solipsist/issues/100) | Mailboxes | #99 | account headers + mailboxes; writes `mailbox` ✅ |
-| [M10-3 Reading](M10-reading-pane.md) | [#101](https://github.com/drawmeanelephant/solipsist/issues/101) | Reading | — (after #100) | tabs gone; list + reading pane |
-| [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | Editor wiring | — (merge after #101) | File → Edit Page; header `sourcePath` |
-| [M10-5 Compose](COMPOSE-EDITOR.md) | [#106](https://github.com/drawmeanelephant/solipsist/issues/106) | Compose | #101, #102 | `⌘⇧C` on a selected page; Oliver preview; PR [#108](https://github.com/drawmeanelephant/solipsist/pull/108) |
+| Card | Issue | Fate |
+|------|-------|------|
+| [M10 tracker](M10-mail-body.md) | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) | ✅ |
+| [M10-1 Settings](M10-settings-sources.md) | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) | ✅ |
+| [M10-2 Mailboxes](M10-mailbox-sidebar.md) | [#100](https://github.com/drawmeanelephant/solipsist/issues/100) | ✅ |
+| [M10-3 Reading](M10-reading-pane.md) | [#101](https://github.com/drawmeanelephant/solipsist/issues/101) | ✅ |
+| [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | ✅ |
+| [M10-5 Compose](COMPOSE-EDITOR.md) | [#106](https://github.com/drawmeanelephant/solipsist/issues/106) | ✅ PR [#108](https://github.com/drawmeanelephant/solipsist/pull/108) |
 
-#78 stays build-lane only. Do not pick an M10 card by growing ship.
-
-## Git (pickable)
+## M12 — Clone (pickable)
 
 | Card | Issue | Lane | Parallel with | Gate |
 |------|-------|------|----------------|------|
 | [Add Git Repository…](GIT-CLONE.md) | [#131](https://github.com/drawmeanelephant/solipsist/issues/131) | Settings / workspace | #110 | clone URL → folder → Local source; branch in Settings |
 
+## M13 — Graph folders (filed; pick after M12 or in a second worktree)
+
+| Card | Issue | Lane | Parallel with | Gate |
+|------|-------|------|----------------|------|
+| [M13 tracker](M13-graph-folders.md) | [#142](https://github.com/drawmeanelephant/solipsist/issues/142) | design | — | children filed; unknown mailbox is not Pages |
+| [M13-0 Unknown mailbox](M13-unknown-mailbox.md) | [#144](https://github.com/drawmeanelephant/solipsist/issues/144) | Workspace | M14 | unknown `mailbox` displays verbatim; center does not treat it as Pages |
+| [M13-1 Trunk folders](M13-trunk-folders.md) | [#145](https://github.com/drawmeanelephant/solipsist/issues/145) | Mailboxes | after #144 | Pages grows children from `graph.parent` |
+| [M13-2 Filter letters](M13-filter-letters.md) | [#146](https://github.com/drawmeanelephant/solipsist/issues/146) | Reading | after #145 | trunk mailbox filters the list; Pages still means all |
+
+## M14 — Watch contract (filed; parallel with M13)
+
+| Card | Issue | Lane | Parallel with | Gate |
+|------|-------|------|----------------|------|
+| [M14 tracker](M14-watch-contract.md) | [#143](https://github.com/drawmeanelephant/solipsist/issues/143) | design | — | children filed |
+| [M14-1 A1 consume](M14-a1-consume.md) | [#147](https://github.com/drawmeanelephant/solipsist/issues/147) | Engine + Preview | M13 | `--watch-json` / `serve-started` is how we learn the port |
+| [M14-2 Letter SSE](M14-letter-sse.md) | [#148](https://github.com/drawmeanelephant/solipsist/issues/148) | Reading | after #147 | letter reloads on `event: reload`; no second watch |
+
 ## Do not start yet
 
 GitHub OAuth / `SourceKind.github` payload. Wasm in the app. The
-fart app. Compose **depth**. #136 splitter crash (macOS 27 beta).
+fart app. Compose **depth**. Fetch / pull / commit / push.
+#136 splitter crash (macOS 27 beta).
 
 ## Shared noun kinds (play writes, inspector reads)
 

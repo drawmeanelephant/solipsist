@@ -69,28 +69,31 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
 
 ## Where we are
 
-- **M0–M8 gates plus depth.** Spike, chassis, list, verbs,
-  preview/editor, outputs, publish family, first-run, filter, profile
-  1:1, `recipe-scale`. Remaining **ship** card:
-  [#78](https://github.com/drawmeanelephant/solipsist/issues/78).
-  Next **product cut:** M10 Mail body
+- **M0–M11 landed.** Spike, chassis, list, verbs, preview/editor,
+  outputs, publish family, first-run, filter, profile 1:1,
+  `recipe-scale`, ship pipeline (#78), Mail body
   ([#98](https://github.com/drawmeanelephant/solipsist/issues/98) —
-  Settings, mailbox sidebar, reading pane, native compose
-  [#106](https://github.com/drawmeanelephant/solipsist/issues/106)).
-  Sequence: [ROADMAP.md](ROADMAP.md) §8.
+  Settings, mailboxes, reading, compose #106), prove (#123).
+  Remaining **ship** is Apple-account only (#110 / #111).
+  Next **product cut:** M12 clone
+  ([#131](https://github.com/drawmeanelephant/solipsist/issues/131)).
+  Then M13 graph folders and M14 watch contract. Sequence:
+  [ROADMAP.md](ROADMAP.md) §8.
 - **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `6b930b7`
   (contains A1/A14/A7 + A3/A4/A13).
-- **Next:** clean-Mac ship (#78), then the Mail-body recut. Roadmap
-  **P** is withdrawn — the public site ships via Cloudflare Pages
-  (`site/`).
+- Roadmap **P** is withdrawn — the public site ships via Cloudflare
+  Pages (`site/`).
 
 ## What success looks like
 
-Open any folder of Boris content on a Mac → it is a **source** in
-Settings → it appears as an account with mailboxes → the reading place
-shows the graph as messages and a pane for the selected page → the
+Open any folder of Boris content on a Mac — or clone a URL into one
+— → it is a **source** in Settings → it appears as an account with
+mailboxes (Pages folders from the graph) → the reading place shows
+the graph as messages and a pane for the selected page → the
 drawer shows the profile and that page → Plan / Validate / Build
-surface every diagnostic → Preview reloads through `watch --serve` →
-Edit hosts `boris-editor` → Compose is the native buffer → publish to GitHub Pages, Standard.site, or
-Nostr with the Proof Pack attached. All of it driven by the compiler's
-contracts; none of it by scraped prose or reimplemented logic.
+surface every diagnostic → Preview reloads through `watch --serve`
+(A1 events, not a port regex) → Edit hosts `boris-editor` →
+Compose is the native buffer → publish to GitHub Pages,
+Standard.site, or Nostr with the Proof Pack attached. All of it
+driven by the compiler's contracts; none of it by scraped prose or
+reimplemented logic.

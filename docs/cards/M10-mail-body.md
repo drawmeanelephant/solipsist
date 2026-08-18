@@ -56,7 +56,7 @@ Do not invent a second vocabulary. `WorkspaceSelection` grows
 | `publish` | publication console |
 | `plan` | plan document |
 | `activity` | timings / job log |
-| later: a trunk id | nested folder under Pages, from `graph.parent` only |
+| later: a trunk id | nested folder under Pages, from `graph.parent` only — now [M13](M13-graph-folders.md) / [#142](https://github.com/drawmeanelephant/solipsist/issues/142) |
 
 Existing `WorkspaceNoun.kind` values (`page`, `profile`, `target`,
 `edition`) stay. Chrome writes `sourceID` + `mailbox`. Play writes

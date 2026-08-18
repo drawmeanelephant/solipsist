@@ -258,6 +258,12 @@ cut wrong — stop and recut.
 | **Reading** (M10) | `Sources/Play/Local/`; named recut: `PlayHost` binder, `AppRuntime.previewSession`, `Companions/Preview/` session share + `PreviewURL` helpers | Chrome mailbox construction, `MainWindow.swift`, Engine | Tabs gone; center is message list + reading pane driven by `mailbox` |
 | **Editor wiring** (M10) | `Sources/Companions/Editor/`, File → Edit Page in `Commands.swift` | `Sources/Compose/`, Play list internals, `MainWindow.swift` | File → Edit Page; header shows title + `sourcePath`; merge after Reading |
 | **Compose** (M10) | `Sources/Compose/`, `OliverRenderer` / `OliverBinary` in `Engine/`, Compose menu / window | `Companions/Editor/`, Play list internals, `MainWindow.swift` | ⌘⇧C opens the selected page; explicit save; Oliver preview when the binary is present |
+| **Git clone** (M12) | `Sources/Workspace/Git/` (new), Settings Sources pane, File menu clone verb in `Commands.swift` | `Sources/Engine/**`, Play except a caption, fake GitHub rows | clone URL → folder → `addLocal`; branch badge on a checkout |
+| **Unknown mailbox** (M13-0) | `WorkspaceMailbox` / selection display rules in `WorkspaceSelection.swift` | Sidebar construction, Play list internals, Engine | Unknown raw `mailbox` is not treated as Pages in the center switch |
+| **Trunk folders** (M13-1) | `SourceSidebar.swift` only | Settings, Play row rendering, Engine | Pages grows child rows from `graph.parent`; writes `mailbox = trunk id` |
+| **Filter letters** (M13-2) | `Sources/Play/Local/` | `SourceSidebar.swift`, Engine, `MainWindow.swift` | Selecting a trunk mailbox filters the list; Pages still means all |
+| **A1 consume** (M14-1) | `Sources/Engine/WatchServer.swift` (+ Engine watch start), `Companions/Preview/` port wiring | Play list internals, `MainWindow.swift` | `--watch-json` / `serve-started` is how we learn the port |
+| **Letter SSE** (M14-2) | reading pane only; observe existing session | `WatchServer` argv, Engine start line | Letter reloads on `event: reload`. No second watch. |
 | **Issues** | `docs/issues/` | `Sources/` | Draft fact-checked against afterparty, then filed |
 | **Design** | `docs/*.md` except `issues/` | `Sources/` | Decisions recorded; no silent contradiction with this file |
 
@@ -337,4 +343,8 @@ window.
 Do not expand Apple-account ship
 ([#110](https://github.com/drawmeanelephant/solipsist/issues/110),
 [#111](https://github.com/drawmeanelephant/solipsist/issues/111))
-into this chrome. #78 is closed.
+into this chrome. #78 is closed. Next product lanes: M12 clone
+(`Sources/Workspace/Git/` + Settings), M13 graph folders
+(sidebar + `Play/Local/` filter), M14 watch contract (`Engine/`
+`WatchServer` then the reading pane). Paths in [`ROADMAP.md`](ROADMAP.md)
+§5 / [`cards/README.md`](cards/README.md).

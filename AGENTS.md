@@ -65,5 +65,11 @@ ship ✅ ([#78](https://github.com/drawmeanelephant/solipsist/issues/78))
 Settings / mailboxes / reading / compose #106)
 · **M11** prove the Mail body ✅
 ([#123](https://github.com/drawmeanelephant/solipsist/issues/123) —
-Help audit + test pass). Remaining ship is Apple-account only
-(#110 / #111).
+Help audit + test pass)
+· **M12** clone 📋
+([#131](https://github.com/drawmeanelephant/solipsist/issues/131))
+· **M13** graph folders 📋
+([#142](https://github.com/drawmeanelephant/solipsist/issues/142))
+· **M14** watch contract 📋
+([#143](https://github.com/drawmeanelephant/solipsist/issues/143)).
+Remaining ship is Apple-account only (#110 / #111).
