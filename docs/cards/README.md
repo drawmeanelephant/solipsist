@@ -71,6 +71,17 @@ Compose. Do not pick.
 | [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | ✅ |
 | [M10-5 Compose](COMPOSE-EDITOR.md) | [#106](https://github.com/drawmeanelephant/solipsist/issues/106) | ✅ PR [#108](https://github.com/drawmeanelephant/solipsist/pull/108) |
 
+## M11 — Prove the Mail body ✅
+
+Landed. Help and empty states match the window; Help-vs-Commands and
+letter-URL contract tests pin the recut. Do not pick.
+
+| Card | Issue | Fate |
+|------|-------|------|
+| [M11 tracker](M11-prove.md) | [#123](https://github.com/drawmeanelephant/solipsist/issues/123) | ✅ |
+| [M11-1 Chrome/Help audit](M11-chrome-audit.md) | [#124](https://github.com/drawmeanelephant/solipsist/issues/124) | ✅ PR [#126](https://github.com/drawmeanelephant/solipsist/pull/126) |
+| [M11-2 Test pass](M11-test-pass.md) | [#125](https://github.com/drawmeanelephant/solipsist/issues/125) | ✅ PRs [#127](https://github.com/drawmeanelephant/solipsist/pull/127), [#128](https://github.com/drawmeanelephant/solipsist/pull/128) |
+
 ## M12 — Clone (pickable)
 
 | Card | Issue | Lane | Parallel with | Gate |
