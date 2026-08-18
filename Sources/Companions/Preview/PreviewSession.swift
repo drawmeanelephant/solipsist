@@ -49,10 +49,13 @@ final class PreviewSession {
     private var server: WatchServer?
     private var rootPath: String?
     private var timeoutTask: Task<Void, Never>?
+    private weak var coordinator: Coordinator?
 
-    func start(contentRoot: URL, projectRoot: URL, engine: BorisEngine?) {
+    func start(contentRoot: URL, projectRoot: URL, engine: BorisEngine?, coordinator: Coordinator?) {
+        self.coordinator = coordinator
         let root = contentRoot.standardizedFileURL.path
         if root == rootPath, let server, server.isRunning {
+            coordinator?.registerWatch(server)
             if let url = server.serveURL {
                 phase = .serving(url)
             }
@@ -61,6 +64,7 @@ final class PreviewSession {
             return
         }
         stop()
+        self.coordinator = coordinator
         rootPath = root
 
         guard let engine else {
@@ -77,6 +81,7 @@ final class PreviewSession {
                 port: 0
             )
             self.server = server
+            coordinator?.registerWatch(server)
             server.onServe = { [weak self] url in
                 Task { @MainActor in self?.handleServe(url: url) }
             }
@@ -93,27 +98,27 @@ final class PreviewSession {
     /// Surfaces a non-server failure (e.g. an unresolvable content root),
     /// tearing down any live server so nothing leaks.
     func fail(_ message: String) {
-        timeoutTask?.cancel()
-        timeoutTask = nil
-        server?.onServe = nil
-        server?.onExit = nil
-        server?.stop()
-        server = nil
+        teardownServer()
         rootPath = nil
         phase = .failed(message)
     }
 
     func stop() {
+        teardownServer()
+        rootPath = nil
+        phase = .idle
+    }
+
+    private func teardownServer() {
         timeoutTask?.cancel()
         timeoutTask = nil
         if let server {
+            coordinator?.unregisterWatch(server)
             server.onServe = nil
             server.onExit = nil
             server.stop()
             self.server = nil
         }
-        rootPath = nil
-        phase = .idle
     }
 
     // MARK: Server callbacks (hopped to the main actor)
@@ -127,8 +132,9 @@ final class PreviewSession {
     private func handleExit(_ exit: WatchExit) {
         // We stopped it on purpose; the callbacks were cleared first, so the
         // only exits that land here are spontaneous ones.
-        guard server != nil else { return }
-        server = nil
+        guard let server else { return }
+        coordinator?.unregisterWatch(server)
+        self.server = nil
         timeoutTask?.cancel()
         timeoutTask = nil
         rootPath = nil
@@ -151,9 +157,7 @@ final class PreviewSession {
     }
 
     private func failTimeout() {
-        server?.stop()
-        server = nil
-        timeoutTask = nil
+        teardownServer()
         rootPath = nil
         phase = .failed("preview server did not report a port within 15s")
     }

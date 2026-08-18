@@ -32,55 +32,60 @@ struct SolipsistCommands: Commands {
                 runtime.coordinator.run(.plan, store: store, runtime: runtime)
             }
             .keyboardShortcut("l", modifiers: [.command, .shift])
-            .disabled(!hasSource || runtime.coordinator.isRunning)
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 
             Button("Validate") {
                 runtime.coordinator.run(.validate, store: store, runtime: runtime)
             }
             .keyboardShortcut("k", modifiers: [.command, .shift])
-            .disabled(!hasSource || runtime.coordinator.isRunning)
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 
             Button("Build IR") {
                 runtime.coordinator.run(.buildIR, store: store, runtime: runtime)
             }
             .keyboardShortcut("b", modifiers: .command)
-            .disabled(!hasSource || runtime.coordinator.isRunning)
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 
             Button("Build HTML") {
                 runtime.coordinator.run(.buildHTML, store: store, runtime: runtime)
             }
             .keyboardShortcut("b", modifiers: [.command, .shift])
-            .disabled(!hasSource || runtime.coordinator.isRunning)
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 
             Button("Build All") {
                 runtime.coordinator.run(.buildAll, store: store, runtime: runtime)
             }
             .keyboardShortcut("u", modifiers: [.command, .shift])
-            .disabled(!hasSource || runtime.coordinator.isRunning)
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
+
+            Button("Build This") {
+                runtime.coordinator.run(.buildThis, store: store, runtime: runtime)
+            }
+            .disabled(!hasOutput || !runtime.coordinator.canRunVerb)
 
             Divider()
 
             Button("Check") {
                 runtime.coordinator.run(.check, store: store, runtime: runtime)
             }
-            .disabled(!hasSource || runtime.coordinator.isRunning)
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 
             Button("Impact") {
                 runtime.coordinator.run(.impact, store: store, runtime: runtime)
             }
-            .disabled(!hasPage || runtime.coordinator.isRunning)
+            .disabled(!hasPage || !runtime.coordinator.canRunVerb)
 
             Divider()
 
             Button("Publish to Standard.site") {
                 runtime.coordinator.run(.publishStandardSite, store: store, runtime: runtime)
             }
-            .disabled(!hasSource || runtime.coordinator.isRunning)
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 
             Button("Publish to Nostr…") {
                 runtime.coordinator.run(.publishNostr, store: store, runtime: runtime)
             }
-            .disabled(!hasSource || runtime.coordinator.isRunning)
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 
             Divider()
 
@@ -88,7 +93,7 @@ struct SolipsistCommands: Commands {
                 runtime.coordinator.stop(runtime: runtime)
             }
             .keyboardShortcut(".", modifiers: .command)
-            .disabled(!runtime.coordinator.isRunning)
+            .disabled(!runtime.coordinator.canStop)
         }
 
         CommandGroup(after: .sidebar) {
@@ -121,4 +126,9 @@ struct SolipsistCommands: Commands {
     private var hasSource: Bool { store.selectedSource != nil }
 
     private var hasPage: Bool { store.selection.noun?.kind == "page" }
+
+    private var hasOutput: Bool {
+        let kind = store.selection.noun?.kind
+        return kind == "target" || kind == "edition"
+    }
 }

@@ -77,6 +77,21 @@ public final class WatchServer: @unchecked Sendable {
         return process?.isRunning ?? false
     }
 
+    public var isSuspended: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _suspended
+    }
+
+    public var processIdentifier: Int32? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let process, process.isRunning else { return nil }
+        return process.processIdentifier
+    }
+
+    private var _suspended = false
+
     /// Launches the process. Throws `BorisRunnerError.launchFailed` when the
     /// binary cannot be spawned.
     public func start() throws {
@@ -106,13 +121,55 @@ public final class WatchServer: @unchecked Sendable {
     }
 
     /// SIGTERM the server (afterparty exits 0 gracefully — A12). Cannot be
-    /// restarted; create a new `WatchServer` instead.
+    /// restarted; create a new `WatchServer` instead. A SIGSTOP'd child is
+    /// continued first so the signal is delivered.
     public func stop() {
         lock.lock()
         let process = self.process
+        let suspended = _suspended
+        let pid = process?.processIdentifier
+        _suspended = false
         lock.unlock()
         guard let process, process.isRunning else { return }
+        if suspended, let pid {
+            ChildProcessControl.resume(pid: pid)
+        }
         process.terminate()
+    }
+
+    /// Freeze watch so a tree-writing job can own `dist/` / `.boris`.
+    /// The helper URL and bound port stay valid.
+    public func suspend() {
+        lock.lock()
+        let pid = process?.isRunning == true ? process?.processIdentifier : nil
+        let already = _suspended
+        lock.unlock()
+        guard let pid, !already else { return }
+        guard ChildProcessControl.suspend(pid: pid) else { return }
+        lock.lock()
+        _suspended = true
+        lock.unlock()
+    }
+
+    /// Continue a frozen watch. No-op if it already exited.
+    public func resume() {
+        lock.lock()
+        let pid = process?.isRunning == true ? process?.processIdentifier : nil
+        let was = _suspended
+        _suspended = false
+        lock.unlock()
+        guard was, let pid else { return }
+        ChildProcessControl.resume(pid: pid)
+    }
+
+    /// SIGKILL if SIGTERM was ignored. Safe on a stopped child.
+    public func forceKill() {
+        lock.lock()
+        let pid = process?.isRunning == true ? process?.processIdentifier : nil
+        _suspended = false
+        lock.unlock()
+        guard let pid else { return }
+        ChildProcessControl.forceKill(pid: pid)
     }
 
     // MARK: stderr streaming
@@ -154,6 +211,7 @@ public final class WatchServer: @unchecked Sendable {
         )
         let onExit = self.onExit
         self.process = nil
+        _suspended = false
         lock.unlock()
         onExit?(exit)
     }

@@ -50,6 +50,14 @@ public final class RunHandle: @unchecked Sendable {
         guard let process, process.isRunning else { return }
         process.terminate()
     }
+
+    public func forceKill() {
+        lock.lock()
+        let process = self.process
+        lock.unlock()
+        guard let process, process.isRunning else { return }
+        ChildProcessControl.forceKill(pid: process.processIdentifier)
+    }
 }
 
 public enum BorisRunner {

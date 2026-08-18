@@ -31,7 +31,7 @@ struct MainWindow: View {
                     Label("Validate", systemImage: "checkmark.circle")
                 }
                 .help("Validate")
-                .disabled(store.selectedSource == nil || runtime.coordinator.isRunning)
+                .disabled(store.selectedSource == nil || !runtime.coordinator.canRunVerb)
 
                 Button {
                     runtime.coordinator.run(.buildIR, store: store, runtime: runtime)
@@ -39,7 +39,7 @@ struct MainWindow: View {
                     Label("Build IR", systemImage: "hammer")
                 }
                 .help("Build IR")
-                .disabled(store.selectedSource == nil || runtime.coordinator.isRunning)
+                .disabled(store.selectedSource == nil || !runtime.coordinator.canRunVerb)
 
                 Button {
                     runtime.coordinator.stop(runtime: runtime)
@@ -47,7 +47,7 @@ struct MainWindow: View {
                     Label("Stop", systemImage: "stop.fill")
                 }
                 .help("Stop")
-                .disabled(!runtime.coordinator.isRunning)
+                .disabled(!runtime.coordinator.canStop)
 
                 Button {
                     openWindow(id: CompanionID.preview)

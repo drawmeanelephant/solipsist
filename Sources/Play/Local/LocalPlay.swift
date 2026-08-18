@@ -179,6 +179,8 @@ struct LocalPlay: PlaySurface {
             return
         }
 
+        runtime.coordinator.beginTreeWrite()
+        defer { runtime.coordinator.endTreeWrite() }
         do {
             let build = try await engine.buildIR(contentRoot: contentRoot, outDir: outDir)
             guard !Task.isCancelled else { return }

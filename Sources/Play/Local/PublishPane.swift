@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Publish pane (M8 / #77): renders publication target details, plan,
-/// evidence chain (`_boris/proof/`), Proof Pack archives, and publish actions.
+/// evidence chain (`_boris/proof/`), and publish actions. Actions go through
+/// the coordinator — this view never spawns `boris`.
 struct PublishPane: View {
     let source: LocalSource
 
@@ -9,12 +10,17 @@ struct PublishPane: View {
     @Environment(AppRuntime.self) private var runtime
     @State private var profile: PublicationProfile?
     @State private var proofFiles: [ProofFileItem] = []
-    @State private var planSummary: String?
-    @State private var publishStatus: String?
     @State private var loadError: String?
 
     var body: some View {
         List {
+            if let loadError {
+                Section {
+                    Text(loadError)
+                        .foregroundStyle(.red)
+                }
+            }
+
             Section("Publication Declaration") {
                 if let pub = profile?.publication {
                     LabeledContent("Target", value: pub.target)
@@ -38,43 +44,41 @@ struct PublishPane: View {
             Section("Publish Actions") {
                 HStack(spacing: 12) {
                     Button("Plan Publication") {
-                        planPublication()
+                        runtime.coordinator.run(.plan, store: store, runtime: runtime)
                     }
                     .controlSize(.small)
+                    .disabled(runtime.coordinator.isRunning)
 
                     if let target = profile?.publication?.target {
                         if target == "standard-site" {
                             Button("Publish to Standard.site") {
-                                publishStandardSite()
+                                runtime.coordinator.run(
+                                    .publishStandardSite,
+                                    store: store,
+                                    runtime: runtime
+                                )
                             }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)
+                            .disabled(runtime.coordinator.isRunning)
                         } else if target == "nostr" {
                             Button("Publish to Nostr…") {
-                                publishNostr()
+                                runtime.coordinator.run(
+                                    .publishNostr,
+                                    store: store,
+                                    runtime: runtime
+                                )
                             }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)
+                            .disabled(runtime.coordinator.isRunning)
                         }
                     }
                 }
 
-                if let planSummary {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Plan Output")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                        Text(planSummary)
-                            .font(.caption.monospaced())
-                    }
-                    .padding(.vertical, 4)
-                }
-
-                if let publishStatus {
-                    Text(publishStatus)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text("Results land in the problems list. Stop (⌘.) cancels the job.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("Evidence Chain (_boris/proof/)") {
@@ -106,6 +110,11 @@ struct PublishPane: View {
         .task(id: source.id) {
             load()
         }
+        .onChange(of: runtime.coordinator.isRunning) { wasRunning, isRunning in
+            if wasRunning, !isRunning, let root = try? source.workspaceRoot() {
+                scanProofFiles(in: root)
+            }
+        }
     }
 
     private func load() {
@@ -115,7 +124,13 @@ struct PublishPane: View {
         }
         do {
             if let pair = try InspectorProfile.load(from: root) {
-                profile = try? JSONDecoder().decode(PublicationProfile.self, from: pair.data)
+                do {
+                    profile = try JSONDecoder().decode(PublicationProfile.self, from: pair.data)
+                    loadError = nil
+                } catch {
+                    profile = nil
+                    loadError = error.localizedDescription
+                }
             }
         } catch {
             loadError = error.localizedDescription
@@ -146,44 +161,6 @@ struct PublishPane: View {
             ))
         }
         proofFiles = items.sorted(by: { $0.name < $1.name })
-    }
-
-    private func planPublication() {
-        guard let root = try? source.workspaceRoot(), let engine = runtime.engine else { return }
-        let profileURL = root.appendingPathComponent("boris.json")
-        Task {
-            if let result = try? await engine.plan(profileURL: profileURL) {
-                planSummary = result.stdout.isEmpty ? "Exit code: \(result.exitCode)" : result.stdout
-            }
-        }
-    }
-
-    private func publishStandardSite() {
-        guard let root = try? source.workspaceRoot(), let engine = runtime.engine else { return }
-        let profileURL = root.appendingPathComponent("boris.json")
-        Task {
-            do {
-                let result = try await engine.standardSitePublish(profileURL: profileURL)
-                publishStatus = "Standard.site publish finished with exit code \(result.exitCode)."
-                scanProofFiles(in: root)
-            } catch {
-                publishStatus = "Standard.site publish error: \(error.localizedDescription)"
-            }
-        }
-    }
-
-    private func publishNostr() {
-        guard let root = try? source.workspaceRoot(), let engine = runtime.engine else { return }
-        let profileURL = root.appendingPathComponent("boris.json")
-        Task {
-            do {
-                let planResult = try await engine.nostrPlan(profileURL: profileURL)
-                publishStatus = "Nostr plan: exit \(planResult.exitCode)"
-                scanProofFiles(in: root)
-            } catch {
-                publishStatus = "Nostr error: \(error.localizedDescription)"
-            }
-        }
     }
 }
 
