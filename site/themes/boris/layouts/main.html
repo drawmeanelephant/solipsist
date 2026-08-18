@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Solipsist is a native macOS harness for Boris, the deterministic Zig graph-native publication compiler.">
-    <meta name="theme-color" content="#151a24">
+    <meta name="theme-color" content="#ebebee">
     <title>{{title}} · Solipsist</title>
     <link rel="icon" type="image/png" sizes="32x32" href="{{asset-url assets/favicon/favicon-32.png}}">
     <link rel="icon" type="image/png" sizes="128x128" href="{{asset-url assets/favicon/favicon-128.png}}">
@@ -25,55 +25,98 @@
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
 
-    <header class="site-header">
-      <div class="site-container site-header__inner">
-        <a class="site-brand" href="index.html">
-          <span class="site-brand__name">Solipsist</span>
-          <span class="site-brand__tagline">Native macOS harness for Boris</span>
-        </a>
-        <div class="site-header__nav" aria-label="Site navigation">{{nav}}</div>
-      </div>
-    </header>
-
-    <div class="site-container"><div class="site-breadcrumb">{{breadcrumb}}</div></div>
-
-    <main id="main-content" class="site-container site-grid" tabindex="-1" data-boris-search-root>
-      <article class="Box site-article">
-        <header class="site-article__header">
-          <span class="Label Label--accent">Project documentation</span>
-          {{metadata}}
-        </header>
-        <div class="markdown-body">{{content}}</div>
-        <section class="Box Box--nested site-children" aria-labelledby="children-heading">
-          <h2 id="children-heading" class="section-heading">In this section</h2>
-          {{children}}
-        </section>
-        {{relations}}
-        {{backlinks}}
-      </article>
-      <aside class="site-rail" data-boris-search-exclude>
-        <section class="site-search" data-boris-search-ui aria-labelledby="site-search-label">
-          <form action="_boris/search/" method="get" role="search" data-boris-search-form>
-            <label class="site-search__label" id="site-search-label" for="site-search-input">Search documentation</label>
-            <div class="site-search__controls">
-              <input id="site-search-input" name="q" type="search" autocomplete="off" placeholder="Search…" spellcheck="false">
-              <button type="submit">Search</button>
-            </div>
-          </form>
-          <p class="site-search__status" data-boris-search-status role="status" aria-live="polite">Loading search…</p>
-          <ol class="site-search__results" data-boris-search-results aria-label="Search results"></ol>
-          <noscript><p class="site-search__fallback">Search needs JavaScript in this static site. Use the navigation above.</p></noscript>
-        </section>
-        <div class="Box rail-box">
-          <p class="rail-kicker">On this page</p>
-          {{toc}}
+    <div class="app-window">
+      <header class="titlebar">
+        <div class="titlebar__lights" aria-hidden="true">
+          <span class="traffic-light traffic-light--close"></span>
+          <span class="traffic-light traffic-light--min"></span>
+          <span class="traffic-light traffic-light--zoom"></span>
         </div>
-      </aside>
-    </main>
+        <a class="titlebar__brand" href="index.html">Solipsist</a>
+        <span class="titlebar__subtitle">Native macOS harness for Boris</span>
+        <div class="titlebar__actions">
+          <a class="titlebar__link" href="https://github.com/drawmeanelephant/solipsist">GitHub</a>
+        </div>
+      </header>
 
-    <footer class="site-footer">{{footer}}</footer>
+      <div class="app-body">
+        <aside class="app-sidebar" data-boris-search-exclude>
+          <div class="app-sidebar__inner">
+            <section class="site-search" data-boris-search-ui aria-labelledby="site-search-label">
+              <label class="site-search__label" id="site-search-label" for="site-search-input">Search documentation</label>
+              <div class="site-search__controls">
+                <input id="site-search-input" name="q" type="search" autocomplete="off" placeholder="Search…" spellcheck="false">
+                <button type="submit">Go</button>
+              </div>
+              <p class="site-search__status" data-boris-search-status role="status" aria-live="polite">Loading search…</p>
+              <ol class="site-search__results" data-boris-search-results aria-label="Search results"></ol>
+              <noscript><p class="site-search__fallback">Search needs JavaScript in this static site. Use the navigation below.</p></noscript>
+            </section>
+            <nav class="app-sidebar__nav" aria-label="Site navigation">{{nav}}</nav>
+          </div>
+        </aside>
+
+        <main id="main-content" class="app-main" tabindex="-1" data-boris-search-root>
+          <div class="site-breadcrumb">{{breadcrumb}}</div>
+          <article class="Box site-article">
+            <header class="site-article__header">
+              <span class="Label Label--accent">Project documentation</span>
+              {{metadata}}
+            </header>
+            <div class="markdown-body">{{content}}</div>
+            {{relations}}
+            {{backlinks}}
+          </article>
+        </main>
+
+        <aside class="app-drawer" data-boris-search-exclude>
+          <div class="app-drawer__inner">
+            <section class="drawer-section" aria-labelledby="toc-heading">
+              <p class="drawer-kicker" id="toc-heading">On this page</p>
+              {{toc}}
+            </section>
+            <section class="drawer-section" aria-labelledby="children-heading">
+              <p class="drawer-kicker" id="children-heading">In this section</p>
+              {{children}}
+            </section>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="site-footer">{{footer}}</footer>
+    </div>
 
     <script>
+    (() => {
+      "use strict";
+      document.querySelectorAll(".drawer-section").forEach(section => {
+        if (!section.querySelector("nav, ul, ol, dl")) section.hidden = true;
+      });
+      const toc = document.querySelector(".page-toc");
+      const main = document.querySelector("[data-boris-search-root]");
+      if (toc && main) {
+        const links = Array.from(toc.querySelectorAll("a[href^='#']"));
+        const ids = links.map(a => a.getAttribute("href").slice(1)).filter(id => id && document.getElementById(id));
+        if (ids.length) {
+          let ticking = false;
+          const update = () => {
+            ticking = false;
+            const top = main.getBoundingClientRect().top + 14;
+            let current = ids[0];
+            for (const id of ids) {
+              const el = document.getElementById(id);
+              if (el && el.getBoundingClientRect().top <= top) current = id;
+            }
+            links.forEach(a => {
+              const isActive = a.getAttribute("href").slice(1) === current;
+              a.closest("li").classList.toggle("is-active", isActive);
+            });
+          };
+          main.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+          update();
+        }
+      }
+    })();
     (() => {
       "use strict";
       const ui = document.querySelector("[data-boris-search-ui]");
