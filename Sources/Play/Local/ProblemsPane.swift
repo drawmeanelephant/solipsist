@@ -9,7 +9,9 @@ struct ProblemsPane: View {
     @Environment(WorkspaceStore.self) private var store
 
     var body: some View {
+        let hasProblems = !runtime.coordinator.problems.isEmpty
         VStack(alignment: .leading, spacing: 0) {
+            Divider()
             HStack(spacing: 8) {
                 if runtime.coordinator.isRunning {
                     ProgressView()
@@ -25,18 +27,21 @@ struct ProblemsPane: View {
                 }
             }
             .font(.caption)
+            .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
 
-            if !runtime.coordinator.problems.isEmpty {
+            if hasProblems {
                 Divider()
                 List(runtime.coordinator.problems, selection: selectedProblem) { item in
                     ProblemRow(item: item)
                         .tag(item.id)
                 }
-                .listStyle(.inset(alternatesRowBackgrounds: true))
+                .listStyle(.inset)
+                .frame(minHeight: 80, idealHeight: 140, maxHeight: 200)
             }
         }
+        .background(.bar)
     }
 
     private var selectedProblem: Binding<String?> {

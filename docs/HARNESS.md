@@ -62,7 +62,9 @@ is a separate window — the native buffer — not a tab in Play.
 
 A **source** is a place content lives or publishes: a local folder
 (security-scoped bookmark), a GitHub repo, later whatever earns a
-provider. The first source type is local. GitHub is the second.
+provider. The first source type is local. GitHub — and git remotes
+on a folder we already hold — is the second. They are added in
+Settings → Sources, same store as File → Open….
 
 Sources are **accounts**. They are added, renamed, relocated, and
 removed in **Settings → Sources**, the way Mail adds accounts. File →

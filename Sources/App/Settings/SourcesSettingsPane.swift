@@ -13,7 +13,9 @@ struct SourcesSettingsPane: View {
             } else {
                 sourceList
                 actionBar
-                Text("A source is a folder of Boris content.")
+                Text(
+                    "A source is a place content lives. Local folders now. GitHub — and other remotes — later, in this same list."
+                )
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -42,7 +44,8 @@ struct SourcesSettingsPane: View {
                     .tag(item.id)
             }
         }
-        .listStyle(.bordered(alternatesRowBackgrounds: true))
+        .listStyle(.inset)
+        .frame(maxHeight: max(72, CGFloat(store.sources.count) * 56 + 12))
     }
 
     private var actionBar: some View {
@@ -72,7 +75,7 @@ struct SourcesSettingsPane: View {
                 .foregroundStyle(.secondary)
             Text("No Sources")
                 .font(.headline)
-            Text("A source is a folder of Boris content — an account, not a file tree. Add a folder that contains `boris.json` (for example `Stunts/happy`) to get started.")
+            Text("A source is a place content lives — an account, not a file tree. Local folders now (a folder with `boris.json`, for example `Stunts/happy`). GitHub and other remotes later, in this same list.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

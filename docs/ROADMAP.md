@@ -103,9 +103,12 @@ No scraped prose. No homegrown graph. No third settings store.
   highlight, front-matter form, Cooklang autocomplete, bundling
   `oliver` next to `boris`. The M10 gate is the window + save +
   preview seam (#106 / #108), not those.
-- GitHub as a second **source** (account header + its own mailboxes;
-  we do not have full GitHub access; Pages as a *target* does not
-  require it)
+- **Git / GitHub as sources**, added in Settings → Sources the same
+  way a local folder is. A GitHub repo is the second account type
+  (already reserved on `SourceKind`). Local git remotes on a folder
+  we already have (status, fetch, Boris’s Pages workflow) sit next
+  to that — still `Source`, not a third store. Pages as a *target*
+  does not require this.
 - Content-audit mailbox (`boris-content-audit`)
 - Source-RAG export for AI assist
 - `validate --watch` once A5 exists (replaces save-triggered one-shots)
