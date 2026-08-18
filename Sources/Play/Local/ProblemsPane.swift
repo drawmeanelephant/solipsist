@@ -2,6 +2,8 @@ import SwiftUI
 
 /// Activity / problems under the graph list. Reads the coordinator only.
 struct ProblemsPane: View {
+    var pages: [PlayPage] = []
+
     @Environment(AppRuntime.self) private var runtime
     @Environment(WorkspaceStore.self) private var store
 
@@ -45,8 +47,12 @@ struct ProblemsPane: View {
                     let item = runtime.coordinator.problems.first(where: { $0.id == id }),
                     let path = item.path
                 else { return }
-                let pageID = (path as NSString).deletingPathExtension
-                store.select(noun: WorkspaceNoun(kind: "page", id: pageID, title: pageID))
+                if let page = LocalPlayGraph.resolvePage(forSourcePath: path, in: pages) {
+                    store.select(noun: WorkspaceNoun(kind: "page", id: page.id, title: page.title))
+                } else {
+                    let pageID = (path as NSString).deletingPathExtension
+                    store.select(noun: WorkspaceNoun(kind: "page", id: pageID, title: pageID))
+                }
             }
         )
     }

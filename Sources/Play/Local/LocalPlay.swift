@@ -10,16 +10,20 @@ struct LocalPlay: PlaySurface {
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
+
     enum PlayTab: String, CaseIterable, Identifiable {
         case pages = "Pages"
         case outputs = "Outputs"
         case publish = "Publish"
+        case plan = "Plan"
+        case activity = "Activity"
 
         var id: String { rawValue }
     }
 
     @State private var selectedTab: PlayTab = .pages
     @State private var state: LoadState = .idle
+    @State private var searchText = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,6 +45,10 @@ struct LocalPlay: PlaySurface {
                 OutputsPane(source: source)
             case .publish:
                 PublishPane(source: source)
+            case .plan:
+                PlanPane(source: source)
+            case .activity:
+                ActivityPane()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -48,13 +56,20 @@ struct LocalPlay: PlaySurface {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             VStack(spacing: 0) {
                 Divider()
-                ProblemsPane()
+                ProblemsPane(pages: loadedPages)
                     .frame(minHeight: 88, idealHeight: 148, maxHeight: 220)
             }
         }
         .task(id: source.id) {
             await load()
         }
+    }
+
+    private var loadedPages: [PlayPage] {
+        if case .ready(let pages) = state {
+            return pages
+        }
+        return []
     }
 
     @ViewBuilder
@@ -92,11 +107,19 @@ struct LocalPlay: PlaySurface {
     // MARK: - List
 
     private func pageList(_ pages: [PlayPage]) -> some View {
-        List(pages, selection: selectedPageID) { page in
-            PageRow(page: page)
-                .tag(page.id)
+        let filtered = LocalPlayGraph.filter(pages: pages, query: searchText)
+        return Group {
+            if filtered.isEmpty, !searchText.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+            } else {
+                List(filtered, selection: selectedPageID) { page in
+                    PageRow(page: page, findings: runtime.coordinator.checkFindings)
+                        .tag(page.id)
+                }
+                .listStyle(.inset(alternatesRowBackgrounds: true))
+            }
         }
-        .listStyle(.inset(alternatesRowBackgrounds: true))
+        .searchable(text: $searchText, prompt: "Filter by title, id, tag, or status…")
     }
 
     private var selectedPageID: Binding<String?> {
@@ -236,6 +259,7 @@ struct LocalPlay: PlaySurface {
 
 private struct PageRow: View {
     let page: PlayPage
+    let findings: [AnalysisFinding]
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -254,11 +278,46 @@ private struct PageRow: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
-            Text(page.status)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+
+            ForEach(pageFindings, id: \.code) { finding in
+                FindingBadge(finding: finding)
+            }
+
+            if !page.status.isEmpty {
+                Text(page.status)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
         .help("\(page.title) · \(page.status) · \(page.id)")
+    }
+
+    private var pageFindings: [AnalysisFinding] {
+        findings.filter { $0.type == "page" && $0.value == page.id }
+    }
+}
+
+private struct FindingBadge: View {
+    let finding: AnalysisFinding
+
+    var body: some View {
+        Text(badgeLabel)
+            .font(.caption2.weight(.medium))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.orange.opacity(0.15))
+            .foregroundStyle(.orange)
+            .clipShape(Capsule())
+            .help("\(finding.code): \(finding.value) (count \(finding.count))")
+    }
+
+    private var badgeLabel: String {
+        switch finding.code {
+        case "WUNREFERENCED":
+            return "unreferenced"
+        default:
+            return finding.code
+        }
     }
 }
