@@ -48,7 +48,11 @@ jobs:
 
       - name: Set up Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          # xcode-27 runners ship Xcode at a versioned path (e.g.
+          # /Applications/Xcode_27_beta_4.app) with no /Applications/Xcode.app
+          # symlink, and already default xcode-select to it — nothing to
+          # switch. Verify the active toolchain instead.
+          xcode-select -p
           xcodebuild -version
 
       - name: Install Zig
