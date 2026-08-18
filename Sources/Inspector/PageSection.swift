@@ -14,9 +14,20 @@ struct PageSection: View {
         Group {
             LabeledContent("Title", value: displayTitle)
             LabeledContent("ID", value: noun.id)
+            LabeledContent("Role", value: display(entity?.role))
             LabeledContent("Parent", value: display(entity?.parent))
             LabeledContent("Status", value: display(entity?.status))
             LabeledContent("Tags", value: displayTags)
+            if let relations = entity?.relations, !relations.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Relations")
+                        .foregroundStyle(.secondary)
+                    ForEach(relations, id: \.target) { rel in
+                        Text("\(rel.kind): \(rel.target)")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
             if let completion {
                 vocabulary("Relation kinds", completion.relation_kinds)
                 vocabulary("Layout slots", completion.layout_slots)

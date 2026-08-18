@@ -50,6 +50,36 @@ final class WorkspaceStore {
         addLocal(url: url)
     }
 
+    func presentNewProjectPanel(runtime: AppRuntime) {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.treatsFilePackagesAsDirectories = true
+        panel.prompt = "Create Project"
+        panel.message = "Choose a folder to initialize a new Boris project."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        guard let engine = runtime.engine else {
+            lastError = runtime.engineError ?? "Engine not found."
+            return
+        }
+
+        Task {
+            do {
+                let result = try await engine.initProject(in: url)
+                if result.exitCode == 0 {
+                    self.addLocal(url: url)
+                } else {
+                    self.lastError = "boris init failed (exit \(result.exitCode)): \(result.stderr)"
+                }
+            } catch {
+                self.lastError = String(describing: error)
+            }
+        }
+    }
+
     func addLocal(url: URL) {
         lastError = nil
         let standardized = url.standardizedFileURL

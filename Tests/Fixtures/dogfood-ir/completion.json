@@ -1,0 +1,416 @@
+{
+  "format": "boris-completion-index",
+  "schema_version": 1,
+  "compiler_id": "boris/0.8.1",
+  "frozen": true,
+  "entities": [
+    {
+      "id": "agents",
+      "title": "Agent Field Notes",
+      "parent": null,
+      "role": "trunk",
+      "status": "published",
+      "tags": ["agents", "dogfood"],
+      "relations": []
+    },
+    {
+      "id": "agents/antigravity",
+      "title": "Antigravity",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/bacon",
+      "title": "Bacon",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/cicero",
+      "title": "Cicero",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/codex-children-layout",
+      "title": "Codex — Children Layout",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore", "html", "layout"],
+      "relations": []
+    },
+    {
+      "id": "agents/codex-html-body",
+      "title": "Codex — Shared HTML Bodies",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore", "html"],
+      "relations": []
+    },
+    {
+      "id": "agents/codex-migration-lab-ci",
+      "title": "Codex — Migration-Lab CI",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore", "migration", "ci"],
+      "relations": []
+    },
+    {
+      "id": "agents/codex-release-docs-truth",
+      "title": "Codex — Release Docs Truth",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore", "docs", "release"],
+      "relations": []
+    },
+    {
+      "id": "agents/codex-session-success-story",
+      "title": "Codex — Session Success Story",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore", "retrospective"],
+      "relations": []
+    },
+    {
+      "id": "agents/codex-source-rag",
+      "title": "Codex — Source-RAG Stewardship",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore", "source-rag"],
+      "relations": []
+    },
+    {
+      "id": "agents/confucius",
+      "title": "Confucius",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/credits",
+      "title": "Agent Credits & Roster",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "credits"],
+      "relations": []
+    },
+    {
+      "id": "agents/gauss",
+      "title": "Gauss",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/gibbs",
+      "title": "Gibbs",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/godel",
+      "title": "Gödel",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/grok",
+      "title": "Grok",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore", "migration"],
+      "relations": []
+    },
+    {
+      "id": "agents/heisenberg",
+      "title": "Heisenberg",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/james",
+      "title": "James",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/jason",
+      "title": "Jason",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/kepler",
+      "title": "Kepler",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/maxwell",
+      "title": "Maxwell",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/mill",
+      "title": "Mill",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/nash",
+      "title": "Nash",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/noether",
+      "title": "Noether",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/ohm",
+      "title": "Ohm",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/parfit",
+      "title": "Parfit",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/pauli",
+      "title": "Pauli",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/poincare",
+      "title": "Poincaré",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/roll-call",
+      "title": "Build Week Roll Call",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "credits", "build-week"],
+      "relations": []
+    },
+    {
+      "id": "agents/turing",
+      "title": "Turing",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "agents/volta",
+      "title": "Volta",
+      "parent": "agents",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "relations": []
+    },
+    {
+      "id": "contest",
+      "title": "Boris at Build Week",
+      "parent": null,
+      "role": "trunk",
+      "status": "published",
+      "tags": ["build-week", "overview", "dogfood"],
+      "relations": []
+    },
+    {
+      "id": "contest/how-it-was-built",
+      "title": "How Boris was built",
+      "parent": "contest",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["build-week", "codex", "process"],
+      "relations": []
+    },
+    {
+      "id": "contest/the-pipeline",
+      "title": "The output pipeline",
+      "parent": "contest",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["build-week", "pipeline", "outputs"],
+      "relations": []
+    },
+    {
+      "id": "contest/what-shipped",
+      "title": "What shipped",
+      "parent": "contest",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["build-week", "features"],
+      "relations": []
+    },
+    {
+      "id": "contest/what-we-cut",
+      "title": "What Boris cuts on purpose",
+      "parent": "contest",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["build-week", "scope", "limitations"],
+      "relations": []
+    },
+    {
+      "id": "getting-started",
+      "title": "Getting Started with Boris",
+      "parent": null,
+      "role": "trunk",
+      "status": "published",
+      "tags": ["setup", "cli"],
+      "relations": []
+    },
+    {
+      "id": "guides/apex-markdown",
+      "title": "Apex Markdown Showcase",
+      "parent": null,
+      "role": "trunk",
+      "status": "published",
+      "tags": ["markdown", "showcase", "apex"],
+      "relations": []
+    },
+    {
+      "id": "guides/asides",
+      "title": "Using Asides",
+      "parent": "guides/overview",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["components", "authoring"],
+      "relations": []
+    },
+    {
+      "id": "guides/cli-and-modes",
+      "title": "CLI and Run Modes",
+      "parent": "getting-started",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["cli", "guides"],
+      "relations": []
+    },
+    {
+      "id": "guides/overview",
+      "title": "Content Model Overview",
+      "parent": null,
+      "role": "trunk",
+      "status": "published",
+      "tags": ["guides", "architecture"],
+      "relations": []
+    },
+    {
+      "id": "guides/rag-export",
+      "title": "RAG Export Packaging",
+      "parent": "guides/overview",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["rag", "ai"],
+      "relations": []
+    },
+    {
+      "id": "guides/trunk-satellite",
+      "title": "Trunk and Satellite Pages",
+      "parent": "guides/overview",
+      "role": "satellite",
+      "status": "published",
+      "tags": ["graph", "content"],
+      "relations": []
+    },
+    {
+      "id": "index",
+      "title": "Boris — The Content Exit Hatch",
+      "parent": null,
+      "role": "trunk",
+      "status": "published",
+      "tags": ["home", "zig"],
+      "relations": []
+    },
+    {
+      "id": "reference/frontmatter",
+      "title": "Frontmatter Reference",
+      "parent": null,
+      "role": "trunk",
+      "status": "published",
+      "tags": ["reference", "authoring"],
+      "relations": []
+    }
+  ],
+  "relation_kinds": ["depends_on", "implements", "relates_to", "supersedes"],
+  "parent_targets": ["agents", "contest", "getting-started", "guides/overview"],
+  "layout_slots": ["backlinks", "breadcrumb", "children", "content", "footer", "metadata", "nav", "relations", "title", "toc"]
+}

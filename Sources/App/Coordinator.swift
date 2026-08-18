@@ -154,7 +154,8 @@ final class Coordinator {
                 defer { try? FileManager.default.removeItem(at: reportURL) }
                 let result = try await engine.validate(
                     contentRoot: source.contentRoot(),
-                    reportURL: reportURL
+                    reportURL: reportURL,
+                    workingDirectory: try source.workspaceRoot()
                 )
                 let items = Self.problems(from: result.report)
                 let count = result.report?.errorCount ?? items.filter { $0.severity == "error" }.count
@@ -197,7 +198,10 @@ final class Coordinator {
                 )
 
             case .check:
-                let result = try await engine.check(contentRoot: source.contentRoot())
+                let result = try await engine.check(
+                    contentRoot: source.contentRoot(),
+                    workingDirectory: try source.workspaceRoot()
+                )
                 let items = result.report.findings.map {
                     ProblemItem(
                         severity: "info",
@@ -218,7 +222,8 @@ final class Coordinator {
                 }
                 let result = try await engine.impact(
                     contentRoot: source.contentRoot(),
-                    pageID: pageID
+                    pageID: pageID,
+                    workingDirectory: try source.workspaceRoot()
                 )
                 let items = (result.report.impact ?? []).map {
                     ProblemItem(severity: "info", code: $0.type, message: $0.value)

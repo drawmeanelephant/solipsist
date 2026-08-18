@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "0.2.0",
+  "ok": true,
+  "contentRoot": "content",
+  "outDir": ".tmp_ir",
+  "pageCount": 45,
+  "errorCount": 0,
+  "diagnostics": []
+}

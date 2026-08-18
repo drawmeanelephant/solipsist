@@ -27,8 +27,20 @@ enum InspectorProfile {
         root.appendingPathComponent(fileName, isDirectory: false)
     }
 
+    static func targetURL(in root: URL) -> URL {
+        let direct = url(in: root)
+        if FileManager.default.fileExists(atPath: direct.path) {
+            return direct
+        }
+        let parent = url(in: root.deletingLastPathComponent())
+        if FileManager.default.fileExists(atPath: parent.path) {
+            return parent
+        }
+        return direct
+    }
+
     static func load(from root: URL) throws -> (fields: InspectorProfileFields, data: Data)? {
-        let fileURL = url(in: root)
+        let fileURL = targetURL(in: root)
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
         let data = try Data(contentsOf: fileURL)
         if let profile = try? JSONDecoder().decode(PublicationProfile.self, from: data) {
@@ -40,10 +52,11 @@ enum InspectorProfile {
     }
 
     static func save(to root: URL, original: Data, fields: InspectorProfileFields) throws {
+        let fileURL = targetURL(in: root)
         let object = try jsonObject(from: original)
         let merged = overlay(object, fields: fields)
         let data = try encode(merged)
-        try data.write(to: url(in: root), options: .atomic)
+        try data.write(to: fileURL, options: .atomic)
     }
 
     static func fields(from profile: PublicationProfile) -> InspectorProfileFields {

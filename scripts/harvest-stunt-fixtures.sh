@@ -21,10 +21,13 @@ FIX="$ROOT/Tests/Fixtures"
 STUNTS="$ROOT/Stunts"
 TMP="$ROOT/.stunt-harvest"
 rm -rf "$TMP"
-mkdir -p "$TMP" "$FIX/happy-ir" "$FIX/broken-frontmatter" "$FIX/broken-parent" "$FIX/validate-happy" "$FIX/plan-happy"
+mkdir -p "$TMP" "$FIX/happy-ir" "$FIX/dogfood-ir" "$FIX/broken-frontmatter" "$FIX/broken-parent" "$FIX/validate-happy" "$FIX/plan-happy"
 
 (cd "$STUNTS/happy" && "$BORIS" --out "$TMP/happy-ir" --input content --quiet)
 cp "$TMP/happy-ir/"*.json "$FIX/happy-ir/"
+
+(cd "$STUNTS/dogfood" && "$BORIS" --out "$TMP/dogfood-ir" --input content --quiet)
+cp "$TMP/dogfood-ir/"*.json "$FIX/dogfood-ir/"
 
 (cd "$STUNTS/happy" && "$BORIS" validate --input content --report "$FIX/validate-happy/html-build-report.json")
 (cd "$STUNTS/happy" && "$BORIS" plan --profile boris.json > "$FIX/plan-happy/plan.json")

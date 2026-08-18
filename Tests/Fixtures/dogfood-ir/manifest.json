@@ -1,0 +1,413 @@
+{
+  "schemaVersion": "0.2.0",
+  "compiler": "boris/0.8.1",
+  "contentRoot": "content",
+  "pageCount": 45,
+  "pages": [
+    {
+      "index": 0,
+      "id": "agents",
+      "sourcePath": "agents/index.md",
+      "role": "trunk",
+      "parent": null,
+      "title": "Agent Field Notes",
+      "status": "published"
+    },
+    {
+      "index": 1,
+      "id": "agents/antigravity",
+      "sourcePath": "agents/antigravity.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Antigravity",
+      "status": "published"
+    },
+    {
+      "index": 2,
+      "id": "agents/bacon",
+      "sourcePath": "agents/bacon.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Bacon",
+      "status": "published"
+    },
+    {
+      "index": 3,
+      "id": "agents/cicero",
+      "sourcePath": "agents/cicero.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Cicero",
+      "status": "published"
+    },
+    {
+      "index": 4,
+      "id": "agents/codex-children-layout",
+      "sourcePath": "agents/codex-children-layout.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Codex — Children Layout",
+      "status": "published"
+    },
+    {
+      "index": 5,
+      "id": "agents/codex-html-body",
+      "sourcePath": "agents/codex-html-body.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Codex — Shared HTML Bodies",
+      "status": "published"
+    },
+    {
+      "index": 6,
+      "id": "agents/codex-migration-lab-ci",
+      "sourcePath": "agents/codex-migration-lab-ci.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Codex — Migration-Lab CI",
+      "status": "published"
+    },
+    {
+      "index": 7,
+      "id": "agents/codex-release-docs-truth",
+      "sourcePath": "agents/codex-release-docs-truth.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Codex — Release Docs Truth",
+      "status": "published"
+    },
+    {
+      "index": 8,
+      "id": "agents/codex-session-success-story",
+      "sourcePath": "agents/codex-session-success-story.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Codex — Session Success Story",
+      "status": "published"
+    },
+    {
+      "index": 9,
+      "id": "agents/codex-source-rag",
+      "sourcePath": "agents/codex-source-rag.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Codex — Source-RAG Stewardship",
+      "status": "published"
+    },
+    {
+      "index": 10,
+      "id": "agents/confucius",
+      "sourcePath": "agents/confucius.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Confucius",
+      "status": "published"
+    },
+    {
+      "index": 11,
+      "id": "agents/credits",
+      "sourcePath": "agents/credits.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Agent Credits & Roster",
+      "status": "published"
+    },
+    {
+      "index": 12,
+      "id": "agents/gauss",
+      "sourcePath": "agents/gauss.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Gauss",
+      "status": "published"
+    },
+    {
+      "index": 13,
+      "id": "agents/gibbs",
+      "sourcePath": "agents/gibbs.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Gibbs",
+      "status": "published"
+    },
+    {
+      "index": 14,
+      "id": "agents/godel",
+      "sourcePath": "agents/godel.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Gödel",
+      "status": "published"
+    },
+    {
+      "index": 15,
+      "id": "agents/grok",
+      "sourcePath": "agents/grok.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Grok",
+      "status": "published"
+    },
+    {
+      "index": 16,
+      "id": "agents/heisenberg",
+      "sourcePath": "agents/heisenberg.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Heisenberg",
+      "status": "published"
+    },
+    {
+      "index": 17,
+      "id": "agents/james",
+      "sourcePath": "agents/james.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "James",
+      "status": "published"
+    },
+    {
+      "index": 18,
+      "id": "agents/jason",
+      "sourcePath": "agents/jason.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Jason",
+      "status": "published"
+    },
+    {
+      "index": 19,
+      "id": "agents/kepler",
+      "sourcePath": "agents/kepler.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Kepler",
+      "status": "published"
+    },
+    {
+      "index": 20,
+      "id": "agents/maxwell",
+      "sourcePath": "agents/maxwell.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Maxwell",
+      "status": "published"
+    },
+    {
+      "index": 21,
+      "id": "agents/mill",
+      "sourcePath": "agents/mill.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Mill",
+      "status": "published"
+    },
+    {
+      "index": 22,
+      "id": "agents/nash",
+      "sourcePath": "agents/nash.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Nash",
+      "status": "published"
+    },
+    {
+      "index": 23,
+      "id": "agents/noether",
+      "sourcePath": "agents/noether.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Noether",
+      "status": "published"
+    },
+    {
+      "index": 24,
+      "id": "agents/ohm",
+      "sourcePath": "agents/ohm.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Ohm",
+      "status": "published"
+    },
+    {
+      "index": 25,
+      "id": "agents/parfit",
+      "sourcePath": "agents/parfit.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Parfit",
+      "status": "published"
+    },
+    {
+      "index": 26,
+      "id": "agents/pauli",
+      "sourcePath": "agents/pauli.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Pauli",
+      "status": "published"
+    },
+    {
+      "index": 27,
+      "id": "agents/poincare",
+      "sourcePath": "agents/poincare.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Poincaré",
+      "status": "published"
+    },
+    {
+      "index": 28,
+      "id": "agents/roll-call",
+      "sourcePath": "agents/roll-call.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Build Week Roll Call",
+      "status": "published"
+    },
+    {
+      "index": 29,
+      "id": "agents/turing",
+      "sourcePath": "agents/turing.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Turing",
+      "status": "published"
+    },
+    {
+      "index": 30,
+      "id": "agents/volta",
+      "sourcePath": "agents/volta.md",
+      "role": "satellite",
+      "parent": "agents",
+      "title": "Volta",
+      "status": "published"
+    },
+    {
+      "index": 31,
+      "id": "contest",
+      "sourcePath": "contest.md",
+      "role": "trunk",
+      "parent": null,
+      "title": "Boris at Build Week",
+      "status": "published"
+    },
+    {
+      "index": 32,
+      "id": "contest/how-it-was-built",
+      "sourcePath": "contest/how-it-was-built.md",
+      "role": "satellite",
+      "parent": "contest",
+      "title": "How Boris was built",
+      "status": "published"
+    },
+    {
+      "index": 33,
+      "id": "contest/the-pipeline",
+      "sourcePath": "contest/the-pipeline.md",
+      "role": "satellite",
+      "parent": "contest",
+      "title": "The output pipeline",
+      "status": "published"
+    },
+    {
+      "index": 34,
+      "id": "contest/what-shipped",
+      "sourcePath": "contest/what-shipped.md",
+      "role": "satellite",
+      "parent": "contest",
+      "title": "What shipped",
+      "status": "published"
+    },
+    {
+      "index": 35,
+      "id": "contest/what-we-cut",
+      "sourcePath": "contest/what-we-cut.md",
+      "role": "satellite",
+      "parent": "contest",
+      "title": "What Boris cuts on purpose",
+      "status": "published"
+    },
+    {
+      "index": 36,
+      "id": "getting-started",
+      "sourcePath": "getting-started.md",
+      "role": "trunk",
+      "parent": null,
+      "title": "Getting Started with Boris",
+      "status": "published"
+    },
+    {
+      "index": 37,
+      "id": "guides/apex-markdown",
+      "sourcePath": "guides/apex-markdown.md",
+      "role": "trunk",
+      "parent": null,
+      "title": "Apex Markdown Showcase",
+      "status": "published"
+    },
+    {
+      "index": 38,
+      "id": "guides/asides",
+      "sourcePath": "guides/asides.md",
+      "role": "satellite",
+      "parent": "guides/overview",
+      "title": "Using Asides",
+      "status": "published"
+    },
+    {
+      "index": 39,
+      "id": "guides/cli-and-modes",
+      "sourcePath": "guides/cli-and-modes.md",
+      "role": "satellite",
+      "parent": "getting-started",
+      "title": "CLI and Run Modes",
+      "status": "published"
+    },
+    {
+      "index": 40,
+      "id": "guides/overview",
+      "sourcePath": "guides/overview.md",
+      "role": "trunk",
+      "parent": null,
+      "title": "Content Model Overview",
+      "status": "published"
+    },
+    {
+      "index": 41,
+      "id": "guides/rag-export",
+      "sourcePath": "guides/rag-export.md",
+      "role": "satellite",
+      "parent": "guides/overview",
+      "title": "RAG Export Packaging",
+      "status": "published"
+    },
+    {
+      "index": 42,
+      "id": "guides/trunk-satellite",
+      "sourcePath": "guides/trunk-satellite.md",
+      "role": "satellite",
+      "parent": "guides/overview",
+      "title": "Trunk and Satellite Pages",
+      "status": "published"
+    },
+    {
+      "index": 43,
+      "id": "index",
+      "sourcePath": "index.md",
+      "role": "trunk",
+      "parent": null,
+      "title": "Boris — The Content Exit Hatch",
+      "status": "published"
+    },
+    {
+      "index": 44,
+      "id": "reference/frontmatter",
+      "sourcePath": "reference/frontmatter.md",
+      "role": "trunk",
+      "parent": null,
+      "title": "Frontmatter Reference",
+      "status": "published"
+    }
+  ]
+}

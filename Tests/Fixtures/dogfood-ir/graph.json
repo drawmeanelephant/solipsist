@@ -1,0 +1,3290 @@
+{
+  "schemaVersion": "0.2.0",
+  "frozen": true,
+  "nodes": [
+    {
+      "index": 0,
+      "id": "agents",
+      "sourcePath": "agents/index.md",
+      "role": "trunk",
+      "parent": null,
+      "parentIndex": null,
+      "title": "Agent Field Notes",
+      "status": "published",
+      "tags": ["agents", "dogfood"],
+      "bodyOffset": 86
+    },
+    {
+      "index": 1,
+      "id": "agents/antigravity",
+      "sourcePath": "agents/antigravity.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Antigravity",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 81
+    },
+    {
+      "index": 2,
+      "id": "agents/bacon",
+      "sourcePath": "agents/bacon.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Bacon",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 75
+    },
+    {
+      "index": 3,
+      "id": "agents/cicero",
+      "sourcePath": "agents/cicero.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Cicero",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 76
+    },
+    {
+      "index": 4,
+      "id": "agents/codex-children-layout",
+      "sourcePath": "agents/codex-children-layout.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Codex — Children Layout",
+      "status": "published",
+      "tags": ["agents", "lore", "html", "layout"],
+      "bodyOffset": 109
+    },
+    {
+      "index": 5,
+      "id": "agents/codex-html-body",
+      "sourcePath": "agents/codex-html-body.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Codex — Shared HTML Bodies",
+      "status": "published",
+      "tags": ["agents", "lore", "html"],
+      "bodyOffset": 104
+    },
+    {
+      "index": 6,
+      "id": "agents/codex-migration-lab-ci",
+      "sourcePath": "agents/codex-migration-lab-ci.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Codex — Migration-Lab CI",
+      "status": "published",
+      "tags": ["agents", "lore", "migration", "ci"],
+      "bodyOffset": 111
+    },
+    {
+      "index": 7,
+      "id": "agents/codex-release-docs-truth",
+      "sourcePath": "agents/codex-release-docs-truth.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Codex — Release Docs Truth",
+      "status": "published",
+      "tags": ["agents", "lore", "docs", "release"],
+      "bodyOffset": 113
+    },
+    {
+      "index": 8,
+      "id": "agents/codex-session-success-story",
+      "sourcePath": "agents/codex-session-success-story.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Codex — Session Success Story",
+      "status": "published",
+      "tags": ["agents", "lore", "retrospective"],
+      "bodyOffset": 116
+    },
+    {
+      "index": 9,
+      "id": "agents/codex-source-rag",
+      "sourcePath": "agents/codex-source-rag.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Codex — Source-RAG Stewardship",
+      "status": "published",
+      "tags": ["agents", "lore", "source-rag"],
+      "bodyOffset": 114
+    },
+    {
+      "index": 10,
+      "id": "agents/confucius",
+      "sourcePath": "agents/confucius.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Confucius",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 79
+    },
+    {
+      "index": 11,
+      "id": "agents/credits",
+      "sourcePath": "agents/credits.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Agent Credits & Roster",
+      "status": "published",
+      "tags": ["agents", "credits"],
+      "bodyOffset": 95
+    },
+    {
+      "index": 12,
+      "id": "agents/gauss",
+      "sourcePath": "agents/gauss.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Gauss",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 75
+    },
+    {
+      "index": 13,
+      "id": "agents/gibbs",
+      "sourcePath": "agents/gibbs.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Gibbs",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 75
+    },
+    {
+      "index": 14,
+      "id": "agents/godel",
+      "sourcePath": "agents/godel.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Gödel",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 76
+    },
+    {
+      "index": 15,
+      "id": "agents/grok",
+      "sourcePath": "agents/grok.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Grok",
+      "status": "published",
+      "tags": ["agents", "lore", "migration"],
+      "bodyOffset": 85
+    },
+    {
+      "index": 16,
+      "id": "agents/heisenberg",
+      "sourcePath": "agents/heisenberg.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Heisenberg",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 80
+    },
+    {
+      "index": 17,
+      "id": "agents/james",
+      "sourcePath": "agents/james.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "James",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 75
+    },
+    {
+      "index": 18,
+      "id": "agents/jason",
+      "sourcePath": "agents/jason.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Jason",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 75
+    },
+    {
+      "index": 19,
+      "id": "agents/kepler",
+      "sourcePath": "agents/kepler.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Kepler",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 76
+    },
+    {
+      "index": 20,
+      "id": "agents/maxwell",
+      "sourcePath": "agents/maxwell.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Maxwell",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 77
+    },
+    {
+      "index": 21,
+      "id": "agents/mill",
+      "sourcePath": "agents/mill.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Mill",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 74
+    },
+    {
+      "index": 22,
+      "id": "agents/nash",
+      "sourcePath": "agents/nash.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Nash",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 74
+    },
+    {
+      "index": 23,
+      "id": "agents/noether",
+      "sourcePath": "agents/noether.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Noether",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 77
+    },
+    {
+      "index": 24,
+      "id": "agents/ohm",
+      "sourcePath": "agents/ohm.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Ohm",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 73
+    },
+    {
+      "index": 25,
+      "id": "agents/parfit",
+      "sourcePath": "agents/parfit.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Parfit",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 76
+    },
+    {
+      "index": 26,
+      "id": "agents/pauli",
+      "sourcePath": "agents/pauli.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Pauli",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 75
+    },
+    {
+      "index": 27,
+      "id": "agents/poincare",
+      "sourcePath": "agents/poincare.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Poincaré",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 79
+    },
+    {
+      "index": 28,
+      "id": "agents/roll-call",
+      "sourcePath": "agents/roll-call.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Build Week Roll Call",
+      "status": "published",
+      "tags": ["agents", "credits", "build-week"],
+      "bodyOffset": 105
+    },
+    {
+      "index": 29,
+      "id": "agents/turing",
+      "sourcePath": "agents/turing.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Turing",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 76
+    },
+    {
+      "index": 30,
+      "id": "agents/volta",
+      "sourcePath": "agents/volta.md",
+      "role": "satellite",
+      "parent": "agents",
+      "parentIndex": 0,
+      "title": "Volta",
+      "status": "published",
+      "tags": ["agents", "lore"],
+      "bodyOffset": 75
+    },
+    {
+      "index": 31,
+      "id": "contest",
+      "sourcePath": "contest.md",
+      "role": "trunk",
+      "parent": null,
+      "parentIndex": null,
+      "title": "Boris at Build Week",
+      "status": "published",
+      "tags": ["build-week", "overview", "dogfood"],
+      "bodyOffset": 103
+    },
+    {
+      "index": 32,
+      "id": "contest/how-it-was-built",
+      "sourcePath": "contest/how-it-was-built.md",
+      "role": "satellite",
+      "parent": "contest",
+      "parentIndex": 31,
+      "title": "How Boris was built",
+      "status": "published",
+      "tags": ["build-week", "codex", "process"],
+      "bodyOffset": 104
+    },
+    {
+      "index": 33,
+      "id": "contest/the-pipeline",
+      "sourcePath": "contest/the-pipeline.md",
+      "role": "satellite",
+      "parent": "contest",
+      "parentIndex": 31,
+      "title": "The output pipeline",
+      "status": "published",
+      "tags": ["build-week", "pipeline", "outputs"],
+      "bodyOffset": 107
+    },
+    {
+      "index": 34,
+      "id": "contest/what-shipped",
+      "sourcePath": "contest/what-shipped.md",
+      "role": "satellite",
+      "parent": "contest",
+      "parentIndex": 31,
+      "title": "What shipped",
+      "status": "published",
+      "tags": ["build-week", "features"],
+      "bodyOffset": 91
+    },
+    {
+      "index": 35,
+      "id": "contest/what-we-cut",
+      "sourcePath": "contest/what-we-cut.md",
+      "role": "satellite",
+      "parent": "contest",
+      "parentIndex": 31,
+      "title": "What Boris cuts on purpose",
+      "status": "published",
+      "tags": ["build-week", "scope", "limitations"],
+      "bodyOffset": 115
+    },
+    {
+      "index": 36,
+      "id": "getting-started",
+      "sourcePath": "getting-started.md",
+      "role": "trunk",
+      "parent": null,
+      "parentIndex": null,
+      "title": "Getting Started with Boris",
+      "status": "published",
+      "tags": ["setup", "cli"],
+      "bodyOffset": 79
+    },
+    {
+      "index": 37,
+      "id": "guides/apex-markdown",
+      "sourcePath": "guides/apex-markdown.md",
+      "role": "trunk",
+      "parent": null,
+      "parentIndex": null,
+      "title": "Apex Markdown Showcase",
+      "status": "published",
+      "tags": ["markdown", "showcase", "apex"],
+      "bodyOffset": 89
+    },
+    {
+      "index": 38,
+      "id": "guides/asides",
+      "sourcePath": "guides/asides.md",
+      "role": "satellite",
+      "parent": "guides/overview",
+      "parentIndex": 40,
+      "title": "Using Asides",
+      "status": "published",
+      "tags": ["components", "authoring"],
+      "bodyOffset": 100
+    },
+    {
+      "index": 39,
+      "id": "guides/cli-and-modes",
+      "sourcePath": "guides/cli-and-modes.md",
+      "role": "satellite",
+      "parent": "getting-started",
+      "parentIndex": 36,
+      "title": "CLI and Run Modes",
+      "status": "published",
+      "tags": ["cli", "guides"],
+      "bodyOffset": 95
+    },
+    {
+      "index": 40,
+      "id": "guides/overview",
+      "sourcePath": "guides/overview.md",
+      "role": "trunk",
+      "parent": null,
+      "parentIndex": null,
+      "title": "Content Model Overview",
+      "status": "published",
+      "tags": ["guides", "architecture"],
+      "bodyOffset": 85
+    },
+    {
+      "index": 41,
+      "id": "guides/rag-export",
+      "sourcePath": "guides/rag-export.md",
+      "role": "satellite",
+      "parent": "guides/overview",
+      "parentIndex": 40,
+      "title": "RAG Export Packaging",
+      "status": "published",
+      "tags": ["rag", "ai"],
+      "bodyOffset": 94
+    },
+    {
+      "index": 42,
+      "id": "guides/trunk-satellite",
+      "sourcePath": "guides/trunk-satellite.md",
+      "role": "satellite",
+      "parent": "guides/overview",
+      "parentIndex": 40,
+      "title": "Trunk and Satellite Pages",
+      "status": "published",
+      "tags": ["graph", "content"],
+      "bodyOffset": 106
+    },
+    {
+      "index": 43,
+      "id": "index",
+      "sourcePath": "index.md",
+      "role": "trunk",
+      "parent": null,
+      "parentIndex": null,
+      "title": "Boris — The Content Exit Hatch",
+      "status": "published",
+      "tags": ["home", "zig"],
+      "bodyOffset": 84
+    },
+    {
+      "index": 44,
+      "id": "reference/frontmatter",
+      "sourcePath": "reference/frontmatter.md",
+      "role": "trunk",
+      "parent": null,
+      "parentIndex": null,
+      "title": "Frontmatter Reference",
+      "status": "published",
+      "tags": ["reference", "authoring"],
+      "bodyOffset": 84
+    }
+  ],
+  "edges": [
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/antigravity"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/bacon"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/cicero"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-children-layout"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-html-body"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-migration-lab-ci"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-release-docs-truth"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-session-success-story"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-source-rag"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/confucius"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/gauss"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/gibbs"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/godel"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/heisenberg"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/james"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/jason"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/kepler"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/maxwell"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/mill"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/nash"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/noether"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/ohm"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/parfit"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/pauli"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/poincare"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/turing"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/volta"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest/how-it-was-built"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/antigravity"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/antigravity"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/bacon"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/bacon"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/bacon"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/gibbs"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/bacon"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/cicero"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/cicero"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-children-layout"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-children-layout"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-html-body"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-html-body"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-migration-lab-ci"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-migration-lab-ci"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-release-docs-truth"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-release-docs-truth"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-session-success-story"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-source-rag"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/codex-source-rag"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/confucius"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/confucius"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/antigravity"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/bacon"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-children-layout"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-html-body"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-migration-lab-ci"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-release-docs-truth"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-source-rag"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/gibbs"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/gauss"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/gauss"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/gibbs"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/gibbs"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/gibbs"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/godel"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/godel"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/antigravity"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/heisenberg"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/heisenberg"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/james"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/james"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/jason"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/jason"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/kepler"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/kepler"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/maxwell"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/maxwell"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/mill"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/mill"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/nash"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/nash"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/noether"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/noether"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/ohm"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/ohm"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/parfit"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/parfit"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/pauli"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/pauli"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/poincare"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/poincare"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/antigravity"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/bacon"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/cicero"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-session-success-story"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/confucius"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/gauss"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/gibbs"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/godel"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/heisenberg"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/james"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/jason"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/kepler"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/maxwell"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/mill"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/nash"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/noether"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/ohm"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/parfit"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/pauli"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/poincare"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/turing"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/volta"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/turing"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/turing"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/volta"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "agents/volta"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest/how-it-was-built"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest/the-pipeline"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest/what-shipped"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest/what-we-cut"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/how-it-was-built"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/how-it-was-built"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/antigravity"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/how-it-was-built"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/bacon"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/how-it-was-built"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/codex-session-success-story"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/how-it-was-built"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/how-it-was-built"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/the-pipeline"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/the-pipeline"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/the-pipeline"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/asides"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/the-pipeline"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/rag-export"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/the-pipeline"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/trunk-satellite"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/what-shipped"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/what-shipped"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/what-shipped"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/what-shipped"
+      },
+      "to": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/what-we-cut"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/what-we-cut"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "contest/what-we-cut"
+      },
+      "to": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/trunk-satellite"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "to": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "to": {
+        "type": "source",
+        "value": "includes/authoring-note.md"
+      },
+      "kind": "include"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "to": {
+        "type": "source",
+        "value": "includes/shared-tip.md"
+      },
+      "kind": "include"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/apex-markdown"
+      },
+      "to": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/apex-markdown"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/asides"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/apex-markdown"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/apex-markdown"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/apex-markdown"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/trunk-satellite"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/apex-markdown"
+      },
+      "to": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/asides"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/apex-markdown"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/asides"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/asides"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/asides"
+      },
+      "to": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "to": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "to": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/rag-export"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/apex-markdown"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/asides"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/rag-export"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/trunk-satellite"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "to": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "to": {
+        "type": "source",
+        "value": "includes/authoring-note.md"
+      },
+      "kind": "include"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/rag-export"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/rag-export"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/rag-export"
+      },
+      "to": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/trunk-satellite"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "parent"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/trunk-satellite"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "guides/trunk-satellite"
+      },
+      "to": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "index"
+      },
+      "to": {
+        "type": "page",
+        "value": "agents"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "index"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "index"
+      },
+      "to": {
+        "type": "page",
+        "value": "contest/the-pipeline"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "index"
+      },
+      "to": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "index"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "to": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/rag-export"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "to": {
+        "type": "page",
+        "value": "guides/trunk-satellite"
+      },
+      "kind": "reference"
+    },
+    {
+      "from": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "to": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "kind": "reference"
+    }
+  ],
+  "reverseIndex": [
+    {
+      "target": {
+        "type": "page",
+        "value": "agents"
+      },
+      "incomingEdges": [31, 32, 33, 34, 37, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 52, 62, 64, 65, 67, 69, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94, 96, 121, 123, 125, 130, 136, 181]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/antigravity"
+      },
+      "incomingEdges": [0, 53, 71, 97, 131]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/bacon"
+      },
+      "incomingEdges": [1, 54, 98, 132]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/cicero"
+      },
+      "incomingEdges": [2, 99]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/codex-children-layout"
+      },
+      "incomingEdges": [3, 55]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/codex-html-body"
+      },
+      "incomingEdges": [4, 56]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/codex-migration-lab-ci"
+      },
+      "incomingEdges": [5, 57]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/codex-release-docs-truth"
+      },
+      "incomingEdges": [6, 58]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/codex-session-success-story"
+      },
+      "incomingEdges": [7, 100, 133]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/codex-source-rag"
+      },
+      "incomingEdges": [8, 59]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/confucius"
+      },
+      "incomingEdges": [9, 101]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/credits"
+      },
+      "incomingEdges": [10, 38, 51, 63, 68, 73, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 102, 122, 124]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/gauss"
+      },
+      "incomingEdges": [11, 103]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/gibbs"
+      },
+      "incomingEdges": [12, 35, 60, 104]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/godel"
+      },
+      "incomingEdges": [13, 105]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/grok"
+      },
+      "incomingEdges": [14, 36, 61, 66, 106, 134]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/heisenberg"
+      },
+      "incomingEdges": [15, 107]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/james"
+      },
+      "incomingEdges": [16, 108]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/jason"
+      },
+      "incomingEdges": [17, 109]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/kepler"
+      },
+      "incomingEdges": [18, 110]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/maxwell"
+      },
+      "incomingEdges": [19, 111]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/mill"
+      },
+      "incomingEdges": [20, 112]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/nash"
+      },
+      "incomingEdges": [21, 113]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/noether"
+      },
+      "incomingEdges": [22, 114]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/ohm"
+      },
+      "incomingEdges": [23, 115]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/parfit"
+      },
+      "incomingEdges": [24, 116]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/pauli"
+      },
+      "incomingEdges": [25, 117]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/poincare"
+      },
+      "incomingEdges": [26, 118]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/roll-call"
+      },
+      "incomingEdges": [27]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/turing"
+      },
+      "incomingEdges": [28, 119]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "agents/volta"
+      },
+      "incomingEdges": [29, 120]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "contest"
+      },
+      "incomingEdges": [135, 137, 141, 145, 182]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "contest/how-it-was-built"
+      },
+      "incomingEdges": [30, 126]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "contest/the-pipeline"
+      },
+      "incomingEdges": [127, 183]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "contest/what-shipped"
+      },
+      "incomingEdges": [128]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "contest/what-we-cut"
+      },
+      "incomingEdges": [129]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "getting-started"
+      },
+      "incomingEdges": [154, 164, 165, 184, 186]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "guides/apex-markdown"
+      },
+      "incomingEdges": [160, 168]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "guides/asides"
+      },
+      "incomingEdges": [138, 155, 169]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "guides/cli-and-modes"
+      },
+      "incomingEdges": [142, 148, 156, 170, 175]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "guides/overview"
+      },
+      "incomingEdges": [143, 146, 149, 157, 161, 162, 166, 176, 178, 179, 185, 187]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "guides/rag-export"
+      },
+      "incomingEdges": [139, 167, 171, 188]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "guides/trunk-satellite"
+      },
+      "incomingEdges": [140, 150, 158, 172, 189]
+    },
+    {
+      "target": {
+        "type": "page",
+        "value": "reference/frontmatter"
+      },
+      "incomingEdges": [144, 147, 151, 159, 163, 173, 177, 180, 190]
+    },
+    {
+      "target": {
+        "type": "source",
+        "value": "includes/authoring-note.md"
+      },
+      "incomingEdges": [152, 174]
+    },
+    {
+      "target": {
+        "type": "source",
+        "value": "includes/shared-tip.md"
+      },
+      "incomingEdges": [153]
+    }
+  ],
+  "nav": [
+    {
+      "index": 0,
+      "id": "agents",
+      "breadcrumb": [0],
+      "children": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30],
+      "siblings": []
+    },
+    {
+      "index": 1,
+      "id": "agents/antigravity",
+      "breadcrumb": [0, 1],
+      "children": [],
+      "siblings": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 2,
+      "id": "agents/bacon",
+      "breadcrumb": [0, 2],
+      "children": [],
+      "siblings": [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 3,
+      "id": "agents/cicero",
+      "breadcrumb": [0, 3],
+      "children": [],
+      "siblings": [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 4,
+      "id": "agents/codex-children-layout",
+      "breadcrumb": [0, 4],
+      "children": [],
+      "siblings": [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 5,
+      "id": "agents/codex-html-body",
+      "breadcrumb": [0, 5],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 6,
+      "id": "agents/codex-migration-lab-ci",
+      "breadcrumb": [0, 6],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 7,
+      "id": "agents/codex-release-docs-truth",
+      "breadcrumb": [0, 7],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 8,
+      "id": "agents/codex-session-success-story",
+      "breadcrumb": [0, 8],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 9,
+      "id": "agents/codex-source-rag",
+      "breadcrumb": [0, 9],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 10,
+      "id": "agents/confucius",
+      "breadcrumb": [0, 10],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 11,
+      "id": "agents/credits",
+      "breadcrumb": [0, 11],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 12,
+      "id": "agents/gauss",
+      "breadcrumb": [0, 12],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 13,
+      "id": "agents/gibbs",
+      "breadcrumb": [0, 13],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 14,
+      "id": "agents/godel",
+      "breadcrumb": [0, 14],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 15,
+      "id": "agents/grok",
+      "breadcrumb": [0, 15],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 16,
+      "id": "agents/heisenberg",
+      "breadcrumb": [0, 16],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 17,
+      "id": "agents/james",
+      "breadcrumb": [0, 17],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 18,
+      "id": "agents/jason",
+      "breadcrumb": [0, 18],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 19,
+      "id": "agents/kepler",
+      "breadcrumb": [0, 19],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 20,
+      "id": "agents/maxwell",
+      "breadcrumb": [0, 20],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 21,
+      "id": "agents/mill",
+      "breadcrumb": [0, 21],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 22,
+      "id": "agents/nash",
+      "breadcrumb": [0, 22],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 23,
+      "id": "agents/noether",
+      "breadcrumb": [0, 23],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 24,
+      "id": "agents/ohm",
+      "breadcrumb": [0, 24],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 25,
+      "id": "agents/parfit",
+      "breadcrumb": [0, 25],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30]
+    },
+    {
+      "index": 26,
+      "id": "agents/pauli",
+      "breadcrumb": [0, 26],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 28, 29, 30]
+    },
+    {
+      "index": 27,
+      "id": "agents/poincare",
+      "breadcrumb": [0, 27],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 28, 29, 30]
+    },
+    {
+      "index": 28,
+      "id": "agents/roll-call",
+      "breadcrumb": [0, 28],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 30]
+    },
+    {
+      "index": 29,
+      "id": "agents/turing",
+      "breadcrumb": [0, 29],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 30]
+    },
+    {
+      "index": 30,
+      "id": "agents/volta",
+      "breadcrumb": [0, 30],
+      "children": [],
+      "siblings": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+    },
+    {
+      "index": 31,
+      "id": "contest",
+      "breadcrumb": [31],
+      "children": [32, 33, 34, 35],
+      "siblings": []
+    },
+    {
+      "index": 32,
+      "id": "contest/how-it-was-built",
+      "breadcrumb": [31, 32],
+      "children": [],
+      "siblings": [33, 34, 35]
+    },
+    {
+      "index": 33,
+      "id": "contest/the-pipeline",
+      "breadcrumb": [31, 33],
+      "children": [],
+      "siblings": [32, 34, 35]
+    },
+    {
+      "index": 34,
+      "id": "contest/what-shipped",
+      "breadcrumb": [31, 34],
+      "children": [],
+      "siblings": [32, 33, 35]
+    },
+    {
+      "index": 35,
+      "id": "contest/what-we-cut",
+      "breadcrumb": [31, 35],
+      "children": [],
+      "siblings": [32, 33, 34]
+    },
+    {
+      "index": 36,
+      "id": "getting-started",
+      "breadcrumb": [36],
+      "children": [39],
+      "siblings": []
+    },
+    {
+      "index": 37,
+      "id": "guides/apex-markdown",
+      "breadcrumb": [37],
+      "children": [],
+      "siblings": []
+    },
+    {
+      "index": 38,
+      "id": "guides/asides",
+      "breadcrumb": [40, 38],
+      "children": [],
+      "siblings": [41, 42]
+    },
+    {
+      "index": 39,
+      "id": "guides/cli-and-modes",
+      "breadcrumb": [36, 39],
+      "children": [],
+      "siblings": []
+    },
+    {
+      "index": 40,
+      "id": "guides/overview",
+      "breadcrumb": [40],
+      "children": [38, 41, 42],
+      "siblings": []
+    },
+    {
+      "index": 41,
+      "id": "guides/rag-export",
+      "breadcrumb": [40, 41],
+      "children": [],
+      "siblings": [38, 42]
+    },
+    {
+      "index": 42,
+      "id": "guides/trunk-satellite",
+      "breadcrumb": [40, 42],
+      "children": [],
+      "siblings": [38, 41]
+    },
+    {
+      "index": 43,
+      "id": "index",
+      "breadcrumb": [43],
+      "children": [],
+      "siblings": []
+    },
+    {
+      "index": 44,
+      "id": "reference/frontmatter",
+      "breadcrumb": [44],
+      "children": [],
+      "siblings": []
+    }
+  ]
+}

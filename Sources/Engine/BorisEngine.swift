@@ -50,6 +50,13 @@ public struct BorisValidate: Sendable {
     public let stderr: String
 }
 
+/// Result of `boris init`.
+public struct BorisInit: Sendable {
+    public let exitCode: Int32
+    public let stdout: String
+    public let stderr: String
+}
+
 public enum BorisEngineError: Error, Sendable, CustomStringConvertible {
     case binaryNotFound
     case missingArtifact(String)
@@ -238,41 +245,47 @@ public actor BorisEngine {
     /// `--report PATH` to write the rendered JSON to a file instead. On
     /// afterparty, `check` exits 0 with findings by default and only exits 1
     /// with `--fail-on-unreferenced` — either way the report decodes fine.
-    public func check(contentRoot: URL) throws -> BorisAnalysis {
+    public func check(contentRoot: URL, workingDirectory: URL? = nil) throws -> BorisAnalysis {
         let fm = FileManager.default
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-check-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
-        let out = try run(arguments: [
-            "check",
-            "--input", contentRoot.path,
-            "--format", "json",
-            "--report", reportURL.path,
-            "--quiet",
-        ])
+        let out = try run(
+            arguments: [
+                "check",
+                "--input", contentRoot.path,
+                "--format", "json",
+                "--report", reportURL.path,
+                "--quiet",
+            ],
+            workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
+        )
         let report = try decode(AnalysisReport.self, from: reportURL, artifact: "check report")
         return BorisAnalysis(exitCode: out.exitCode, report: report)
     }
 
     /// Runs `boris impact <pageID> --format json --report <file>` and decodes
     /// the report.
-    public func impact(contentRoot: URL, pageID: String) throws -> BorisAnalysis {
+    public func impact(contentRoot: URL, pageID: String, workingDirectory: URL? = nil) throws -> BorisAnalysis {
         let fm = FileManager.default
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-impact-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
-        let out = try run(arguments: [
-            "impact", pageID,
-            "--input", contentRoot.path,
-            "--format", "json",
-            "--report", reportURL.path,
-            "--quiet",
-        ])
+        let out = try run(
+            arguments: [
+                "impact", pageID,
+                "--input", contentRoot.path,
+                "--format", "json",
+                "--report", reportURL.path,
+                "--quiet",
+            ],
+            workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
+        )
         let report = try decode(AnalysisReport.self, from: reportURL, artifact: "impact report")
         return BorisAnalysis(exitCode: out.exitCode, report: report)
     }
 
-    // MARK: Version / plan / validate
+    // MARK: Version / plan / validate / init
 
     /// Runs `boris --version` and returns the stdout line (e.g. `boris/0.8.1`).
     public func version() throws -> BorisVersion {
@@ -298,12 +311,19 @@ public actor BorisEngine {
 
     /// Runs `boris validate --input … --report PATH` and decodes the
     /// `html-build-report-0.1.0` file when written. `--report` may be absolute.
-    public func validate(contentRoot: URL, reportURL: URL) throws -> BorisValidate {
-        let out = try run(arguments: [
-            "validate",
-            "--input", contentRoot.path,
-            "--report", reportURL.path,
-        ])
+    public func validate(
+        contentRoot: URL,
+        reportURL: URL,
+        workingDirectory: URL? = nil
+    ) throws -> BorisValidate {
+        let out = try run(
+            arguments: [
+                "validate",
+                "--input", contentRoot.path,
+                "--report", reportURL.path,
+            ],
+            workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
+        )
         var report: HTMLBuildReport?
         if FileManager.default.fileExists(atPath: reportURL.path) {
             report = try decode(
@@ -317,6 +337,12 @@ public actor BorisEngine {
             report: report,
             stderr: out.stderrText
         )
+    }
+
+    /// Runs `boris init` in `directory`.
+    public func initProject(in directory: URL) throws -> BorisInit {
+        let out = try run(arguments: ["init"], workingDirectory: directory)
+        return BorisInit(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
     // MARK: Probe
