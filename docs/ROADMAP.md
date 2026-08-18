@@ -382,7 +382,8 @@ green.
 **Lanes.** Settings, Mailboxes, Reading, Editor wiring — paths in
 [`HARNESS.md`](HARNESS.md) §4. Tracker
 [#98](https://github.com/drawmeanelephant/solipsist/issues/98);
-cards in [`cards/`](cards/README.md).
+cards in [`cards/`](cards/README.md). Implementation design:
+[`M10-DESIGN.md`](M10-DESIGN.md).
 
 **Not this milestone.** Native editor. GitHub as a source. Finder
 sidebar. In-app HTTP server. Growing #78.

@@ -23,15 +23,16 @@ the middle, drawer for minutiae, companions for the full site and
 ## Children
 
 One card = one worktree = one PR. Settings can run next to Mailboxes.
-Reading follows Mailboxes. Editor wiring can overlap Reading if it
-only keys off `noun.kind == "page"`.
+Reading follows Mailboxes. Editor wiring **merges after Reading**
+(it reads `noun.sourcePath` that Reading writes). Development of
+#102 may start after #100. See [`docs/M10-DESIGN.md`](../M10-DESIGN.md).
 
 | Card | Issue | Lane | Gate (short) |
 |------|-------|------|----------------|
 | [M10-1 Settings](M10-settings-sources.md) | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) | Settings | Settings → Sources adds/removes/relocates; same store as Open… |
 | [M10-2 Mailboxes](M10-mailbox-sidebar.md) | [#100](https://github.com/drawmeanelephant/solipsist/issues/100) | Mailboxes | Sidebar is account headers + mailboxes; writes `selection.mailbox` |
 | [M10-3 Reading](M10-reading-pane.md) | [#101](https://github.com/drawmeanelephant/solipsist/issues/101) | Reading | Tabs gone; list + reading pane; no `file://`, no Swift Markdown |
-| [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | Editor wiring | Edit / double-click a page opens hosted `boris-editor` |
+| [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | Editor wiring | File → Edit Page; header shows title + `sourcePath` |
 
 ## Not this tracker
 
@@ -67,5 +68,6 @@ Existing `WorkspaceNoun.kind` values (`page`, `profile`, `target`,
 2. M10-3 starts after M10-2 lands `selection.mailbox` (a sync shim
    that keeps today's tabs driven by `mailbox` is an acceptable
    M10-2 landing if Reading is not ready).
-3. M10-4 may start once a page noun is selectable — true today, so
-   it can overlap M10-3.
+3. M10-4 **merges after M10-3**. It may be *developed* after M10-2
+   (`sourcePath` on the type) but must not touch `LocalPlay.swift`
+   or `MainWindow.swift`.

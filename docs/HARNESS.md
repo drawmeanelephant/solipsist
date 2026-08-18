@@ -238,10 +238,10 @@ cut wrong — stop and recut.
 | **Preview companion** | `Sources/Companions/Preview/` | editor, play | Preview window loads `watch --serve` and reloads on SSE |
 | **Editor companion** | `Sources/Companions/Editor/` | preview, play | Editor window loads `boris-editor` token URL; link-out fallback |
 | **GitHub source** | `Sources/Workspace/GitHub/`, `Sources/Play/GitHub/` | Local play, Engine | A GitHub source appears as an account header and vends its own mailboxes |
-| **Settings** (M10) | `Sources/App/Settings/`, Settings commands in `Commands.swift` / `SolipsistApp.swift` | Play implementations, mailbox tree internals | Settings → Sources adds/removes/relocates a local source; same store as File → Open… |
-| **Mailboxes** (M10) | `Sources/Chrome/SourceSidebar.swift`, `WorkspaceSelection` mailbox field | Play row rendering, Inspector sections | Sidebar is account headers + mailboxes; selecting one writes `selection.mailbox` |
-| **Reading** (M10) | `Sources/Play/Local/` | Chrome mailbox construction, Engine | Tabs gone; center is message list + reading pane driven by `mailbox` |
-| **Editor wiring** (M10) | `Sources/Companions/Editor/`, Edit menu verb | Native `TextView`, Play list internals | Edit / double-click a page opens the hosted editor; link-out fallback |
+| **Settings** (M10) | `Sources/App/Settings/`, Settings scene in `SolipsistApp.swift` | `Commands.swift`, Play, mailbox tree, `Project.yml` | Settings → Sources adds/removes/relocates a local source; same store as File → Open… |
+| **Mailboxes** (M10) | `SourceSidebar.swift`; `WorkspaceSelection` / `WorkspaceStore` / `WorkspacePersistence`; sole `MainWindow.swift` | Settings scene, `Commands.swift`, Play row rendering, Inspector, `Project.yml` | Sidebar is account headers + mailboxes; selecting one writes `selection.mailbox` |
+| **Reading** (M10) | `Sources/Play/Local/`; named recut: `PlayHost` binder, `AppRuntime.previewSession`, `Companions/Preview/` session share + `PreviewURL` helpers | Chrome mailbox construction, `MainWindow.swift`, Engine | Tabs gone; center is message list + reading pane driven by `mailbox` |
+| **Editor wiring** (M10) | `Sources/Companions/Editor/`, File → Edit Page in `Commands.swift` | Native `TextView`, Play list internals, `MainWindow.swift` | File → Edit Page; header shows title + `sourcePath`; merge after Reading |
 | **Issues** | `docs/issues/` | `Sources/` | Draft fact-checked against afterparty, then filed |
 | **Design** | `docs/*.md` except `issues/` | `Sources/` | Decisions recorded; no silent contradiction with this file |
 
@@ -257,9 +257,9 @@ cut wrong — stop and recut.
    workflow.
 4. **M10 (Mail body) starts after M9 is the remaining ship card, not
    instead of it.** Settings can run next to Mailboxes. Reading follows
-   Mailboxes (it consumes `selection.mailbox`). Editor wiring follows
-   a selectable page noun — it can overlap Reading if it only keys off
-   `noun.kind == "page"`. Native editor is not in this sequence.
+   Mailboxes (it consumes `selection.mailbox`). Editor wiring **merges
+   after Reading** (it reads `noun.sourcePath` that Reading writes).
+   Native editor is not in this sequence.
 
 ### Integration rules
 

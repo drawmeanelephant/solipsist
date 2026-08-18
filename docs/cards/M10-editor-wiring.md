@@ -5,26 +5,27 @@
 **Lane:** Editor wiring. One worktree, one PR against `main`; branch
 suggestion `feat/m10-editor-wiring`.
 
-May overlap [#101](https://github.com/drawmeanelephant/solipsist/issues/101)
-if it only keys off `noun.kind == "page"`.
+**Merge after [#101](https://github.com/drawmeanelephant/solipsist/issues/101)
+is on `main`.** Development may start after #100 (`sourcePath` is on
+the type). #101 writes `noun.sourcePath` and lands list gestures.
+Design: [`docs/M10-DESIGN.md`](../M10-DESIGN.md).
 
 ## Owns
 
-- `Sources/Companions/Editor/` — open against the selected page when
-  the launch contract allows
-- Edit verb in `Sources/App/Commands.swift` and the toolbar button
-  in `Sources/Chrome/MainWindow.swift` (enable/disable only; do not
-  grow the window)
-- Double-click / Return on a Pages row in
-  `Sources/Play/Local/LocalPlay.swift` (one action, not a new list)
+- `Sources/Companions/Editor/` — header shows selected page title +
+  `sourcePath`; session stays source-scoped
+- File → Edit Page in `Sources/App/Commands.swift` (enable when
+  `store.selection.canEditPage`)
 
 ## Do not touch
 
+- `Sources/Play/Local/**` (double-click / Return is #101)
+- `Sources/Chrome/MainWindow.swift` (Editor toolbar is #100)
 - `Sources/Engine/**` beyond existing `editorStart`
-- `Sources/Inspector/**` (PageSection already has an open-editor
-  control; leave it or point it at the same verb)
+- `Sources/Inspector/**` (PageSection already opens the companion)
 - A native `NSTextView` / SwiftUI `TextEditor` buffer
 - Preview companion internals
+- `docs/issues/` (do not draft an editor-open-file issue)
 
 ## Why
 
@@ -36,16 +37,14 @@ A14 pinned the launch line (`BORIS_EDITOR_URL=`). There is **no**
 fact-checked file-open deep link yet. Do not invent one. If the
 hosted shell has no page-open contract, open the session as today
 and surface the selected `sourcePath` in the companion chrome
-(title / status). If you can prove an existing query/fragment the
-Svelte shell already honors, use that. If Boris needs a contract,
-draft `docs/issues/boris-A*-editor-open-file.md` against afterparty
-and stop — do not patch boris.
+(title / status). There is **no** proven query/fragment. Do not invent one. Do **not**
+draft `docs/issues/boris-A*-editor-open-file.md` in this milestone.
 
 ## Do
 
-1. File → Edit Page (or Edit) enabled when `noun.kind == "page"`.
-   Keyboard: Return in the Pages list; double-click a row. Menu
-   first.
+1. File → Edit Page enabled when `store.selection.canEditPage`.
+   Menu first. Return / double-click are #101. View → Editor (⌘⇧E)
+   stays source-gated.
 2. The verb opens the Editor `WindowGroup` and starts the existing
    `EditorSession` for the selected local source.
 3. Show the selected page title + `sourcePath` in the companion
@@ -65,7 +64,8 @@ and stop — do not patch boris.
 
 ## Gate
 
-Select a page in `Stunts/happy` → Edit ▶ / double-click opens the
-editor companion with that page's title and `sourcePath` visible.
-No source selected / no page → the verb is disabled. Link-out still
-works. `SKIP_EMBED_BORIS=1 make build` + `make test` green.
+Select a page in `Stunts/happy` (after #101) → File → Edit Page
+opens the editor companion with that page's title and `sourcePath`
+visible. No source selected / no page → the verb is disabled.
+Link-out still works. `SKIP_EMBED_BORIS=1 make build` + `make test`
+green.

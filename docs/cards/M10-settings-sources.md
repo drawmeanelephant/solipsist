@@ -5,21 +5,25 @@
 **Lane:** Settings. One worktree, one PR against `main`; branch
 suggestion `feat/m10-settings-sources`.
 
+Design: [`docs/M10-DESIGN.md`](../M10-DESIGN.md). Recut vs the original
+Owns: **do not edit `Commands.swift`** — Solipsist → Settings… is the
+system item for a `Settings` scene. #102 owns `Commands.swift`.
+
 ## Owns
 
 - `Sources/App/Settings/` (new)
 - Settings scene registration in `Sources/App/SolipsistApp.swift`
-- Settings menu / Sources commands in `Sources/App/Commands.swift`
 - Read-only use of `WorkspaceStore` add / remove / relocate APIs
 
 ## Do not touch
 
+- `Sources/App/Commands.swift` (system Settings… is enough; #102 owns this file)
 - `Sources/Play/**`
 - `Sources/Chrome/SourceSidebar.swift` internals (plus button may
   stay; it already calls `presentOpenPanel()`)
 - `Sources/Engine/**`
 - `Sources/Inspector/**`
-- `scripts/embed-boris.sh`, `Project.yml` entitlements, #78 paths
+- `scripts/embed-boris.sh`, **any of** `Project.yml`, #78 paths
 
 ## Why
 
@@ -36,8 +40,9 @@ has to live in Settings too, same `WorkspaceStore`, no second list.
    `WorkspaceStore.presentOpenPanel` / `presentRelocatePanel` /
    `remove` — do not invent a second bookmark store.
 3. Empty state: say what a source is and point at `Stunts/happy`.
-4. Menu: Solipsist → Settings… is the system item. File menu keeps
-   Open… / Open Recent / Relocate / Remove.
+4. Menu: Solipsist → Settings… is the system item (adding the
+   `Settings` scene is sufficient). File menu keeps Open… / Open
+   Recent / Relocate / Remove. Do not add a Sources command.
 5. D2: this pane writes bookmarks / plist only. It does not write
    `boris.json`. Do not move profile keys or execution knobs here.
 
@@ -52,6 +57,8 @@ has to live in Settings too, same `WorkspaceStore`, no second list.
 
 Solipsist → Settings… → Sources → Add Local… a folder with
 `boris.json` → it appears in the sidebar and is selected. Relocate
-and Remove from Settings match the File-menu verbs. Restart → source
-still there (#59 persistence). `SKIP_EMBED_BORIS=1 make build` +
-`make test` green.
+and Remove from Settings match the File-menu verbs. Restart → the
+source is still **in the list** (#59). Selected-row persistence is
+#100 (`select` does not write defaults until then). After #100,
+Settings `select(id)` also resets mailbox to `pages`.
+`SKIP_EMBED_BORIS=1 make build` + `make test` green.

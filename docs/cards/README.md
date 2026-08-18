@@ -64,11 +64,11 @@ editor from the selected page. Native editor stays Later.
 
 | Card | Issue | Lane | Parallel with | Gate |
 |------|-------|------|----------------|------|
-| [M10 tracker](M10-mail-body.md) | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) | design | — | children filed; HARNESS §2 is the destination |
-| [M10-1 Settings](M10-settings-sources.md) | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) | Settings | #100, #102 | Settings → Sources adds/removes/relocates |
-| [M10-2 Mailboxes](M10-mailbox-sidebar.md) | [#100](https://github.com/drawmeanelephant/solipsist/issues/100) | Mailboxes | #99, #102 | account headers + mailboxes; writes `mailbox` |
-| [M10-3 Reading](M10-reading-pane.md) | [#101](https://github.com/drawmeanelephant/solipsist/issues/101) | Reading | #102 (after #100) | tabs gone; list + reading pane |
-| [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | Editor wiring | #99, #100, #101 | Edit / double-click opens hosted editor |
+| [M10 tracker](M10-mail-body.md) | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) | design | — | children filed; [`M10-DESIGN.md`](../M10-DESIGN.md) + HARNESS §2 |
+| [M10-1 Settings](M10-settings-sources.md) | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) | Settings | #100 | Settings → Sources adds/removes/relocates |
+| [M10-2 Mailboxes](M10-mailbox-sidebar.md) | [#100](https://github.com/drawmeanelephant/solipsist/issues/100) | Mailboxes | #99 | account headers + mailboxes; writes `mailbox` |
+| [M10-3 Reading](M10-reading-pane.md) | [#101](https://github.com/drawmeanelephant/solipsist/issues/101) | Reading | — (after #100) | tabs gone; list + reading pane |
+| [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | Editor wiring | — (merge after #101) | File → Edit Page; header `sourcePath` |
 
 #78 stays build-lane only. Do not pick an M10 card by growing ship.
 
