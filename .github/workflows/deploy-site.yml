@@ -40,10 +40,21 @@ jobs:
           cd boris
           zig build -Doptimize=ReleaseFast
 
+      # The single public target is synthesized as "default"; the home layout
+      # is selected per-page because the profile schema's layout_rules are not
+      # executed by this compiler slice. --site-url feeds sitemap.xml.
       - name: Compile documentation site
         run: |
           cd site
-          ../boris/zig-out/bin/boris build --profile boris.json
+          ../boris/zig-out/bin/boris build --profile boris.json \
+            --layout-rule default id:index themes/boris/layouts/home.html \
+            --sitemap --site-url https://solipsist.filed.fyi
+
+      - name: Add root-level static files
+        run: cp site/robots.txt site/dist/robots.txt
+
+      - name: Check internal links and sitemap
+        run: python3 scripts/check-site-links.py --root site/dist --base-url https://solipsist.filed.fyi
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v4

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://solipsist.filed.fyi/sitemap.xml
