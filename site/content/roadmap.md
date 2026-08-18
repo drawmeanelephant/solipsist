@@ -11,19 +11,17 @@ Solipsist is a **harness**, not a better compiler and not a Markdown IDE. Boris 
 
 ## Where we are
 
-| Milestone | Status |
-|-----------|--------|
-| **M0** Bootstrap | ✅ |
-| **M1** Engine spike | ✅ — decodes the IR contracts |
-| **M2** Chassis | ✅ — sources / play / drawer / companion slots |
-| **P** Project subdomain | next (parallel) |
-| **M3** Play & inspect | next |
-| **M4** Coordinate | — |
-| **M5** Preview | — |
-| **M6** Author | — |
-| **M7** Outputs | — |
-| **M8** Publish | — |
-| **M9** Ship | — |
+M0–M8 **gates** exist: open a folder, see the graph, run the coordinator
+verbs, preview, host the editor, fan out targets, publish with secrets
+on stdin. That is not CLI parity and not a usable workstation yet.
+
+| Track | Status |
+|-------|--------|
+| M0–M8 gates | landed |
+| P Project subdomain | withdrawn — this site is Cloudflare Pages |
+| Usability | next — first-run, status, click a problem and land on the page |
+| Play / inspector / publish depth | open — filter, plan as a document, profile 1:1, rest of `standard-site` |
+| M9 Ship | open — notarized DMG on a clean Mac |
 
 ## v1 must
 

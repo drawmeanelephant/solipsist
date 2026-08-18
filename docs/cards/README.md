@@ -18,7 +18,13 @@ with a dispatch comment — [#72 M3](https://github.com/drawmeanelephant/solipsi
 [#77 M8](https://github.com/drawmeanelephant/solipsist/issues/77) ·
 [#78 M9](https://github.com/drawmeanelephant/solipsist/issues/78).
 
-M3 and M4 are **done** (#72/#73, PR #80). Active: M5–M9.
+M3–M8 **gates** are closed (#72–#77). That is not depth. Active board:
+[#87 remaining](https://github.com/drawmeanelephant/solipsist/issues/87)
+· [#88 ux](https://github.com/drawmeanelephant/solipsist/issues/88) ·
+[#89 play](https://github.com/drawmeanelephant/solipsist/issues/89) ·
+[#90 inspector](https://github.com/drawmeanelephant/solipsist/issues/90) ·
+[#91 publish](https://github.com/drawmeanelephant/solipsist/issues/91) ·
+[#78 ship](https://github.com/drawmeanelephant/solipsist/issues/78).
 
 **Legacy board (landed or withdrawn — do not pick):**
 

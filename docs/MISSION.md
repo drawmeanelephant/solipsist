@@ -69,16 +69,17 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
 
 ## Where we are
 
-- **M0 / M1 / M2 / M3 / M4 done.** Spike decodes the contracts; chassis is
-  in; play & inspect land the dogfood corpus (45 pages / 7 trunks) with
-  completion-backed drawer fields and profile write; the coordinator verbs
-  (plan / validate / build / check / impact / init) are menu items
-  (#72/#73, PR #80). Full sequence: [ROADMAP.md](ROADMAP.md).
+- **M0–M8 gates exist.** Spike, chassis, list, verbs, preview/editor
+  shells, output fan-out, stdin publish. That is not CLI parity and not
+  a usable workstation. Remaining board:
+  [#87](https://github.com/drawmeanelephant/solipsist/issues/87).
+  Sequence: [ROADMAP.md](ROADMAP.md) §8.
 - **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `b82e9e2`.
-  A3/A4/A13 have merged after that pin.
-- **Next:** M5 preview companion (`watch --serve`), then M7 outputs
-  fan-out and M8 publish. Roadmap **P** (Worker/Wasm subdomain) is
-  withdrawn — the public site ships via Cloudflare Pages (`site/`).
+  A3/A4/A13/A1/A14/A7 have merged after that pin — bump when we vendor
+  a newer kit (#78).
+- **Next:** usability (#88), then play / inspector / publish depth
+  (#89–#91), then a clean-Mac ship (#78). Roadmap **P** is withdrawn —
+  the public site ships via Cloudflare Pages (`site/`).
 
 ## What success looks like
 
