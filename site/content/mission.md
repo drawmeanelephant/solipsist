@@ -7,7 +7,7 @@ tags: [mission]
 
 # Mission
 
-**Solipsist is Radio UserLand’s job in Mail’s body**: a native Mac harness that turns the graph-native publication compiler into a one-window workstation for sources, play, inspection, preview, and broadcast — and refuses to invent anything the HIG or a Boris contract already named.
+**Solipsist is Radio UserLand’s job in Mail’s body**: a native Mac harness that turns the graph-native publication compiler into a one-window workstation for sources (in Settings), mailboxes, a reading place, inspection, preview, and broadcast — and refuses to invent anything the HIG or a Boris contract already named.
 
 ## The engine we harness
 
@@ -33,4 +33,4 @@ Boris ships its own browser-based editor. Solipsist is the complementary **nativ
 
 ## Where we are
 
-M0–M8 gates and the depth batch (first-run, filter, profile 1:1, publish family) are in. Next is a clean-Mac ship — see [[roadmap]].
+M0–M8 gates and the depth batch (first-run, filter, profile 1:1, publish family) are in. Next ship is a clean-Mac DMG; next product cut is the Mail body (Settings, mailboxes, reading pane) — see [[roadmap]].

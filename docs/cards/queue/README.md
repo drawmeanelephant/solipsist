@@ -67,7 +67,10 @@ lives in the issue tracker (#58–#61; briefs in
 `docs/cards/B3-*.md`) — those own grind-lane paths, so they are not
 queue cards.
 
-The depth batch (#88–#91) landed. The remaining pickable card is
-[#78](https://github.com/drawmeanelephant/solipsist/issues/78) (M9
-ship). It owns the build lane, not this queue. The queue stays empty
-unless someone cuts a docs-only or `Tests/`-only slice.
+The depth batch (#88–#91) landed. The remaining **ship** card is
+[#78](https://github.com/drawmeanelephant/solipsist/issues/78) (M9).
+M10 Mail body
+([#98](https://github.com/drawmeanelephant/solipsist/issues/98),
+[`../M10-mail-body.md`](../M10-mail-body.md)) is the next product cut
+and owns grind-lane chrome/play paths, so it is not a queue card. The queue stays empty unless someone cuts a docs-only
+or `Tests/`-only slice.

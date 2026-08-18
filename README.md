@@ -4,12 +4,15 @@ A native macOS harness for
 [Boris](https://github.com/drawmeanelephant/boris), the deterministic
 Zig graph-native publication compiler.
 
-Radio UserLand’s job in Mail’s body: sources on the left, play in the
-middle, inspector drawer on the right. Preview and the Svelte editor
-are companion windows we host. We do not invent a second compiler.
+Radio UserLand’s job in Mail’s body: sources in Settings, mailboxes
+on the left, a reading place in the middle, inspector drawer on the
+right. Preview and the Svelte editor are companion windows we host.
+We do not invent a second compiler.
 
-**Status:** M0–M8 gates plus depth. Next is M9 ship
+**Status:** M0–M8 gates plus depth. Next ship is M9
 ([#78](https://github.com/drawmeanelephant/solipsist/issues/78)).
+Next product cut is M10 Mail body
+([#98](https://github.com/drawmeanelephant/solipsist/issues/98)).
 File → Open… a folder under [`Stunts/`](Stunts/) (start with
 `happy/`). `make test` decodes checked-in fixtures (no boris binary).
 

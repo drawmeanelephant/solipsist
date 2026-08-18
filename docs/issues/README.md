@@ -16,7 +16,9 @@ PR against boris from this repo.
 
 - A5 [boris#647](https://github.com/drawmeanelephant/boris/issues/647) — RFC, filed as an issue (Discussions disabled on the repo). Still open; no fixing PR yet.
 
-**File next:** none.
+**File next:** none. M10 editor wiring (#102) may later need an
+open-file deep link on `boris-editor`; do not draft it until it is
+fact-checked against afterparty. Do not invent a query/fragment.
 
 Do not ask: unifying `compiler` field names, library mode, relaxing
 editor token/CSP, shipping `boris-editor` in the agent-pack.

@@ -19,8 +19,11 @@ with a dispatch comment — [#72 M3](https://github.com/drawmeanelephant/solipsi
 [#78 M9](https://github.com/drawmeanelephant/solipsist/issues/78).
 
 M3–M8 **gates** are closed (#72–#77). The #87 depth batch is closed
-(#88/#94 · #89/#96 · #90/#95 · #91/#93). Active card:
+(#88/#94 · #89/#96 · #90/#95 · #91/#93). Active **ship** card:
 [#78 ship](https://github.com/drawmeanelephant/solipsist/issues/78).
+Next **product cut** is [M10 Mail body](M10-mail-body.md)
+([#98](https://github.com/drawmeanelephant/solipsist/issues/98)) —
+after #78, never inside it.
 
 **Legacy board (landed or withdrawn — do not pick):**
 
@@ -54,10 +57,26 @@ stdin wiring merges after B3-1. B3-4 must keep
 `files.user-selected.read-write` (B3-2) and `network.server` (M5
 preview) in the entitlements matrix.
 
+## M10 — Mail body (after #78, not instead of it)
+
+Spatial recut. Settings for sources, mailbox sidebar, reading pane,
+editor from the selected page. Native editor stays Later.
+
+| Card | Issue | Lane | Parallel with | Gate |
+|------|-------|------|----------------|------|
+| [M10 tracker](M10-mail-body.md) | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) | design | — | children filed; HARNESS §2 is the destination |
+| [M10-1 Settings](M10-settings-sources.md) | [#99](https://github.com/drawmeanelephant/solipsist/issues/99) | Settings | #100, #102 | Settings → Sources adds/removes/relocates |
+| [M10-2 Mailboxes](M10-mailbox-sidebar.md) | [#100](https://github.com/drawmeanelephant/solipsist/issues/100) | Mailboxes | #99, #102 | account headers + mailboxes; writes `mailbox` |
+| [M10-3 Reading](M10-reading-pane.md) | [#101](https://github.com/drawmeanelephant/solipsist/issues/101) | Reading | #102 (after #100) | tabs gone; list + reading pane |
+| [M10-4 Editor](M10-editor-wiring.md) | [#102](https://github.com/drawmeanelephant/solipsist/issues/102) | Editor wiring | #99, #100, #101 | Edit / double-click opens hosted editor |
+
+#78 stays build-lane only. Do not pick an M10 card by growing ship.
+
 ## Do not start yet
 
-GitHub as a source. Wasm in the app. The fart app. Preview, editor,
-and publish already have gates — do not rebuild them.
+GitHub as a source. Wasm in the app. The fart app. A native
+`TextView` editor. Preview, editor host, and publish already have
+gates — M10 wires them into Mail's shape; it does not rebuild them.
 
 ## Shared noun kinds (play writes, inspector reads)
 

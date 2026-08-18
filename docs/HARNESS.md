@@ -1,11 +1,16 @@
 # Solipsist — Harness & Lanes
 
-**Date:** 2026-08-17
+**Date:** 2026-08-18
 **Status:** locked direction (spatial model + how we split work)
 **Parents:** Radio UserLand × Mail, HIG pedant, contract pedant
 This file is the product chassis and the agent-split. Goals live in
 [`ROADMAP.md`](ROADMAP.md). If they disagree about where a surface
 lives, this file wins.
+
+M2–M8 shipped a flatter cut of this model (source list + tabbed play +
+companions). **M10** is the recut to the Mail body named below. Do not
+expand [#78](https://github.com/drawmeanelephant/solipsist/issues/78)
+(M9 ship) into this chrome. What ships today is recorded in §7.
 
 ---
 
@@ -23,51 +28,111 @@ render its contracts. We never reimplement its semantics.
 
 ## 2. Spatial model
 
-Left to right, one main window. Companion windows for foreign surfaces.
+Left to right, one main window. A Settings scene for the account book.
+Companion windows for foreign surfaces.
 
 ```
+Settings (not a column) — Sources: add / relocate / remove accounts
+
 ┌──────────────────┬─────────────────────────────┬──────────────────┐
-│ SOURCES          │ PLAY                        │ DRAWER           │
+│ MAILBOXES        │ READING                     │ DRAWER           │
 │                  │                             │                  │
-│ Local folder     │ The work, for the selected  │ Options          │
-│ GitHub           │ source. Pages, outputs,     │ Settings         │
-│ (whatever next)  │ activity, reports.          │ Minutiae         │
-│                  │ Noun selected here.         │ of the selection │
+│ Source as        │ Message list of the         │ Options          │
+│ account header;  │ selected mailbox, plus a    │ Profile / page   │
+│ folders under    │ reading pane for the        │ fields / knobs   │
+│ it (Pages,       │ selected message.           │ of the selection │
+│ Outputs, …)      │ Noun selected here.         │                  │
 └──────────────────┴─────────────────────────────┴──────────────────┘
 
 Companion windows (hosted, not authored):
-  • Preview   — boris watch --serve in WKWebView
+  • Preview   — full site; boris watch --serve in WKWebView
   • Editor    — boris-editor (Svelte) at its session-token URL
   • anything else Boris already built that we will not rewrite
 ```
 
-### Left — sources
+Mail, not Finder, not Xcode. Accounts in Preferences. Mailboxes on the
+left. Messages in the middle. The letter you picked, readable. Compose
+is a separate surface (the hosted editor now; a native buffer only when
+we name that later).
 
-Accounts, not a file tree. A **source** is a place content lives or
-publishes: a local folder (security-scoped bookmark), a GitHub repo,
-later whatever earns a provider. The first source type is local. GitHub
-is the second. The sidebar is a source list, Mail-style, not a project
-tree. Trees and mailboxes of a source belong to that source's play
-surface.
+### Settings — the account book
+
+A **source** is a place content lives or publishes: a local folder
+(security-scoped bookmark), a GitHub repo, later whatever earns a
+provider. The first source type is local. GitHub is the second.
+
+Sources are **accounts**. They are added, renamed, relocated, and
+removed in **Settings → Sources**, the way Mail adds accounts. File →
+Open… and Open Recent still add a local source — that is the Mac verb
+for a folder — but they write the same store the Settings pane shows.
+The sidebar plus button is a shortcut to that add, not a second
+inventory.
 
 Do not hardcode "the open folder" as the app model. Hardcode `Source`.
 
-### Middle — play
+Settings is a `Settings` scene, not a column, not a play tab, not the
+drawer. Machine-local app state that is not selection-minutiae may
+grow further panes here. D2 still holds: output-changing controls write
+`boris.json`; machine state writes the plist; Settings and the drawer
+are views, never a third store.
 
-Where work happens for the selected source. For a local Boris project
-that means the coordinator surface: the graph as a workable list,
-outputs (targets / editions), plan/validate/build activity, reports.
-Selecting a noun in the play place is what the drawer and the companion
-windows listen to.
+### Left — mailboxes
 
-Play is **not** the editor, **not** the preview, **not** a settings form.
+A mailbox tree, Mail-style. Each source is an **account header**.
+Under it live that source's mailboxes:
+
+| Mailbox | What it is | Was (M3–M8) |
+|---------|------------|-------------|
+| Pages | `graph.json` nodes as messages | Play → Pages tab |
+| Outputs | profile targets / editions | Play → Outputs tab |
+| Publish | publication console | Play → Publish tab |
+| Plan | `plan --profile` as a document | Play → Plan tab |
+| Activity | timings / job log | Play → Activity tab |
+
+Nested folders under Pages are allowed when they come from the
+**graph** (`parent`, later `status` / tags) — trunks as folders,
+satellites as messages. They are not allowed when they come from
+walking the content directory. This is not a Finder clone. `.boris/`,
+`themes/`, and the rest of the project tree stay off the sidebar
+unless a mailbox contract names them.
+
+Selecting a mailbox is what the reading place listens to. Selecting a
+source header without a mailbox selects that source's default mailbox
+(Pages).
+
+### Middle — reading
+
+The message list of the selected mailbox, plus a **reading pane** for
+the selected message. For Pages that means the graph list (title,
+status, id, check badges) and, under it or beside it, the selected
+page as a letter:
+
+- If `watch --serve` is up, the reading pane loads that page's served
+  URL through the existing preview session. It does not spawn a second
+  watch. It does not use `file://`.
+- If watch is down, the pane shows a contract-backed summary (title,
+  id, status, `sourcePath`, relations from `completion.json`) and the
+  verbs Preview / Edit. It does not render Markdown. It does not parse
+  frontmatter.
+
+Selecting a noun in the reading place is what the drawer and the
+companion windows listen to.
+
+The reading place is **not** the editor, **not** the full-site
+preview, **not** a settings form, **not** a homegrown Markdown
+previewer. Outputs / Publish / Plan / Activity are still *our* chrome
+when those mailboxes are selected; they are no longer tabs stacked on
+top of Pages.
 
 ### Right — drawer
 
-Inspector. Options, settings, minutiae. Collapsible. This is what makes
-the one-window workflow: you should not leave the main window to change
-a profile key, a scope, a theme, a page's frontmatter fields, or
-`jobs` / `incremental` / `quiet`.
+Inspector. Options, profile keys, page fields, execution knobs.
+Collapsible. This is what makes the one-window workflow: you should
+not leave the main window to change a profile key, a scope, a theme, a
+page's frontmatter fields, or `jobs` / `incremental` / `quiet`.
+
+The drawer is minutiae of the **selection**, not the account book.
+Adding a source does not belong here.
 
 Rule still stands (D2): if it changes Boris output, the control writes
 the publication profile. If it is machine-local, it writes the app
@@ -75,14 +140,28 @@ plist. The drawer is a view over those two stores, never a third.
 
 ### Companion windows
 
-Surfaces we host and do not write. Preview. The Svelte editor. Future
-Boris UIs. They open from the main window (and the menu bar) against the
-current selection. They are not columns. They are not tabs in the
-drawer.
+Surfaces we host and do not write. The full-site Preview. The Svelte
+editor. Future Boris UIs. They open from the main window (and the menu
+bar) against the current selection. They are not columns. They are not
+tabs in the drawer.
+
+Edit ▶ / double-click a page / Return on a Pages row opens the editor
+companion against the selected source (and against the selected
+`sourcePath` once that launch contract exists). Link-out remains the
+accepted fallback.
 
 Mail's Activity window is the analog for build/plan/timings if that
-surface ever outgrows the play place. It is still *our* chrome if we
+surface ever outgrows its mailbox. It is still *our* chrome if we
 author it; companions are specifically the things we refuse to author.
+
+### Native editor (named later, not M10)
+
+A from-scratch native buffer is **allowed to be later**. It is not a
+v1 gate and it is not a reason to stop hosting `boris-editor`. If it
+lands, it is a buffer + save + problems surface over `sourcePath`. It
+does not parse frontmatter, does not compile, does not invent graph
+semantics, and does not replace `watch --serve`. Until that card is
+cut, Edit means the hosted companion.
 
 ---
 
@@ -95,12 +174,13 @@ owns a directory.
 ```
 Sources/
   App/            process entry, menu bar, window groups
-  Chrome/         the one window: sidebar slot, play slot, drawer slot
+    Settings/     Settings scene — Sources pane (the account book)
+  Chrome/         the one window: mailbox slot, reading slot, drawer slot
   Workspace/      Source protocol + selection store + providers
     Local/        first provider (bookmark, open/save, recents)
     GitHub/       later
-  Play/           one play surface per source kind
-    Local/        graph list, outputs, activity, reports
+  Play/           one reading surface per source kind
+    Local/        message list + reading pane; mailbox contents
   Inspector/      Inspectable sections, no selection ownership
   Companions/     PreviewWindow, EditorWindow (WKWebView hosts)
   Engine/         existing — the only Process owner
@@ -108,7 +188,9 @@ Sources/
 ```
 
 `ContentView.swift` is gone. Chrome is `MainWindow` and empty slots.
-Do not grow `MainWindow` — fill `Play/`, `Inspector/`, `Companions/`.
+Do not grow `MainWindow` — fill `Play/`, `Inspector/`, `Companions/`,
+`App/Settings/`. Recut `SourceSidebar` into a mailbox tree; do not
+start a second sidebar.
 
 ### Load-bearing types (the seams)
 
@@ -117,18 +199,23 @@ fills them in.
 
 | Seam | Owns | Does not own |
 |------|------|----------------|
-| `Source` | identity, title, kind, how to appear in the sidebar | play UI, inspector UI |
-| `PlaySurface` | the middle view for one source kind | engine process, window chrome |
+| `Source` | identity, title, kind, how to appear as an account header | mailbox contents, inspector UI |
+| `PlaySurface` | the middle view for one source kind + selected mailbox | engine process, window chrome |
 | `Inspectable` | sections the drawer renders for the current selection | the selection itself |
 | `Companion` | a window that hosts a foreign surface | compiler semantics |
-| `WorkspaceSelection` | the single selected source + noun | views |
+| `WorkspaceSelection` | the single selected source + mailbox + noun | views |
 
 Rules:
 
 - Selection is a value type in one observable store. The drawer and the
-  companions **read** it. They never own it.
-- Engine is the only thing that starts a `Process`. Companions ask the
-  actor; they do not spawn `boris`.
+  companions **read** it. They never own it. Chrome writes `sourceID`
+  and `mailbox`; play writes `noun`.
+- `mailbox` is an open string (like `noun.kind`): `pages`, `outputs`,
+  `publish`, `plan`, `activity`, later a trunk id. Do not invent a
+  second vocabulary.
+- Engine is the only thing that starts a `Process`. Companions and the
+  reading pane ask the actor; they do not spawn `boris`. One watch
+  session per selected source — the reading pane reuses it.
 - Models do not import SwiftUI. Play/Inspector do not parse JSON —
   they take decoded contracts.
 - A new source type is a new folder under `Workspace/` + `Play/`. It
@@ -150,7 +237,11 @@ cut wrong — stop and recut.
 | **Inspector** | `Sources/Inspector/` | selection store shape, Engine | Selecting a page/target/profile key shows the matching section |
 | **Preview companion** | `Sources/Companions/Preview/` | editor, play | Preview window loads `watch --serve` and reloads on SSE |
 | **Editor companion** | `Sources/Companions/Editor/` | preview, play | Editor window loads `boris-editor` token URL; link-out fallback |
-| **GitHub source** | `Sources/Workspace/GitHub/`, `Sources/Play/GitHub/` | Local play, Engine | A GitHub source appears in the sidebar and vends its own play |
+| **GitHub source** | `Sources/Workspace/GitHub/`, `Sources/Play/GitHub/` | Local play, Engine | A GitHub source appears as an account header and vends its own mailboxes |
+| **Settings** (M10) | `Sources/App/Settings/`, Settings commands in `Commands.swift` / `SolipsistApp.swift` | Play implementations, mailbox tree internals | Settings → Sources adds/removes/relocates a local source; same store as File → Open… |
+| **Mailboxes** (M10) | `Sources/Chrome/SourceSidebar.swift`, `WorkspaceSelection` mailbox field | Play row rendering, Inspector sections | Sidebar is account headers + mailboxes; selecting one writes `selection.mailbox` |
+| **Reading** (M10) | `Sources/Play/Local/` | Chrome mailbox construction, Engine | Tabs gone; center is message list + reading pane driven by `mailbox` |
+| **Editor wiring** (M10) | `Sources/Companions/Editor/`, Edit menu verb | Native `TextView`, Play list internals | Edit / double-click a page opens the hosted editor; link-out fallback |
 | **Issues** | `docs/issues/` | `Sources/` | Draft fact-checked against afterparty, then filed |
 | **Design** | `docs/*.md` except `issues/` | `Sources/` | Decisions recorded; no silent contradiction with this file |
 
@@ -164,6 +255,11 @@ cut wrong — stop and recut.
 3. **Editor companion and GitHub source** start after Local play is
    something you can select in. They must not block the one-window
    workflow.
+4. **M10 (Mail body) starts after M9 is the remaining ship card, not
+   instead of it.** Settings can run next to Mailboxes. Reading follows
+   Mailboxes (it consumes `selection.mailbox`). Editor wiring follows
+   a selectable page noun — it can overlap Reading if it only keys off
+   `noun.kind == "page"`. Native editor is not in this sequence.
 
 ### Integration rules
 
@@ -175,7 +271,8 @@ cut wrong — stop and recut.
 - If a feature is not in the menu bar, it is not a feature.
 - If you are about to write a Markdown editor, a graph algorithm, a
   frontmatter parser, or an HTTP server — stop. That is Boris's job or
-  a companion host.
+  a companion host. A native buffer is a named later card, not a
+  surprise `TextView` in Play.
 
 ---
 
@@ -210,3 +307,23 @@ Landed. Goals from here: [`ROADMAP.md`](ROADMAP.md) M3+.
 - `ContentView.swift` is gone.
 - `make build` still produces a runnable app; `make run-spike` is
   unchanged (spike does not import Chrome).
+
+---
+
+## 7. What ships today (M2–M8), vs M10
+
+Do not "fix" the shipping chrome back onto this file's destination
+without picking an M10 card. The live app is still the flatter cut:
+
+| Surface | Ships today | M10 destination |
+|---------|-------------|-----------------|
+| Account book | File → Open… / sidebar plus / Remove Source | Settings → Sources (same `WorkspaceStore`) |
+| Left column | Flat source list (`SourceSidebar`) | Account headers + mailboxes |
+| Center | Segmented play tabs (Pages / Outputs / Publish / Plan / Activity) + problems strip | Message list + reading pane, driven by the selected mailbox |
+| Preview | Companion only | Companion (full site) + reading pane (selected page, same watch) |
+| Editor | Companion only; source-scoped, not page-scoped | Companion, opened from the selected page; native buffer later |
+| Selection | `sourceID` + `noun` | `sourceID` + `mailbox` + `noun` |
+
+M10 cards live in [`cards/`](cards/README.md)
+([#98](https://github.com/drawmeanelephant/solipsist/issues/98)).
+#78 stays build-lane only.

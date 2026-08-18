@@ -17,7 +17,7 @@ Solipsist is a native macOS workstation for [Boris](https://github.com/drawmeane
 <div class="feature-grid">
   <div class="feature-card">
     <h3>Mail-grade chrome</h3>
-    <p>Sources on the left, the graph as a workable play list in the middle, the inspector drawer on the right — one window, real menus, real keyboard.</p>
+    <p>Sources in Settings, mailboxes on the left, a reading pane in the middle, the inspector drawer on the right — one window, real menus, real keyboard.</p>
   </div>
   <div class="feature-card">
     <h3>Subprocess isolation</h3>
