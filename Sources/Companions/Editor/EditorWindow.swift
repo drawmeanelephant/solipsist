@@ -4,11 +4,12 @@ import SwiftUI
 import WebKit
 
 /// Companion host for `boris-editor` (Svelte). Chassis registers the window
-/// and leaves it closed. The Editor lane owns this file.
+/// and leaves it closed; the editor opens against the selected page.
 ///
-/// The grind lane will later add engine-spawned editor tokens and call
-/// `loadEditor(url:)`. Until then the window shows the editor status and
-/// lets a human paste a `BORIS_EDITOR_URL=` token line into the toolbar.
+/// The window starts an `EditorSession` for the selected source's content
+/// root, then loads the tokenized `BORIS_EDITOR_URL=` into the web view. The
+/// header names the selected page and its `sourcePath`. Manual URL paste and
+/// "Open in Browser" stay as the loopback fallback.
 struct EditorWindow: View {
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
@@ -104,10 +105,10 @@ struct EditorWindow: View {
     private func header(for source: SourceItem) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(source.title)
+                Text(headerTitle(for: source))
                     .font(.headline)
                     .lineLimit(1)
-                if let path = source.detailLine {
+                if let path = headerSubtitle(for: source) {
                     Text(path)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -121,14 +122,43 @@ struct EditorWindow: View {
         .padding(.vertical, 6)
     }
 
-    private var toolbar: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
-                TextField("BORIS_EDITOR_URL=http://127.0.0.1:49152/#token=…", text: $urlText)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(submit)
+    /// Mail-compose chrome: when the editor was opened from a page, name that
+    /// page; otherwise fall back to the source itself.
+    private func headerTitle(for source: SourceItem) -> String {
+        if let noun = store.selection.noun, noun.kind == "page", !noun.title.isEmpty {
+            return noun.title
+        }
+        return source.title
+    }
 
-                Button("Connect", action: submit)
+    private func headerSubtitle(for source: SourceItem) -> String? {
+        if let noun = store.selection.noun, noun.kind == "page", let path = noun.sourcePath, !path.isEmpty {
+            return path
+        }
+        return source.detailLine
+    }
+
+    private var toolbar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                navButtons
+
+                if model.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+
+                phaseIndicator
+
+                Spacer()
+
+                Button {
+                    session.restart()
+                } label: {
+                    Label("Restart Host", systemImage: "arrow.counterclockwise")
+                }
+                .help("Restart boris-editor")
+                .disabled(!session.canRestart)
 
                 Button {
                     model.openInBrowser()
@@ -138,6 +168,15 @@ struct EditorWindow: View {
                 .help("Open in Browser")
                 .disabled(!model.canOpenInBrowser)
             }
+
+            HStack(spacing: 8) {
+                TextField("BORIS_EDITOR_URL=http://127.0.0.1:49152/#token=…", text: $urlText)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(submit)
+
+                Button("Connect", action: submit)
+            }
+
             if let rejection = model.rejection {
                 Text(rejection)
                     .font(.caption)
@@ -145,6 +184,80 @@ struct EditorWindow: View {
             }
         }
         .padding(8)
+    }
+
+    private var navButtons: some View {
+        HStack(spacing: 2) {
+            Button {
+                model.goBack()
+            } label: {
+                Image(systemName: "chevron.left")
+            }
+            .help("Back")
+            .disabled(!model.canGoBack)
+
+            Button {
+                model.goForward()
+            } label: {
+                Image(systemName: "chevron.right")
+            }
+            .help("Forward")
+            .disabled(!model.canGoForward)
+
+            Button {
+                model.reload()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .help("Reload")
+            .disabled(!model.canReload)
+        }
+        .buttonStyle(.borderless)
+    }
+
+    private var phaseIndicator: some View {
+        HStack(spacing: 5) {
+            phaseIcon
+            Text(phaseLabel)
+                .font(.caption)
+                .foregroundStyle(phaseColor)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+    }
+
+    @ViewBuilder
+    private var phaseIcon: some View {
+        switch session.phase {
+        case .idle:
+            Image(systemName: "circle.dotted")
+        case .starting:
+            ProgressView()
+                .controlSize(.small)
+        case .connected:
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+        case .failed:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+        }
+    }
+
+    private var phaseLabel: String {
+        switch session.phase {
+        case .idle:
+            return "Not connected"
+        case .starting:
+            return "Starting boris-editor…"
+        case .connected(let url):
+            return "Connected · \(url.host ?? "loopback")"
+        case .failed(let message):
+            return message
+        }
+    }
+
+    private var phaseColor: Color {
+        session.isFailure ? .red : .secondary
     }
 
     private func submit() {
@@ -162,11 +275,27 @@ struct EditorWindow: View {
 /// Owns the `WKWebView` and navigation state for the Editor companion.
 @MainActor
 @Observable
-final class EditorWebModel {
-    let webView = WKWebView()
+final class EditorWebModel: NSObject {
+    let webView: WKWebView
 
     private(set) var currentURL: URL?
     private(set) var rejection: String?
+    private(set) var isLoading = false
+    private(set) var canGoBack = false
+    private(set) var canGoForward = false
+
+    @ObservationIgnored
+    private var observations: [NSKeyValueObservation] = []
+
+    override init() {
+        webView = WKWebView()
+        super.init()
+        observeNavigation()
+    }
+
+    var canReload: Bool {
+        currentURL != nil || webView.url != nil
+    }
 
     var canOpenInBrowser: Bool {
         guard let url = currentURL else { return false }
@@ -188,9 +317,51 @@ final class EditorWebModel {
         rejection = message
     }
 
+    func reload() {
+        if webView.url != nil {
+            webView.reload()
+        } else if let url = currentURL {
+            webView.load(URLRequest(url: url))
+        }
+    }
+
+    func goBack() {
+        if webView.canGoBack {
+            webView.goBack()
+        }
+    }
+
+    func goForward() {
+        if webView.canGoForward {
+            webView.goForward()
+        }
+    }
+
     func openInBrowser() {
         guard let url = currentURL, Self.isLoopback(url) else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    /// WKWebView properties are main-thread only, so KVO fires on the main
+    /// actor; mirror the ones the toolbar gates on into observable state.
+    private func observeNavigation() {
+        observations = [
+            webView.observe(\.isLoading, options: [.initial, .new]) { [weak self] _, change in
+                MainActor.assumeIsolated {
+                    self?.isLoading = change.newValue ?? false
+                }
+            },
+            webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] _, change in
+                MainActor.assumeIsolated {
+                    self?.canGoBack = change.newValue ?? false
+                }
+            },
+            webView.observe(\.canGoForward, options: [.initial, .new]) { [weak self] _, change in
+                MainActor.assumeIsolated {
+                    self?.canGoForward = change.newValue ?? false
+                }
+            },
+        ]
     }
 
     private static func isLoopback(_ url: URL) -> Bool {

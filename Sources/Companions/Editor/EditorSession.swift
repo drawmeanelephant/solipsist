@@ -41,8 +41,18 @@ final class EditorSession {
     private var server: EditorServer?
     private var rootPath: String?
     private var timeoutTask: Task<Void, Never>?
+    private var lastContentRoot: URL?
+    private var lastProjectRoot: URL?
+    private var lastEngine: BorisEngine?
+
+    var canRestart: Bool {
+        lastContentRoot != nil
+    }
 
     func start(contentRoot: URL, projectRoot: URL, engine: BorisEngine?) {
+        lastContentRoot = contentRoot
+        lastProjectRoot = projectRoot
+        lastEngine = engine
         let root = contentRoot.standardizedFileURL.path
         if root == rootPath, let server, server.isRunning {
             if let url = server.editorURL {
@@ -84,6 +94,15 @@ final class EditorSession {
             timeoutTask = nil
             phase = .failed("Could not start editor host: \(error)")
         }
+    }
+
+    /// Tears down the current host (if any) and starts a fresh one for the
+    /// same content root. A new random token URL is printed by the new host,
+    /// so the web view reconnects via the existing `editorURL` observation.
+    func restart() {
+        guard let contentRoot = lastContentRoot, let projectRoot = lastProjectRoot else { return }
+        stop()
+        start(contentRoot: contentRoot, projectRoot: projectRoot, engine: lastEngine)
     }
 
     func fail(_ message: String) {
