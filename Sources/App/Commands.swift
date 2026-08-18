@@ -19,6 +19,10 @@ struct SolipsistCommands: Commands {
             }
             .keyboardShortcut("o", modifiers: .command)
 
+            Button("Clone Repository…") {
+                store.presentClonePanel()
+            }
+
             Menu("Open Recent") {
                 if store.recentFolderURLs.isEmpty {
                     Button("No Recent Folders") {}

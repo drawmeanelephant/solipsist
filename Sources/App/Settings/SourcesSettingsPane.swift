@@ -50,8 +50,22 @@ struct SourcesSettingsPane: View {
 
     private var actionBar: some View {
         HStack(spacing: 8) {
-            Button("Add Local…") {
-                store.presentOpenPanel()
+            if store.isCloning {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Cloning…")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Button("Cancel") {
+                    store.cancelClone()
+                }
+            } else {
+                Button("Add Local…") {
+                    store.presentOpenPanel()
+                }
+                Button("Add Git Repository…") {
+                    store.presentClonePanel()
+                }
             }
             Button("Relocate…") {
                 if let id = store.selection.sourceID {
@@ -82,6 +96,9 @@ struct SourcesSettingsPane: View {
                 .frame(maxWidth: 380)
             Button("Add Local…") {
                 store.presentOpenPanel()
+            }
+            Button("Add Git Repository…") {
+                store.presentClonePanel()
             }
             Spacer(minLength: 0)
         }
