@@ -50,9 +50,78 @@ final class WorkspacePersistenceTests: XCTestCase {
         }
         let decoded = try WorkspacePersistence.decode(data)
         XCTAssertEqual(decoded.selected, source.id)
+        XCTAssertNil(decoded.mailbox)
         XCTAssertEqual(decoded.sources.count, 1)
         XCTAssertEqual(decoded.sources[0].id, source.id)
         XCTAssertEqual(decoded.sources[0].bookmarkData, source.bookmarkData)
+    }
+
+    func testV1PayloadWithoutMailboxDecodesNil() throws {
+        let source = try LocalSource.make(from: scratch)
+        let encodedSource = try JSONSerialization.jsonObject(
+            with: try JSONEncoder().encode(source)
+        )
+        let encodedSelected = try JSONSerialization.jsonObject(
+            with: try JSONEncoder().encode(source.id)
+        )
+        let v1: [String: Any] = [
+            "sources": [encodedSource],
+            "selected": encodedSelected,
+        ]
+        let decoded = try WorkspacePersistence.decode(
+            try JSONSerialization.data(withJSONObject: v1)
+        )
+        XCTAssertNil(decoded.mailbox)
+        XCTAssertEqual(decoded.selected, source.id)
+        XCTAssertEqual(decoded.sources.count, 1)
+        XCTAssertEqual(decoded.sources[0].id, source.id)
+    }
+
+    func testMailboxActivitySurvivesRoundTrip() throws {
+        let source = try LocalSource.make(from: scratch)
+        let payload = PersistedWorkspace(
+            sources: [source],
+            selected: source.id,
+            mailbox: WorkspaceMailbox.activity
+        )
+        let decoded = try WorkspacePersistence.decode(try WorkspacePersistence.encode(payload))
+        XCTAssertEqual(decoded.mailbox, WorkspaceMailbox.activity)
+        XCTAssertEqual(decoded.selected, source.id)
+    }
+
+    func testUnknownMailboxIsNotRewrittenToPages() throws {
+        let source = try LocalSource.make(from: scratch)
+        for raw in ["trunk:guides", "guides/overview"] {
+            let payload = PersistedWorkspace(
+                sources: [source],
+                selected: source.id,
+                mailbox: raw
+            )
+            let decoded = try WorkspacePersistence.decode(try WorkspacePersistence.encode(payload))
+            XCTAssertEqual(decoded.mailbox, raw)
+            XCTAssertNotEqual(decoded.mailbox, WorkspaceMailbox.pages)
+        }
+    }
+
+    func testForwardCompatibleLegacyShapeIgnoresMailbox() throws {
+        struct LegacyPersistedWorkspace: Codable {
+            var sources: [LocalSource]
+            var selected: SourceID?
+        }
+
+        let source = try LocalSource.make(from: scratch)
+        let payload = PersistedWorkspace(
+            sources: [source],
+            selected: source.id,
+            mailbox: WorkspaceMailbox.outputs
+        )
+        let decoded = try JSONDecoder().decode(
+            LegacyPersistedWorkspace.self,
+            from: try WorkspacePersistence.encode(payload)
+        )
+        XCTAssertEqual(decoded.selected, source.id)
+        XCTAssertEqual(decoded.sources.count, 1)
+        XCTAssertEqual(decoded.sources[0].id, source.id)
     }
 
     func testDeletedFolderFailsResolve() throws {

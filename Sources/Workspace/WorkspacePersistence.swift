@@ -5,6 +5,8 @@ import Foundation
 struct PersistedWorkspace: Codable, Equatable, Sendable {
     var sources: [LocalSource]
     var selected: SourceID?
+    /// Raw mailbox token. Missing key decodes as nil; do not canonicalize.
+    var mailbox: String? = nil
 }
 
 enum WorkspacePersistence {
