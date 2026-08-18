@@ -7,19 +7,23 @@ import Observation
 @MainActor
 @Observable
 final class WorkspaceStore {
-    private static let persistenceKey = "solipsist.workspace.sources.v1"
+    private let defaults: UserDefaults
 
     private(set) var sources: [SourceItem] = []
+    private(set) var recentFolderURLs: [URL] = []
     var selection: WorkspaceSelection = .empty
     /// Surfaced, never swallowed. Cleared on the next successful action.
+    /// Stale sources do not write this — the sidebar badge is the warning.
     var lastError: String?
 
     /// URLs we have called `startAccessingSecurityScopedResource` on.
     @ObservationIgnored
     private var scopedURLs: [SourceID: URL] = [:]
 
-    init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         load()
+        refreshRecentFolders()
     }
 
     var selectedSource: SourceItem? {
@@ -98,10 +102,70 @@ final class WorkspaceStore {
             local = beginAccess(local)
             sources.append(.local(local))
             select(local.id)
+            noteRecent(standardized)
             persist()
         } catch {
             lastError = String(describing: error)
         }
+    }
+
+    func presentRelocatePanel(for id: SourceID) {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = false
+        panel.treatsFilePackagesAsDirectories = true
+        panel.prompt = "Relocate"
+        panel.message = "Choose the folder this source moved to."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        relocate(id, to: url)
+    }
+
+    func relocate(_ id: SourceID, to url: URL) {
+        lastError = nil
+        let standardized = url.standardizedFileURL
+        if let existing = sources.first(where: { item in
+            guard item.id != id, case .local(let local) = item else { return false }
+            return local.displayPath == standardized.path
+        }) {
+            remove(id)
+            select(existing.id)
+            return
+        }
+
+        do {
+            var local = try LocalSource.make(from: standardized)
+            local.id = id
+            endAccess(id)
+            local = beginAccess(local)
+            if let index = sources.firstIndex(where: { $0.id == id }) {
+                sources[index] = .local(local)
+            } else {
+                sources.append(.local(local))
+            }
+            select(id)
+            noteRecent(standardized)
+            persist()
+        } catch {
+            lastError = String(describing: error)
+        }
+    }
+
+    func openFromSystem(_ url: URL) {
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+           isDirectory.boolValue
+        {
+            addLocal(url: url)
+        } else {
+            addLocal(url: url.deletingLastPathComponent())
+        }
+    }
+
+    func clearRecentFolders() {
+        NSDocumentController.shared.clearRecentDocuments(nil)
+        refreshRecentFolders()
     }
 
     func remove(_ id: SourceID) {
@@ -129,22 +193,25 @@ final class WorkspaceStore {
             selected: selection.sourceID
         )
         do {
-            let data = try JSONEncoder().encode(payload)
-            UserDefaults.standard.set(data, forKey: Self.persistenceKey)
+            defaults.set(try WorkspacePersistence.encode(payload), forKey: WorkspacePersistence.defaultsKey)
         } catch {
             lastError = String(describing: error)
         }
     }
 
     private func load() {
-        guard let data = UserDefaults.standard.data(forKey: Self.persistenceKey) else {
+        guard let data = defaults.data(forKey: WorkspacePersistence.defaultsKey) else {
             return
         }
         do {
-            let payload = try JSONDecoder().decode(PersistedWorkspace.self, from: data)
+            let payload = try WorkspacePersistence.decode(data)
+            var refreshed = false
             sources = payload.sources.map { raw in
                 var local = raw
                 local = beginAccess(local)
+                if local.isAvailable, local.bookmarkData != raw.bookmarkData {
+                    refreshed = true
+                }
                 return .local(local)
             }
             if let selected = payload.selected,
@@ -152,20 +219,38 @@ final class WorkspaceStore {
             {
                 selection.sourceID = selected
             }
+            if refreshed {
+                persist()
+            }
         } catch {
             lastError = String(describing: error)
         }
     }
 
+    private func noteRecent(_ url: URL) {
+        NSDocumentController.shared.noteNewRecentDocumentURL(url)
+        refreshRecentFolders()
+    }
+
+    func refreshRecentFolders() {
+        recentFolderURLs = NSDocumentController.shared.recentDocumentURLs
+    }
+
     // MARK: - Sandbox access
 
+    /// Resolve + start access. Failures mark the source unavailable and do
+    /// not write `lastError` — the sidebar badge is the non-blocking warning.
     private func beginAccess(_ source: LocalSource) -> LocalSource {
         var local = source
         do {
             let resolved = try local.resolve()
-            guard resolved.url.startAccessingSecurityScopedResource() else {
+            var isDirectory: ObjCBool = false
+            let exists = FileManager.default.fileExists(
+                atPath: resolved.url.path,
+                isDirectory: &isDirectory
+            ) && isDirectory.boolValue
+            guard exists, resolved.url.startAccessingSecurityScopedResource() else {
                 local.isAvailable = false
-                lastError = "Could not access \(local.displayPath)"
                 return local
             }
             scopedURLs[local.id] = resolved.url
@@ -177,7 +262,6 @@ final class WorkspaceStore {
             }
         } catch {
             local.isAvailable = false
-            lastError = String(describing: error)
         }
         return local
     }
@@ -187,9 +271,4 @@ final class WorkspaceStore {
             url.stopAccessingSecurityScopedResource()
         }
     }
-}
-
-private struct PersistedWorkspace: Codable {
-    var sources: [LocalSource]
-    var selected: SourceID?
 }

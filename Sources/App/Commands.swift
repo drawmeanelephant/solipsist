@@ -19,6 +19,30 @@ struct SolipsistCommands: Commands {
             }
             .keyboardShortcut("o", modifiers: .command)
 
+            Menu("Open Recent") {
+                if store.recentFolderURLs.isEmpty {
+                    Button("No Recent Folders") {}
+                        .disabled(true)
+                } else {
+                    ForEach(store.recentFolderURLs, id: \.path) { url in
+                        Button(recentTitle(url)) {
+                            store.addLocal(url: url)
+                        }
+                    }
+                    Divider()
+                    Button("Clear Menu") {
+                        store.clearRecentFolders()
+                    }
+                }
+            }
+
+            Button("Relocate Source…") {
+                if let id = store.selection.sourceID {
+                    store.presentRelocatePanel(for: id)
+                }
+            }
+            .disabled(store.selectedSource?.isAvailable != false)
+
             Button("Remove Source") {
                 if let id = store.selection.sourceID {
                     store.remove(id)
@@ -121,6 +145,12 @@ struct SolipsistCommands: Commands {
             }
             .keyboardShortcut("?", modifiers: .command)
         }
+    }
+
+    private func recentTitle(_ url: URL) -> String {
+        let name = url.lastPathComponent
+        let parent = url.deletingLastPathComponent().path
+        return parent.isEmpty ? name : "\(name) — \(parent)"
     }
 
     private var hasSource: Bool { store.selectedSource != nil }

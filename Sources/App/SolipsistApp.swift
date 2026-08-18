@@ -1,8 +1,42 @@
 import AppKit
 import SwiftUI
 
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var pending: [URL] = []
+    var openFolder: (@Sendable (URL) -> Void)? {
+        didSet {
+            guard let openFolder else { return }
+            pending.forEach(openFolder)
+            pending.removeAll()
+        }
+    }
+
+    func application(_ sender: NSApplication, openFile filename: String) -> Bool {
+        deliver(URL(fileURLWithPath: filename))
+        return true
+    }
+
+    func application(_ sender: NSApplication, openFiles filenames: [String]) {
+        filenames.forEach { deliver(URL(fileURLWithPath: $0)) }
+        sender.reply(toOpenOrPrint: .success)
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        urls.forEach(deliver)
+    }
+
+    private func deliver(_ url: URL) {
+        if let openFolder {
+            openFolder(url)
+        } else {
+            pending.append(url)
+        }
+    }
+}
+
 @main
 struct SolipsistApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var store = WorkspaceStore()
     @State private var runtime = AppRuntime()
     @State private var inspectorPresented = true
@@ -12,6 +46,14 @@ struct SolipsistApp: App {
             MainWindow(inspectorPresented: $inspectorPresented)
                 .environment(store)
                 .environment(runtime)
+                .onAppear {
+                    appDelegate.openFolder = { url in
+                        Task { @MainActor in
+                            store.openFromSystem(url)
+                        }
+                    }
+                    store.refreshRecentFolders()
+                }
                 .onReceive(NotificationCenter.default.publisher(
                     for: NSApplication.willTerminateNotification
                 )) { _ in

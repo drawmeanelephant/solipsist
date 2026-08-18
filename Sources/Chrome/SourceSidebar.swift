@@ -12,6 +12,11 @@ struct SourceSidebar: View {
                     SourceRow(item: item)
                         .tag(item.id)
                         .contextMenu {
+                            if !item.isAvailable {
+                                Button("Relocate…") {
+                                    store.presentRelocatePanel(for: item.id)
+                                }
+                            }
                             Button("Remove from Sidebar", role: .destructive) {
                                 store.remove(item.id)
                             }
@@ -58,7 +63,12 @@ private struct SourceRow: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.title)
                     .lineLimit(1)
-                if let detail = item.detailLine {
+                if !item.isAvailable {
+                    Text("Unreachable — Relocate / Remove")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                } else if let detail = item.detailLine {
                     Text(detail)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -69,8 +79,12 @@ private struct SourceRow: View {
         } icon: {
             Image(systemName: item.symbolName)
                 .symbolVariant(item.isAvailable ? .none : .slash)
-                .foregroundStyle(item.isAvailable ? .primary : .secondary)
+                .foregroundStyle(item.isAvailable ? Color.primary : Color.orange)
         }
-        .help(item.detailLine ?? item.title)
+        .help(
+            item.isAvailable
+                ? (item.detailLine ?? item.title)
+                : "Unreachable — Relocate / Remove"
+        )
     }
 }
