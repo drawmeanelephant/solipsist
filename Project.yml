@@ -98,6 +98,9 @@ targets:
       - path: Sources/App/CoordinatorProblems.swift
       - path: Sources/App/CoordinatorPolicy.swift
       - path: Sources/App/SaveValidateGate.swift
+      - path: Sources/Workspace/Source.swift
+      - path: Sources/Workspace/WorkspacePersistence.swift
+      - path: Sources/Workspace/Local/LocalSource.swift
       - path: Sources/Engine/ChildProcessControl.swift
       - path: Sources/Engine/BorisRunner.swift
       - path: Sources/Companions/Editor/EditorURL.swift
