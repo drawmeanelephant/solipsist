@@ -52,6 +52,12 @@ struct SolipsistCommands: Commands {
             .keyboardShortcut("b", modifiers: [.command, .shift])
             .disabled(!hasSource || runtime.coordinator.isRunning)
 
+            Button("Build All") {
+                runtime.coordinator.run(.buildAll, store: store, runtime: runtime)
+            }
+            .keyboardShortcut("u", modifiers: [.command, .shift])
+            .disabled(!hasSource || runtime.coordinator.isRunning)
+
             Divider()
 
             Button("Check") {

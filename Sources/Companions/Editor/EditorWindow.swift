@@ -11,9 +11,11 @@ import WebKit
 /// lets a human paste a `BORIS_EDITOR_URL=` token line into the toolbar.
 struct EditorWindow: View {
     @Environment(WorkspaceStore.self) private var store
+    @Environment(AppRuntime.self) private var runtime
 
     @State private var model = EditorWebModel()
     @State private var urlText = ""
+    @State private var session = EditorSession()
 
     var body: some View {
         Group {
@@ -30,12 +32,41 @@ struct EditorWindow: View {
                         idleState(for: source)
                     }
                 }
+                .task(id: source.id) {
+                    startEditor(for: source)
+                }
             } else {
                 emptyState
             }
         }
         .frame(minWidth: 480, minHeight: 360)
         .navigationTitle("Editor")
+        .onChange(of: session.editorURL) { _, newURL in
+            if let newURL {
+                model.load(url: newURL)
+            }
+        }
+        .onDisappear {
+            session.stop()
+        }
+    }
+
+    private func startEditor(for source: SourceItem) {
+        switch source {
+        case .local(let local):
+            guard
+                let projectRoot = try? local.workspaceRoot(),
+                let contentRoot = try? local.contentRoot()
+            else {
+                session.fail("Could not resolve project folder for '\(source.title)'")
+                return
+            }
+            session.start(
+                contentRoot: contentRoot,
+                projectRoot: projectRoot,
+                engine: runtime.engine
+            )
+        }
     }
 
     /// Single entry point for pointing the web view at an editor URL.
@@ -56,9 +87,17 @@ struct EditorWindow: View {
             Label("Editor Host Not Running", systemImage: "square.and.pencil")
         } description: {
             Text(
-                "The Boris editor for “\(source.title)” will connect when the host process is running. "
-                    + "Paste a BORIS_EDITOR_URL= line above to connect manually."
+                session.statusText.isEmpty
+                    ? "The Boris editor will connect when the host process is running. Paste a BORIS_EDITOR_URL= line above to connect manually."
+                    : session.statusText
             )
+        } actions: {
+            Button("Open in Browser") {
+                if let url = session.editorURL ?? model.currentURL {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .disabled(session.editorURL == nil && model.currentURL == nil)
         }
     }
 

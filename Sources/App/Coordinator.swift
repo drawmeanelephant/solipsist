@@ -6,6 +6,7 @@ enum CoordinatorVerb: String, Sendable {
     case validate
     case buildIR
     case buildHTML
+    case buildAll
     case check
     case impact
 }
@@ -196,6 +197,31 @@ final class Coordinator {
                     summary: "HTML exit \(result.exitCode) · \(result.report?.errorCount ?? items.count) error(s)",
                     problems: items
                 )
+
+            case .buildAll:
+                let workspaceRoot = try source.workspaceRoot()
+                var profile = PublicationProfile(format: "boris-publication-profile")
+                if let pair = try InspectorProfile.load(from: workspaceRoot),
+                   let prof = try? JSONDecoder().decode(PublicationProfile.self, from: pair.data)
+                {
+                    profile = prof
+                }
+                let result = try await engine.buildAll(
+                    contentRoot: source.contentRoot(),
+                    profile: profile,
+                    workingDirectory: workspaceRoot,
+                    timings: true
+                )
+                var items: [ProblemItem] = []
+                for res in result.results {
+                    if let report = res.report {
+                        items.append(contentsOf: Self.problems(from: report))
+                    }
+                }
+                let exit = result.isSuccess ? 0 : (result.results.last?.exitCode ?? 1)
+                let dur = result.totalDurationNs.map { "(\($0 / 1_000_000)ms)" } ?? ""
+                let summary = "Build all \(result.isSuccess ? "succeeded" : "failed") · \(result.results.count) entry(s) \(dur)"
+                return JobResult(exit: exit, summary: summary, problems: items)
 
             case .check:
                 let result = try await engine.check(

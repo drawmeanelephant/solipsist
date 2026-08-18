@@ -158,9 +158,30 @@ public final class WatchServer: @unchecked Sendable {
         onExit?(exit)
     }
 
-    /// Scans the accumulated stderr bytes for `http://127.0.0.1:<port>` and
-    /// returns the helper URL `http://127.0.0.1:<port>/__boris/`.
+    /// Scans the accumulated stderr bytes for NDJSON `serve-started` or prose
+    /// `http://127.0.0.1:<port>` and returns the helper URL `http://127.0.0.1:<port>/__boris/`.
     private func scanServeURL(in data: Data) -> URL? {
+        // 1. A1 structured NDJSON serve-started event: {"event":"serve-started",..."helper":"..."...}
+        if let str = String(data: data, encoding: .utf8) {
+            for line in str.components(separatedBy: .newlines) {
+                if line.contains("\"event\":\"serve-started\""),
+                   let lineData = line.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any]
+                {
+                    if let helper = json["helper"] as? String, let url = URL(string: helper) {
+                        return url
+                    }
+                    if let rawURL = json["url"] as? String, let url = URL(string: rawURL) {
+                        return url.appendingPathComponent("__boris/")
+                    }
+                    if let port = json["port"] as? Int {
+                        return URL(string: "http://127.0.0.1:\(port)/__boris/")
+                    }
+                }
+            }
+        }
+
+        // 2. Prose line fallback: `http://127.0.0.1:PORT`
         let hostPrefix = Data("http://127.0.0.1:".utf8)
         guard var index = data.range(of: hostPrefix)?.lowerBound else { return nil }
         index += hostPrefix.count
