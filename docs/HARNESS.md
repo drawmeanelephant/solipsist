@@ -325,21 +325,14 @@ Landed. Goals from here: [`ROADMAP.md`](ROADMAP.md) M3+.
 
 ---
 
-## 7. What ships today (M2–M8), vs M10
+## 7. What ships today
 
-Do not "fix" the shipping chrome back onto this file's destination
-without picking an M10 card. The live app is still the flatter cut:
+M10 landed. The live app is the Mail body in §2: Settings → Sources,
+mailbox sidebar, reading place, drawer, Preview / Editor companions,
+Compose window. Help and first-run / empty-state copy match that
+window.
 
-| Surface | Ships today | M10 destination |
-|---------|-------------|-----------------|
-| Account book | File → Open… / sidebar plus / Remove Source | Settings → Sources (same `WorkspaceStore`) |
-| Left column | Flat source list (`SourceSidebar`) | Account headers + mailboxes |
-| Center | Segmented play tabs (Pages / Outputs / Publish / Plan / Activity) + problems strip | Message list + reading pane, driven by the selected mailbox |
-| Preview | Companion only | Companion (full site) + reading pane (selected page, same watch) |
-| Editor | Companion only; source-scoped, not page-scoped | Companion, opened from the selected page (#102) |
-| Compose | none | Native buffer window (`⌘⇧C`) over `sourcePath`; Oliver preview (#106) |
-| Selection | `sourceID` + `noun` | `sourceID` + `mailbox` + `noun` |
-
-M10 cards live in [`cards/`](cards/README.md)
-([#98](https://github.com/drawmeanelephant/solipsist/issues/98)).
-#78 stays build-lane only.
+Do not expand Apple-account ship
+([#110](https://github.com/drawmeanelephant/solipsist/issues/110),
+[#111](https://github.com/drawmeanelephant/solipsist/issues/111))
+into this chrome. #78 is closed.

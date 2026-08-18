@@ -73,8 +73,9 @@ struct LocalPlay: PlaySurface {
         case .unavailable:
             ContentUnavailableView {
                 Label(source.title, systemImage: "folder")
+                    .accessibilityLabel("\(source.title), unreachable")
             } description: {
-                Text("This folder is unreachable. Relocate it or remove it from the sidebar.")
+                Text("This folder is unreachable. Relocate it from File → Relocate Source… or Settings → Sources, or remove it.")
             } actions: {
                 Button("Relocate…") {
                     store.presentRelocatePanel(for: source.id)
@@ -87,8 +88,11 @@ struct LocalPlay: PlaySurface {
             ContentUnavailableView {
                 Label("No Pages", systemImage: "doc.text")
             } description: {
-                Text("The graph for this folder has no pages. Open a folder with boris.json (e.g. Stunts/happy) to view pages.")
+                Text("This source has no pages. Add Stunts/happy from Settings → Sources or File → Open… to see a working publication.")
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("No Pages")
+            .accessibilityHint("Add Stunts/happy from Settings → Sources or File → Open… to see a working publication.")
         case .failed(let message):
             ContentUnavailableView {
                 Label("Graph Unavailable", systemImage: "exclamationmark.triangle")
