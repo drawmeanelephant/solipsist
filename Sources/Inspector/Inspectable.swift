@@ -14,12 +14,14 @@ protocol Inspectable {
 enum InspectorSectionID {
     static let profile = "profile"
     static let page = "page"
+    static let target = "target"
     static let execution = "execution"
 }
 
 enum InspectorNounKind {
     static let page = "page"
     static let profile = "profile"
+    static let target = "target"
 }
 
 /// Sections implied by the current selection. The drawer reads this;
@@ -36,6 +38,9 @@ struct InspectorSnapshot: Inspectable {
         }
         if nounKind == InspectorNounKind.page {
             sections.append(InspectorSection(id: InspectorSectionID.page, title: "Page"))
+        }
+        if nounKind == InspectorNounKind.target {
+            sections.append(InspectorSection(id: InspectorSectionID.target, title: "Target"))
         }
         sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
         return sections

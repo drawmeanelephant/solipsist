@@ -10,37 +10,34 @@ struct LocalPlay: PlaySurface {
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
+    enum PlayTab: String, CaseIterable, Identifiable {
+        case pages = "Pages"
+        case outputs = "Outputs"
+
+        var id: String { rawValue }
+    }
+
+    @State private var selectedTab: PlayTab = .pages
     @State private var state: LoadState = .idle
 
     var body: some View {
-        Group {
-            switch state {
-            case .idle, .reading, .building:
-                ProgressView(progressTitle)
-                    .controlSize(.small)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .unavailable:
-                ContentUnavailableView {
-                    Label(source.title, systemImage: "folder")
-                } description: {
-                    Text("This folder is no longer reachable. Remove it from the sidebar or reopen it.")
+        VStack(spacing: 0) {
+            Picker("View", selection: $selectedTab) {
+                ForEach(PlayTab.allCases) { tab in
+                    Text(tab.rawValue).tag(tab)
                 }
-            case .empty:
-                ContentUnavailableView {
-                    Label("No Pages", systemImage: "doc.text")
-                } description: {
-                    Text("The graph for this folder has no pages.")
-                }
-            case .failed(let message):
-                ContentUnavailableView {
-                    Label("Graph Unavailable", systemImage: "exclamationmark.triangle")
-                } description: {
-                    Text(message)
-                } actions: {
-                    Button("Try Again") { reload() }
-                }
-            case .ready(let pages):
-                pageList(pages)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+
+            Divider()
+
+            switch selectedTab {
+            case .pages:
+                pagesContent
+            case .outputs:
+                OutputsPane(source: source)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -54,6 +51,38 @@ struct LocalPlay: PlaySurface {
         }
         .task(id: source.id) {
             await load()
+        }
+    }
+
+    @ViewBuilder
+    private var pagesContent: some View {
+        switch state {
+        case .idle, .reading, .building:
+            ProgressView(progressTitle)
+                .controlSize(.small)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        case .unavailable:
+            ContentUnavailableView {
+                Label(source.title, systemImage: "folder")
+            } description: {
+                Text("This folder is no longer reachable. Remove it from the sidebar or reopen it.")
+            }
+        case .empty:
+            ContentUnavailableView {
+                Label("No Pages", systemImage: "doc.text")
+            } description: {
+                Text("The graph for this folder has no pages.")
+            }
+        case .failed(let message):
+            ContentUnavailableView {
+                Label("Graph Unavailable", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(message)
+            } actions: {
+                Button("Try Again") { reload() }
+            }
+        case .ready(let pages):
+            pageList(pages)
         }
     }
 

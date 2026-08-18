@@ -57,6 +57,26 @@ public struct BorisInit: Sendable {
     public let stderr: String
 }
 
+/// Result of building a single target or edition.
+public struct BorisEntryBuildResult: Sendable {
+    public let name: String
+    public let kind: String // "target", "ir", "rag", "context"
+    public let exitCode: Int32
+    public let report: HTMLBuildReport?
+    public let timings: TimingsReport?
+    public let stdout: String
+    public let stderr: String
+
+    public var isSuccess: Bool { exitCode == 0 }
+}
+
+/// Result of `buildAll` fan-out over profile targets and editions.
+public struct BorisFanoutResult: Sendable {
+    public let isSuccess: Bool
+    public let results: [BorisEntryBuildResult]
+    public let totalDurationNs: Int?
+}
+
 public enum BorisEngineError: Error, Sendable, CustomStringConvertible {
     case binaryNotFound
     case missingArtifact(String)
@@ -205,6 +225,247 @@ public actor BorisEngine {
         return BorisHTMLBuild(exitCode: out.exitCode, report: report, stderr: out.stderrText)
     }
 
+    /// Runs `boris` for a single named `PublicationTarget` from a profile.
+    public func buildTarget(
+        contentRoot: URL,
+        target: PublicationTarget,
+        siteURL: String? = nil,
+        workingDirectory: URL? = nil,
+        timings: Bool = false
+    ) throws -> BorisEntryBuildResult {
+        let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
+        let fm = FileManager.default
+        let reportURL = fm.temporaryDirectory
+            .appendingPathComponent("boris-report-\(UUID().uuidString).json")
+        defer { try? fm.removeItem(at: reportURL) }
+
+        var args = [
+            "--input", contentRoot.path,
+            "--target", "\(target.name)=\(target.output)",
+            "--report", reportURL.path,
+            "--quiet",
+        ]
+        if let theme = target.theme, !theme.isEmpty {
+            args.append(contentsOf: ["--theme", theme])
+        }
+        if let layout = target.layout, !layout.isEmpty {
+            args.append(contentsOf: ["--target-layout", "\(target.name)=\(layout)"])
+        }
+        if let rules = target.layout_rules {
+            for rule in rules {
+                args.append(contentsOf: ["--layout-rule", target.name, rule.selector, rule.layout])
+            }
+        }
+        if let siteURL, !siteURL.isEmpty {
+            args.append(contentsOf: ["--site-url", siteURL])
+        }
+        if let sitemap = target.sitemap {
+            args.append(contentsOf: ["--sitemap-path", sitemap.path])
+        }
+        if let rss = target.rss {
+            args.append(contentsOf: ["--rss-path", rss.path])
+        }
+        if let llms = target.llms {
+            args.append(contentsOf: ["--llms-path", llms.path])
+        }
+        if timings {
+            args.append("--timings")
+        }
+
+        let out = try run(arguments: args, workingDirectory: cwd)
+        var report: HTMLBuildReport?
+        if FileManager.default.fileExists(atPath: reportURL.path),
+           let reportData = try? Data(contentsOf: reportURL)
+        {
+            report = decodeJSON(HTMLBuildReport.self, from: reportData)
+        }
+        let timingsReport = timings ? decodeJSON(TimingsReport.self, from: out.stdout) : nil
+
+        return BorisEntryBuildResult(
+            name: target.name,
+            kind: "target",
+            exitCode: out.exitCode,
+            report: report,
+            timings: timingsReport,
+            stdout: out.stdoutText,
+            stderr: out.stderrText
+        )
+    }
+
+    /// Runs `boris` for an edition (`ir`, `rag`, `context`).
+    public func buildEdition(
+        contentRoot: URL,
+        kind: String,
+        outputDir: String,
+        scope: String? = nil,
+        splitSize: Int? = nil,
+        isComplete: Bool = false,
+        workingDirectory: URL? = nil,
+        timings: Bool = false
+    ) throws -> BorisEntryBuildResult {
+        let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
+        var args = ["--input", contentRoot.path, "--quiet"]
+        switch kind {
+        case "ir":
+            args.append(contentsOf: ["--out", outputDir])
+        case "rag":
+            args.append(contentsOf: ["--rag-dir", outputDir])
+            if isComplete {
+                args.append("--complete")
+            } else {
+                if let scope, !scope.isEmpty {
+                    args.append(contentsOf: ["--scope", scope])
+                }
+                if let splitSize, splitSize > 0 {
+                    args.append(contentsOf: ["--split-size", "\(splitSize)"])
+                }
+            }
+        case "context":
+            args.append(contentsOf: ["--context-dir", outputDir])
+            if let scope, !scope.isEmpty {
+                args.append(contentsOf: ["--scope", scope])
+            }
+            if let splitSize, splitSize > 0 {
+                args.append(contentsOf: ["--split-size", "\(splitSize)"])
+            }
+        default:
+            args.append(contentsOf: ["--out", outputDir])
+        }
+
+        if timings {
+            args.append("--timings")
+        }
+
+        let out = try run(arguments: args, workingDirectory: cwd)
+        let timingsReport = timings ? decodeJSON(TimingsReport.self, from: out.stdout) : nil
+
+        return BorisEntryBuildResult(
+            name: kind,
+            kind: kind,
+            exitCode: out.exitCode,
+            report: nil,
+            timings: timingsReport,
+            stdout: out.stdoutText,
+            stderr: out.stderrText
+        )
+    }
+
+    /// Fans out builds for all targets and editions in a `PublicationProfile`.
+    /// Follows profile order, executes isolated invocations, and fails fast
+    /// on any target or edition error (as Boris does).
+    public func buildAll(
+        contentRoot: URL,
+        profile: PublicationProfile,
+        workingDirectory: URL? = nil,
+        timings: Bool = true
+    ) throws -> BorisFanoutResult {
+        let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
+        var results: [BorisEntryBuildResult] = []
+
+        // 1. Targets in profile order
+        if let targets = profile.targets, !targets.isEmpty {
+            for target in targets {
+                let res = try buildTarget(
+                    contentRoot: contentRoot,
+                    target: target,
+                    siteURL: profile.site?.url,
+                    workingDirectory: cwd,
+                    timings: timings
+                )
+                results.append(res)
+                if !res.isSuccess {
+                    return BorisFanoutResult(
+                        isSuccess: false,
+                        results: results,
+                        totalDurationNs: results.compactMap { $0.timings?.totalNs }.reduce(0, +)
+                    )
+                }
+            }
+        } else {
+            let res = try buildTarget(
+                contentRoot: contentRoot,
+                target: PublicationTarget(name: "default", output: "dist"),
+                siteURL: profile.site?.url,
+                workingDirectory: cwd,
+                timings: timings
+            )
+            results.append(res)
+            if !res.isSuccess {
+                return BorisFanoutResult(
+                    isSuccess: false,
+                    results: results,
+                    totalDurationNs: res.timings?.totalNs
+                )
+            }
+        }
+
+        // 2. Editions in profile order
+        if let editions = profile.editions {
+            if let ir = editions.ir {
+                let res = try buildEdition(
+                    contentRoot: contentRoot,
+                    kind: "ir",
+                    outputDir: ir.output,
+                    workingDirectory: cwd,
+                    timings: timings
+                )
+                results.append(res)
+                if !res.isSuccess {
+                    return BorisFanoutResult(
+                        isSuccess: false,
+                        results: results,
+                        totalDurationNs: results.compactMap { $0.timings?.totalNs }.reduce(0, +)
+                    )
+                }
+            }
+            if let rag = editions.rag {
+                let res = try buildEdition(
+                    contentRoot: contentRoot,
+                    kind: "rag",
+                    outputDir: rag.output,
+                    scope: rag.scope,
+                    splitSize: rag.split_size,
+                    workingDirectory: cwd,
+                    timings: timings
+                )
+                results.append(res)
+                if !res.isSuccess {
+                    return BorisFanoutResult(
+                        isSuccess: false,
+                        results: results,
+                        totalDurationNs: results.compactMap { $0.timings?.totalNs }.reduce(0, +)
+                    )
+                }
+            }
+            if let context = editions.context {
+                let res = try buildEdition(
+                    contentRoot: contentRoot,
+                    kind: "context",
+                    outputDir: context.output,
+                    scope: context.scope,
+                    splitSize: context.split_size,
+                    workingDirectory: cwd,
+                    timings: timings
+                )
+                results.append(res)
+                if !res.isSuccess {
+                    return BorisFanoutResult(
+                        isSuccess: false,
+                        results: results,
+                        totalDurationNs: results.compactMap { $0.timings?.totalNs }.reduce(0, +)
+                    )
+                }
+            }
+        }
+
+        let totalDuration = results.compactMap { $0.timings?.totalNs }.reduce(0, +)
+        return BorisFanoutResult(
+            isSuccess: true,
+            results: results,
+            totalDurationNs: totalDuration > 0 ? totalDuration : nil
+        )
+    }
+
     /// SIGTERM the in-flight process, if any. One-shot builds die; watch
     /// exits 0. The app treats `terminationReason == .uncaughtSignal` as
     /// cancel when we inspect it; here we surface the resulting exit.
@@ -231,6 +492,28 @@ public actor BorisEngine {
             binary: binaryURL,
             contentRoot: contentRoot,
             workingDirectory: workingDirectory,
+            port: port
+        )
+        try server.start()
+        return server
+    }
+
+    // MARK: Editor (M6)
+
+    /// Starts `boris-editor` for `contentRoot` (A14) and returns the live host server.
+    public nonisolated func editorStart(
+        editorBinary: URL,
+        contentRoot: URL,
+        workingDirectory: URL,
+        uiDir: URL? = nil,
+        port: Int = 0
+    ) throws -> EditorServer {
+        let server = EditorServer(
+            editorBinary: editorBinary,
+            engineBinary: binaryURL,
+            contentRoot: contentRoot,
+            workingDirectory: workingDirectory,
+            uiDir: uiDir,
             port: port
         )
         try server.start()

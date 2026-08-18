@@ -52,6 +52,17 @@ struct InspectorDrawer: View {
                 Text("Select a page in the play place.")
                     .foregroundStyle(.secondary)
             }
+        case InspectorSectionID.target:
+            if let item = store.selectedSource,
+               case .local(let source) = item,
+               let noun = store.selection.noun,
+               noun.kind == InspectorNounKind.target
+            {
+                TargetSection(source: source, targetName: noun.id)
+            } else {
+                Text("Select a target in the outputs view.")
+                    .foregroundStyle(.secondary)
+            }
         case InspectorSectionID.execution:
             ExecutionSection()
         default:
