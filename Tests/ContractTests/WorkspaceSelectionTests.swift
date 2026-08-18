@@ -19,8 +19,13 @@ final class WorkspaceSelectionTests: XCTestCase {
         XCTAssertEqual(WorkspaceMailbox.display(nil), WorkspaceMailbox.pages)
         XCTAssertEqual(WorkspaceMailbox.display("trunk:guides"), WorkspaceMailbox.pages)
         XCTAssertEqual(WorkspaceMailbox.display("guides/overview"), WorkspaceMailbox.pages)
-        XCTAssertEqual(WorkspaceMailbox.display(WorkspaceMailbox.activity), WorkspaceMailbox.activity)
-        XCTAssertEqual(WorkspaceMailbox.display(WorkspaceMailbox.pages), WorkspaceMailbox.pages)
+        // Every known token round-trips through display unchanged.
+        for token in WorkspaceMailbox.all {
+            XCTAssertEqual(WorkspaceMailbox.display(token), token)
+        }
+        // Unknown and nil both display as Pages without being written back
+        // (display is a view value; persist keeps the raw string).
+        XCTAssertEqual(WorkspaceMailbox.display(""), WorkspaceMailbox.pages)
 
         XCTAssertFalse(WorkspaceMailbox.isKnown(nil))
         XCTAssertFalse(WorkspaceMailbox.isKnown("trunk:guides"))
