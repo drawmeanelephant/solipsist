@@ -5,6 +5,8 @@
 
 XCODEGEN := .tools/xcodegen/xcodegen/bin/xcodegen
 PROJECT  := Solipsist.xcodeproj
+# Empty SPIKE_CONTENT = spike default ../boris/content.
+SPIKE_CONTENT ?=
 
 .PHONY: tools generate build spike run-spike test lint harvest-fixtures site check-site clean fart
 
@@ -32,7 +34,7 @@ spike: generate
 		-derivedDataPath build build
 
 run-spike: spike
-	build/Build/Products/Debug/boris-spike
+	build/Build/Products/Debug/boris-spike $(SPIKE_CONTENT)
 
 test: generate
 	xcodebuild -project $(PROJECT) -scheme ContractTests -configuration Debug \
