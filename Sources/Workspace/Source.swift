@@ -74,4 +74,11 @@ enum SourceItem: Identifiable, Hashable, Sendable {
         case .local(let source): return source.displayPath
         }
     }
+
+    /// Current checkout branch for git-backed sources; nil otherwise.
+    var branch: String? {
+        switch self {
+        case .local(let source): return source.branch
+        }
+    }
 }

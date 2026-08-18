@@ -359,6 +359,9 @@ final class WorkspaceStore {
             if resolved.stale, let refreshed = try? local.refreshedBookmark() {
                 local.bookmarkData = refreshed.bookmarkData
             }
+            // One porcelain read per add/load; nil for non-repos. Never
+            // surfaced as an error — not-a-repo is a normal folder.
+            local.branch = GitClone.currentBranch(at: resolved.url)
         } catch {
             local.isAvailable = false
         }
