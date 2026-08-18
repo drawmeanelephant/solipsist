@@ -28,13 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Same pin as release-notarize.yml (D7). #109 will advance both.
+      # Same pin as #116 / release-notarize.yml (afterparty, boris#648).
       - name: Checkout pinned Boris engine
         uses: actions/checkout@v7
         with:
           repository: drawmeanelephant/boris
           path: boris
-          ref: b82e9e2eace74d9ca61df23dffc1329d2a2fe628
+          ref: 6b930b7bd35a1803b365a073c226df22631dc3f7
 
       - name: Install Zig
         uses: mlugg/setup-zig@v2
