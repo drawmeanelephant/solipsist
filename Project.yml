@@ -7,7 +7,7 @@ name: Solipsist
 options:
   bundleIdPrefix: dev.drawmeanelephant
   deploymentTarget:
-    macOS: "27.0"
+    macOS: "26.0"
   createIntermediateGroups: true
 
 settings:
@@ -16,7 +16,7 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
-    MACOSX_DEPLOYMENT_TARGET: "27.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
     # Local dev builds: ad-hoc sign to run locally (no team required).
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "-"
