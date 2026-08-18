@@ -71,7 +71,7 @@ final class ReadingWebModel: NSObject {
 }
 
 extension ReadingWebModel: WKNavigationDelegate {
-    nonisolated func webView(
+    func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
         decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
@@ -81,7 +81,7 @@ extension ReadingWebModel: WKNavigationDelegate {
         decisionHandler(allowed ? .allow : .cancel)
     }
 
-    nonisolated func webView(
+    func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationResponse: WKNavigationResponse,
         decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
@@ -89,39 +89,27 @@ extension ReadingWebModel: WKNavigationDelegate {
         let status = (navigationResponse.response as? HTTPURLResponse)?.statusCode
         if navigationResponse.isForMainFrame, let status, status >= 400 {
             decisionHandler(.cancel)
-            Task { @MainActor in
-                self.handleHTTPFailure(status)
-            }
+            handleHTTPFailure(status)
             return
         }
         decisionHandler(.allow)
     }
 
-    nonisolated func webView(
-        _ webView: WKWebView,
-        didFail navigation: WKNavigation!,
-        withError error: Error
-    ) {
-        Task { @MainActor in
-            self.handleTransportFailure(error)
-        }
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        handleTransportFailure(error)
     }
 
-    nonisolated func webView(
+    func webView(
         _ webView: WKWebView,
         didFailProvisionalNavigation navigation: WKNavigation!,
         withError error: Error
     ) {
-        Task { @MainActor in
-            self.handleTransportFailure(error)
-        }
+        handleTransportFailure(error)
     }
 
-    nonisolated func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        Task { @MainActor in
-            guard self.outcome == .loading else { return }
-            self.outcome = .loaded
-        }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard outcome == .loading else { return }
+        outcome = .loaded
     }
 }
 
