@@ -34,6 +34,7 @@ targets:
       - path: Sources/Play
       - path: Sources/Inspector
       - path: Sources/Companions
+      - path: Sources/Compose
       - path: Sources/Models
       - path: Sources/Engine
       - path: Sources/Security
@@ -107,6 +108,12 @@ targets:
       - path: Sources/Companions/CompanionID.swift
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
+      - path: Sources/Compose/ComposeLanguage.swift
+      - path: Sources/Compose/ComposeDocument.swift
+      - path: Sources/Compose/ComposeHighlighter.swift
+      - path: Sources/Compose/MarkupRenderService.swift
+      - path: Sources/Compose/ComposePageResolver.swift
+      - path: Sources/Compose/OliverRenderService.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.drawmeanelephant.solipsist.contracttests

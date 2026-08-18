@@ -141,6 +141,12 @@ proof (#91/#93). Remaining **ship** card is
 M10 is the next product cut after ship; it does not expand #78. Do
 not grow `MainWindow`.
 
+The compose lane ([`docs/cards/COMPOSE-EDITOR.md`](cards/COMPOSE-EDITOR.md))
+is a separate depth direction: a native Markdown / Textile / Cooklang
+compose element, built standalone in `Sources/Compose/` with Oliver as the
+language reference. It amends the §3 "no from-scratch editor" line for
+that lane only, in writing, in the card.
+
 ---
 
 ## 5. Milestones

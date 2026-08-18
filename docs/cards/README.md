@@ -72,6 +72,25 @@ editor from the selected page. Native editor stays Later.
 
 #78 stays build-lane only. Do not pick an M10 card by growing ship.
 
+## New lane — compose editor element (#106, the Later native buffer)
+
+[COMPOSE-EDITOR.md](COMPOSE-EDITOR.md) is the depth lane M10 explicitly
+defers ("Native editor stays Later" above; #98's do-not list): a native
+Markdown / Textile / Cooklang compose surface, built in `Sources/Compose/`
+with Oliver as the language reference. It deliberately amends the "no
+from-scratch editor" lines in HARNESS/ROADMAP for that lane only — the
+amendment is recorded in the card and issue
+[#106](https://github.com/drawmeanelephant/solipsist/issues/106).
+
+Landed: **phase 1** (the element: language model, buffer, highlighter,
+editor view, render seam), the **hook-in** (a `Compose` window (`⌘⇧C`)
+sourced from the selected page, open/save under the source's
+security-scoped bookmark, save → coordinator validate gate), and the
+**Oliver-backed preview** (`OliverRenderer` in the Engine lane renders
+buffers through the oliver CLI; options mirror Oliver's `ParseOptions`;
+render tests run when `SOLIPSIST_OLIVER_BIN` is set). Remaining phases
+(diagnostics mapping, depth) are not pickable yet.
+
 ## Do not start yet
 
 GitHub as a source. Wasm in the app. The fart app. A native
