@@ -77,6 +77,13 @@ public struct BorisFanoutResult: Sendable {
     public let totalDurationNs: Int?
 }
 
+/// Result of publication commands.
+public struct BorisPublishResult: Sendable {
+    public let exitCode: Int32
+    public let stdout: String
+    public let stderr: String
+}
+
 public enum BorisEngineError: Error, Sendable, CustomStringConvertible {
     case binaryNotFound
     case missingArtifact(String)
@@ -626,6 +633,58 @@ public actor BorisEngine {
     public func initProject(in directory: URL) throws -> BorisInit {
         let out = try run(arguments: ["init"], workingDirectory: directory)
         return BorisInit(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    // MARK: Publication (M8)
+
+    /// Runs `boris standard-site plan --profile PATH`.
+    public func standardSitePlan(profileURL: URL) throws -> BorisPublishResult {
+        let out = try run(
+            arguments: ["standard-site", "plan", "--profile", profileURL.lastPathComponent],
+            workingDirectory: profileURL.deletingLastPathComponent()
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    /// Runs `boris standard-site records --profile PATH`.
+    public func standardSiteRecords(profileURL: URL) throws -> BorisPublishResult {
+        let out = try run(
+            arguments: ["standard-site", "records", "--profile", profileURL.lastPathComponent],
+            workingDirectory: profileURL.deletingLastPathComponent()
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    /// Runs `boris standard-site publish --profile PATH`.
+    /// Preserves exit classes 4–9 (denial, timeout, compatibility, partial-publication, verification, session).
+    public func standardSitePublish(profileURL: URL) throws -> BorisPublishResult {
+        let out = try run(
+            arguments: ["standard-site", "publish", "--profile", profileURL.lastPathComponent],
+            workingDirectory: profileURL.deletingLastPathComponent()
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    /// Runs `boris nostr plan --profile PATH`.
+    public func nostrPlan(profileURL: URL) throws -> BorisPublishResult {
+        let out = try run(
+            arguments: ["nostr", "plan", "--profile", profileURL.lastPathComponent],
+            workingDirectory: profileURL.deletingLastPathComponent()
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    /// Runs `boris nostr publish --bundle PATH --out PATH`.
+    public func nostrPublish(bundleURL: URL, reportURL: URL? = nil) throws -> BorisPublishResult {
+        var args = ["nostr", "publish", "--bundle", bundleURL.path]
+        if let reportURL {
+            args.append(contentsOf: ["--out", reportURL.path])
+        }
+        let out = try run(
+            arguments: args,
+            workingDirectory: bundleURL.deletingLastPathComponent()
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
     // MARK: Probe

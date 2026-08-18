@@ -72,6 +72,18 @@ struct SolipsistCommands: Commands {
 
             Divider()
 
+            Button("Publish to Standard.site") {
+                runtime.coordinator.run(.publishStandardSite, store: store, runtime: runtime)
+            }
+            .disabled(!hasSource || runtime.coordinator.isRunning)
+
+            Button("Publish to Nostr…") {
+                runtime.coordinator.run(.publishNostr, store: store, runtime: runtime)
+            }
+            .disabled(!hasSource || runtime.coordinator.isRunning)
+
+            Divider()
+
             Button("Stop") {
                 runtime.coordinator.stop(runtime: runtime)
             }
