@@ -101,6 +101,28 @@ bundle_and_sign() {
       codesign --force --options runtime --sign - "$target" 2>/dev/null || true
     }
   fi
+
+  # Embed companion binaries (boris-editor, oliver, etc.) if available
+  local comp_candidates=(
+    "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/boris-agent-kit/bin"
+    "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin"
+    "$SRCROOT/../boris-agent-kit/bin"
+  )
+  for cdir in "${comp_candidates[@]}"; do
+    if [[ -d "$cdir" ]]; then
+      for comp in boris-editor oliver boris-package boris-source-rag; do
+        if [[ -x "$cdir/$comp" && ! -f "$DEST_DIR/$comp" ]]; then
+          cp "$cdir/$comp" "$DEST_DIR/$comp"
+          chmod +x "$DEST_DIR/$comp"
+          if [[ -n "$sign_identity" ]]; then
+            codesign --force --options runtime --sign "$sign_identity" "$DEST_DIR/$comp" 2>/dev/null || \
+            codesign --force --options runtime --sign - "$DEST_DIR/$comp" 2>/dev/null || true
+          fi
+          echo "embed-boris: bundled companion $comp"
+        fi
+      done
+    fi
+  done
 }
 
 mkdir -p "$DEST_DIR"

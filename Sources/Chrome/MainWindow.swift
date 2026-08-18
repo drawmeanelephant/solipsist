@@ -23,8 +23,9 @@ struct MainWindow: View {
         .navigationTitle("Solipsist")
         .inspector(isPresented: $inspectorPresented) {
             InspectorDrawer()
-                .frame(minWidth: 240, idealWidth: 280, maxWidth: 380)
+                .inspectorColumnWidth(min: 280, ideal: 330, max: 440)
         }
+        .inspectorColumnWidth(min: 280, ideal: 330, max: 440)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 mainToolbar
@@ -59,7 +60,7 @@ struct MainWindow: View {
         } message: {
             Text(store.lastError ?? "")
         }
-        .frame(minWidth: 800, minHeight: 480)
+        .frame(minWidth: 920, minHeight: 520)
     }
 
     @ViewBuilder
@@ -115,6 +116,13 @@ struct MainWindow: View {
         }
         .help("Compose")
         .disabled(!canEdit)
+
+        Button {
+            inspectorPresented.toggle()
+        } label: {
+            Label("Inspector", systemImage: "sidebar.trailing")
+        }
+        .help("Toggle Inspector (⌥⌘I)")
     }
 
     private var statusBar: some View {

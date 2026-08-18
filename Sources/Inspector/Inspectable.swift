@@ -29,20 +29,57 @@ enum InspectorNounKind {
 struct InspectorSnapshot: Inspectable {
     var sourceKind: SourceKind?
     var nounKind: String?
+    var mailbox: String?
 
     var inspectorSections: [InspectorSection] {
         guard let sourceKind else { return [] }
         var sections: [InspectorSection] = []
-        if sourceKind == .local {
-            sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Profile"))
+
+        let box = WorkspaceMailbox.display(mailbox)
+
+        switch box {
+        case WorkspaceMailbox.pages:
+            if nounKind == InspectorNounKind.page {
+                sections.append(InspectorSection(id: InspectorSectionID.page, title: "Page"))
+            } else if sourceKind == .local {
+                sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Site Profile"))
+            }
+            sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
+
+        case WorkspaceMailbox.outputs:
+            if nounKind == InspectorNounKind.target {
+                sections.append(InspectorSection(id: InspectorSectionID.target, title: "Target"))
+            }
+            if sourceKind == .local {
+                sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Targets & Profile"))
+            }
+            sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
+
+        case WorkspaceMailbox.publish:
+            if sourceKind == .local {
+                sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Publication Target"))
+            }
+            sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
+
+        case WorkspaceMailbox.plan, WorkspaceMailbox.activity:
+            sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution Controls"))
+            if sourceKind == .local {
+                sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Site Profile"))
+            }
+
+        default:
+            if nounKind == InspectorNounKind.page {
+                sections.append(InspectorSection(id: InspectorSectionID.page, title: "Page"))
+            }
+            if nounKind == InspectorNounKind.target {
+                sections.append(InspectorSection(id: InspectorSectionID.target, title: "Target"))
+            }
+            if sourceKind == .local {
+                sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Profile"))
+            }
+            sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
         }
-        if nounKind == InspectorNounKind.page {
-            sections.append(InspectorSection(id: InspectorSectionID.page, title: "Page"))
-        }
-        if nounKind == InspectorNounKind.target {
-            sections.append(InspectorSection(id: InspectorSectionID.target, title: "Target"))
-        }
-        sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
+
         return sections
     }
 }

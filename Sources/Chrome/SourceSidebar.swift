@@ -4,31 +4,23 @@ import SwiftUI
 struct SourceSidebar: View {
     @Environment(WorkspaceStore.self) private var store
 
+    @State private var toolbarBand: CGFloat = 0
+    @State private var collapsedSources: Set<SourceID> = []
+
     var body: some View {
         List(selection: selectedRow) {
             ForEach(store.sources) { item in
-                Section {
-                    ForEach(WorkspaceMailbox.all, id: \.self) { box in
-                        Label(
-                            WorkspaceMailbox.displayName(box),
-                            systemImage: WorkspaceMailbox.symbolName(box)
-                        )
-                        .tag(MailboxRowID(sourceID: item.id, mailbox: box))
-                        .accessibilityLabel("\(item.title), \(WorkspaceMailbox.displayName(box))")
-                        .contextMenu { sourceMenu(item) }
-                    }
-                } header: {
-                    SourceAccountHeader(item: item)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            store.select(item.id, mailbox: WorkspaceMailbox.pages)
-                        }
-                        .contextMenu { sourceMenu(item) }
-                }
+                SourceSection(
+                    item: item,
+                    isExpanded: isExpanded(for: item.id),
+                    store: store
+                )
             }
         }
         .listStyle(.sidebar)
         .navigationTitle("Mailboxes")
+        .safeAreaPadding(.top, max(toolbarBand, 62))
+        .background(ToolbarBandReader { toolbarBand = $0 })
         .overlay {
             if store.sources.isEmpty {
                 EmptyStateView(
@@ -50,6 +42,19 @@ struct SourceSidebar: View {
         }
     }
 
+    private func isExpanded(for sourceID: SourceID) -> Binding<Bool> {
+        Binding(
+            get: { !collapsedSources.contains(sourceID) },
+            set: { expanded in
+                if expanded {
+                    collapsedSources.remove(sourceID)
+                } else {
+                    collapsedSources.insert(sourceID)
+                }
+            }
+        )
+    }
+
     private var selectedRow: Binding<MailboxRowID?> {
         Binding(
             get: {
@@ -68,6 +73,25 @@ struct SourceSidebar: View {
             }
         )
     }
+}
+
+private struct SourceSection: View {
+    let item: SourceItem
+    @Binding var isExpanded: Bool
+    let store: WorkspaceStore
+
+    var body: some View {
+        Section(isExpanded: $isExpanded) {
+            ForEach(WorkspaceMailbox.all, id: \.self) { box in
+                MailboxRow(item: item, box: box)
+                    .tag(MailboxRowID(sourceID: item.id, mailbox: box))
+                    .contextMenu { sourceMenu(item) }
+            }
+        } header: {
+            SourceAccountHeader(item: item)
+                .contextMenu { sourceMenu(item) }
+        }
+    }
 
     @ViewBuilder
     private func sourceMenu(_ item: SourceItem) -> some View {
@@ -82,26 +106,48 @@ struct SourceSidebar: View {
     }
 }
 
+private struct MailboxRow: View {
+    let item: SourceItem
+    let box: String
+
+    var body: some View {
+        Label {
+            Text(WorkspaceMailbox.displayName(box))
+                .font(.system(size: 12.5, weight: .regular))
+        } icon: {
+            Image(systemName: WorkspaceMailbox.symbolName(box))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+        }
+        .accessibilityLabel("\(item.title), \(WorkspaceMailbox.displayName(box))")
+    }
+}
+
 private struct SourceAccountHeader: View {
     let item: SourceItem
 
     var body: some View {
-        Label {
+        HStack(spacing: 7) {
+            Image(systemName: item.symbolName)
+                .font(.system(size: 14, weight: .semibold))
+                .symbolVariant(item.isAvailable ? .none : .slash)
+                .foregroundStyle(item.isAvailable ? Color.accentColor : Color.orange)
+
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.title)
+                    .font(.system(size: 13.5, weight: .bold))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 if !item.isAvailable {
                     Text("Unreachable — Relocate / Remove")
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.orange)
                         .lineLimit(1)
                 }
             }
-        } icon: {
-            Image(systemName: item.symbolName)
-                .symbolVariant(item.isAvailable ? .none : .slash)
-                .foregroundStyle(item.isAvailable ? Color.primary : Color.orange)
+            Spacer()
         }
+        .padding(.vertical, 3)
         .help(
             item.isAvailable
                 ? (item.detailLine ?? item.title)

@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Play surface for a local folder: mailbox contents plus, for Pages, a
@@ -103,20 +104,54 @@ struct LocalPlay: PlaySurface {
                 Button("Try Again") { reload() }
             }
         case .ready(let pages):
-            VSplitView {
-                // Fixed height — not min/ideal/max: the VSplitView ignores a
-                // later ideal-height change from the async band measurement
-                // and clips the last row (#130). The list is a short stack
-                // only as tall as its rows; the splitter still resizes the
-                // reading pane below.
+            pagesSplit(pages)
+        }
+    }
+
+    @State private var topHeight: CGFloat = 200
+
+    @ViewBuilder
+    private func pagesSplit(_ pages: [PlayPage]) -> some View {
+        GeometryReader { proxy in
+            let totalHeight = proxy.size.height
+            let availableHeight = max(totalHeight - 10, 100)
+            let clampedTop = min(max(topHeight, 90), availableHeight - 120)
+
+            VStack(spacing: 0) {
                 pageList(pages)
-                    .frame(height: listIdealHeight(pages.count))
+                    .frame(height: clampedTop)
+
+                ZStack {
+                    Rectangle()
+                        .fill(Color(nsColor: .separatorColor))
+                        .frame(height: 1)
+
+                    Capsule()
+                        .fill(Color.secondary.opacity(0.4))
+                        .frame(width: 36, height: 4)
+                }
+                .frame(height: 9)
+                .contentShape(Rectangle())
+                .onHover { inside in
+                    if inside {
+                        NSCursor.resizeUpDown.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 1)
+                        .onChanged { value in
+                            topHeight = min(max(clampedTop + value.translation.height, 90), availableHeight - 120)
+                        }
+                )
+
                 ReadingPane(
                     page: selectedPlayPage,
                     source: source,
                     loadGeneration: loadGeneration
                 )
-                .frame(minHeight: 160)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
@@ -125,49 +160,25 @@ struct LocalPlay: PlaySurface {
 
     private func pageList(_ pages: [PlayPage]) -> some View {
         let filtered = LocalPlayGraph.filter(pages: pages, query: searchText)
-        let selectedID = store.selection.noun?.kind == "page" ? store.selection.noun?.id : nil
         return Group {
             if filtered.isEmpty, !searchText.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             } else {
-                // ScrollView, not List: macOS List paints empty zebra slots
-                // for leftover height. Mail's message list is only as tall
-                // as its rows.
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(filtered) { page in
-                            PageRow(page: page, findings: runtime.coordinator.checkFindings)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background {
-                                    if page.id == selectedID {
-                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                            .fill(Color.accentColor.opacity(0.18))
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                                .onTapGesture { selectPage(page) }
-                                .simultaneousGesture(TapGesture(count: 2).onEnded {
-                                    selectPage(page)
-                                    openWindow(id: CompanionID.compose)
-                                })
-                        }
-                    }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
+                List(filtered, selection: selectedPageID) { page in
+                    PageRow(page: page, findings: runtime.coordinator.checkFindings)
+                        .tag(page.id)
+                        .simultaneousGesture(TapGesture(count: 2).onEnded {
+                            selectPage(page)
+                            openWindow(id: CompanionID.compose)
+                        })
                 }
+                .listStyle(.inset)
+                .safeAreaPadding(.top, toolbarBand)
                 .onKeyPress(.return) {
                     guard store.selection.canEditPage else { return .ignored }
                     openWindow(id: CompanionID.compose)
                     return .handled
                 }
-                // #130: the main window is `.fullSizeContentView` glass, so
-                // the floating toolbar is not in the SwiftUI safe area and
-                // the first row would paint underneath the title band. Inset
-                // the scroll content by the measured band — the system's own
-                // number, not an invented spacer.
-                .contentMargins(.top, toolbarBand, for: .scrollContent)
             }
         }
         .searchable(
@@ -177,9 +188,24 @@ struct LocalPlay: PlaySurface {
         )
     }
 
-    private func listIdealHeight(_ count: Int) -> CGFloat {
-        let rows = CGFloat(min(max(count, 1), 8))
-        return toolbarBand + 12 + rows * 44
+    private var selectedPageID: Binding<String?> {
+        Binding(
+            get: {
+                if store.selection.noun?.kind == "page" {
+                    return store.selection.noun?.id
+                }
+                return nil
+            },
+            set: { newID in
+                guard let newID else {
+                    store.select(noun: nil)
+                    return
+                }
+                if let page = loadedPages.first(where: { $0.id == newID }) {
+                    selectPage(page)
+                }
+            }
+        )
     }
 
     private func selectPage(_ page: PlayPage) {
@@ -288,20 +314,23 @@ struct LocalPlay: PlaySurface {
     /// Keep the page noun honest after a graph reload: rewrite title +
     /// `sourcePath` when the id still exists, otherwise drop the letter.
     private func refreshNoun(against pages: [PlayPage]) {
-        guard store.selection.noun?.kind == "page", let id = store.selection.noun?.id else {
-            return
-        }
-        if let page = pages.first(where: { $0.id == id }) {
-            store.select(
-                noun: WorkspaceNoun(
-                    kind: "page",
-                    id: page.id,
-                    title: page.title,
-                    sourcePath: page.sourcePath
+        if let noun = store.selection.noun, noun.kind == "page" {
+            if let page = pages.first(where: { $0.id == noun.id }) {
+                store.select(
+                    noun: WorkspaceNoun(
+                        kind: "page",
+                        id: page.id,
+                        title: page.title,
+                        sourcePath: page.sourcePath
+                    )
                 )
-            )
-        } else {
-            store.select(noun: nil)
+                return
+            } else {
+                store.select(noun: nil)
+            }
+        }
+        if store.selection.noun == nil, let first = pages.first {
+            selectPage(first)
         }
     }
 

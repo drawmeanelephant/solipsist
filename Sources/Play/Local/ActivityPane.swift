@@ -37,7 +37,7 @@ struct ActivityPane: View {
                 }
             }
         }
-        .listStyle(.inset(alternatesRowBackgrounds: true))
+        .listStyle(.inset)
         .safeAreaPadding(.top, toolbarBand)
     }
 }
