@@ -1,31 +1,33 @@
 import SwiftUI
 
-/// Left column. A source list, Mail-style — accounts, not a file tree.
+/// Left column. Each source is an account header; mailboxes are the folders.
 struct SourceSidebar: View {
     @Environment(WorkspaceStore.self) private var store
 
     var body: some View {
-        @Bindable var store = store
-        List(selection: selectedSource) {
-            Section("Sources") {
-                ForEach(store.sources) { item in
-                    SourceRow(item: item)
-                        .tag(item.id)
-                        .contextMenu {
-                            if !item.isAvailable {
-                                Button("Relocate…") {
-                                    store.presentRelocatePanel(for: item.id)
-                                }
-                            }
-                            Button("Remove from Sidebar", role: .destructive) {
-                                store.remove(item.id)
-                            }
+        List(selection: selectedRow) {
+            ForEach(store.sources) { item in
+                Section {
+                    ForEach(WorkspaceMailbox.all, id: \.self) { box in
+                        Label(
+                            WorkspaceMailbox.displayName(box),
+                            systemImage: WorkspaceMailbox.symbolName(box)
+                        )
+                        .tag(MailboxRowID(sourceID: item.id, mailbox: box))
+                        .contextMenu { sourceMenu(item) }
+                    }
+                } header: {
+                    SourceAccountHeader(item: item)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            store.select(item.id, mailbox: WorkspaceMailbox.pages)
                         }
+                        .contextMenu { sourceMenu(item) }
                 }
             }
         }
         .listStyle(.sidebar)
-        .navigationTitle("Sources")
+        .navigationTitle("Mailboxes")
         .overlay {
             if store.sources.isEmpty {
                 EmptyStateView(
@@ -47,15 +49,39 @@ struct SourceSidebar: View {
         }
     }
 
-    private var selectedSource: Binding<SourceID?> {
+    private var selectedRow: Binding<MailboxRowID?> {
         Binding(
-            get: { store.selection.sourceID },
-            set: { store.select($0) }
+            get: {
+                guard let id = store.selection.sourceID else { return nil }
+                return MailboxRowID(
+                    sourceID: id,
+                    mailbox: WorkspaceMailbox.display(store.selection.mailbox)
+                )
+            },
+            set: { row in
+                guard let row else {
+                    store.select(nil)
+                    return
+                }
+                store.select(row.sourceID, mailbox: row.mailbox)
+            }
         )
+    }
+
+    @ViewBuilder
+    private func sourceMenu(_ item: SourceItem) -> some View {
+        if !item.isAvailable {
+            Button("Relocate…") {
+                store.presentRelocatePanel(for: item.id)
+            }
+        }
+        Button("Remove from Sidebar", role: .destructive) {
+            store.remove(item.id)
+        }
     }
 }
 
-private struct SourceRow: View {
+private struct SourceAccountHeader: View {
     let item: SourceItem
 
     var body: some View {

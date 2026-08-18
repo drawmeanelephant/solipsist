@@ -21,13 +21,19 @@ struct LocalPlay: PlaySurface {
         var id: String { rawValue }
     }
 
-    @State private var selectedTab: PlayTab = .pages
     @State private var state: LoadState = .idle
     @State private var searchText = ""
 
+    private var selectedTab: Binding<PlayTab> {
+        Binding(
+            get: { PlayTab(mailbox: store.selection.mailbox) },
+            set: { store.select(mailbox: $0.mailboxKey) }
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            Picker("View", selection: $selectedTab) {
+            Picker("View", selection: selectedTab) {
                 ForEach(PlayTab.allCases) { tab in
                     Text(tab.rawValue).tag(tab)
                 }
@@ -38,7 +44,7 @@ struct LocalPlay: PlaySurface {
 
             Divider()
 
-            switch selectedTab {
+            switch selectedTab.wrappedValue {
             case .pages:
                 pagesContent
             case .outputs:
@@ -261,6 +267,28 @@ struct LocalPlay: PlaySurface {
         case empty
         case ready([PlayPage])
         case failed(String)
+    }
+}
+
+extension LocalPlay.PlayTab {
+    var mailboxKey: String {
+        switch self {
+        case .pages: return WorkspaceMailbox.pages
+        case .outputs: return WorkspaceMailbox.outputs
+        case .publish: return WorkspaceMailbox.publish
+        case .plan: return WorkspaceMailbox.plan
+        case .activity: return WorkspaceMailbox.activity
+        }
+    }
+
+    init(mailbox: String?) {
+        switch WorkspaceMailbox.display(mailbox) {
+        case WorkspaceMailbox.outputs: self = .outputs
+        case WorkspaceMailbox.publish: self = .publish
+        case WorkspaceMailbox.plan: self = .plan
+        case WorkspaceMailbox.activity: self = .activity
+        default: self = .pages
+        }
     }
 }
 

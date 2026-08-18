@@ -15,7 +15,7 @@ struct MainWindow: View {
     var body: some View {
         NavigationSplitView {
             SourceSidebar()
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 340)
         } detail: {
             PlayHost()
         }
@@ -64,7 +64,7 @@ struct MainWindow: View {
                     Label("Editor", systemImage: "square.and.pencil")
                 }
                 .help("Open Editor")
-                .disabled(store.selectedSource == nil)
+                .disabled(!store.selection.canEditPage)
             }
         }
         .onAppear {

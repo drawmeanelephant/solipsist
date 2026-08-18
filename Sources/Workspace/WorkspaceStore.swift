@@ -32,9 +32,25 @@ final class WorkspaceStore {
     }
 
     func select(_ id: SourceID?) {
-        guard selection.sourceID != id else { return }
-        selection.sourceID = id
-        selection.noun = nil
+        let next = WorkspaceSelectionRules.selectSource(selection, id: id)
+        guard next != selection else { return }
+        selection = next
+        persist()
+    }
+
+    func select(mailbox: String) {
+        let next = WorkspaceSelectionRules.selectMailbox(selection, mailbox: mailbox)
+        guard next != selection else { return }
+        selection = next
+        persist()
+    }
+
+    /// Sidebar write path. Header click passes `mailbox: WorkspaceMailbox.pages`.
+    func select(_ id: SourceID, mailbox: String) {
+        let next = WorkspaceSelectionRules.select(selection, id: id, mailbox: mailbox)
+        guard next != selection else { return }
+        selection = next
+        persist()
     }
 
     func select(noun: WorkspaceNoun?) {
@@ -190,7 +206,8 @@ final class WorkspaceStore {
         }
         let payload = PersistedWorkspace(
             sources: locals,
-            selected: selection.sourceID
+            selected: selection.sourceID,
+            mailbox: selection.mailbox
         )
         do {
             defaults.set(try WorkspacePersistence.encode(payload), forKey: WorkspacePersistence.defaultsKey)
@@ -214,11 +231,11 @@ final class WorkspaceStore {
                 }
                 return .local(local)
             }
-            if let selected = payload.selected,
-               sources.contains(where: { $0.id == selected })
-            {
-                selection.sourceID = selected
-            }
+            selection = WorkspaceSelectionRules.restore(
+                selected: payload.selected,
+                mailbox: payload.mailbox,
+                available: Set(sources.map(\.id))
+            )
             if refreshed {
                 persist()
             }
