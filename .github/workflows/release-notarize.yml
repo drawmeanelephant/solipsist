@@ -44,7 +44,7 @@ jobs:
         with:
           repository: drawmeanelephant/boris
           path: boris
-          ref: b82e9e2eace74d9ca61df23dffc1329d2a2fe628
+          ref: 6b930b7bd35a1803b365a073c226df22631dc3f7
 
       - name: Set up Xcode
         run: |

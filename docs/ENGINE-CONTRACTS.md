@@ -1,7 +1,9 @@
 # Engine Contracts — probed hands-on against afterparty (M2–M8 design input)
 
 **Date:** 2026-08-17 · **Engine:** afterparty, `boris/0.8.1` (kit pin
-`b82e9e2`) · **Content:** the afterparty dogfood site (25 pages, /tmp/apws)
+was `b82e9e2` when these tables were probed; current pin is `6b930b7`,
+which contains A1/A14/A7 + A3/A4/A13 — record only, tables not re-probed)
+· **Content:** the afterparty dogfood site (25 pages, /tmp/apws)
 for §1–§4; the in-repo `Stunts/happy` corpus for §5–§7.
 
 Everything here was verified by running the binary and reading the real

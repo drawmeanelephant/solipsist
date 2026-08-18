@@ -3,7 +3,7 @@
 Ready-to-paste drafts. File on `drawmeanelephant/boris`. Never open a
 PR against boris from this repo.
 
-**Already merged on afterparty** (not in the `b82e9e2` kit pin):
+**Already merged on afterparty** (in the `6b930b7` kit pin):
 
 - A3 [boris#638](https://github.com/drawmeanelephant/boris/issues/638) → [#643](https://github.com/drawmeanelephant/boris/pull/643)
 - A4 [boris#639](https://github.com/drawmeanelephant/boris/issues/639) → [#642](https://github.com/drawmeanelephant/boris/pull/642)

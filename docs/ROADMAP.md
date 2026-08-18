@@ -33,10 +33,10 @@ Compose window we author: native buffer (`⌘⇧C`) + Oliver preview (#106)
 M2–M8 shipped a flatter cut (source list + tabbed play). M10 is the
 recut to the diagram above. Spatial detail: [`HARNESS.md`](HARNESS.md).
 
-**Engine baseline:** afterparty `boris/0.8.1`. **Pinned kit:** `b82e9e2`.
-A3/A4/A13 have merged *after* that pin — bump when we want them in the
-bundle. File remaining access issues A1 → A14 → A7, then A5 as a
-discussion (`docs/issues/README.md`).
+**Engine baseline:** afterparty `boris/0.8.1`. **Pinned kit:** `6b930b7`
+(`6b930b7bd35a1803b365a073c226df22631dc3f7`). Contains A1/A14/A7 +
+A3/A4/A13 (boris#648 / #643 / #642 / #641). Remaining access issue:
+A5 as a discussion (`docs/issues/README.md`).
 
 ---
 
@@ -344,8 +344,9 @@ not block the local publish flows.
 **Goal.** A notarized Mac app that does not need Zig at runtime.
 
 - Codesign, notarize, DMG
-- Pin recorded where the build can read it; bump past `b82e9e2` once
-  A1/A14/A7 (and the already-merged A3/A4/A13) are in a kit we vendor
+- Pin recorded where the build can read it: `6b930b7` (A1/A14/A7 +
+  A3/A4/A13). Preview still hosts `watch --serve`; A1 `--watch-json`
+  is a follow-on, not this card.
 - `boris-testdata` fixtures in CI next to `make run-spike`
 - Clean-Mac proof: no Zig, no kit folder, bundled engine only
 - Window restoration, Open Recent (= persisted sources), Help
