@@ -56,6 +56,7 @@ Never hand-edit `Solipsist.xcodeproj` — edit `Project.yml`.
 
 ## Milestones
 
-M0 bootstrap ✅ · M1 spike ✅ · M2 chassis ✅ · **P** project subdomain
-(parallel) · **M3** play & inspect · **M4** coordinate · **M5** preview
-· **M6** author · **M7** outputs · **M8** publish · **M9** ship.
+M0 bootstrap ✅ · M1 spike ✅ · M2 chassis ✅ · **P** withdrawn ·
+**M3** play & inspect ✅ · **M4** coordinate ✅ · **M5** preview ✅
+· **M6** author ✅ · **M7** outputs ✅ · **M8** publish ✅ · **M9**
+ship 🔧 ([#78](https://github.com/drawmeanelephant/solipsist/issues/78)).

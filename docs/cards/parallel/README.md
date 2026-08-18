@@ -73,7 +73,9 @@ the agent-pack, `plan --out`.
 | 9 | [issue-templates](issue-templates.md) | done (#22) |
 
 New work lives in the [delegation queue](../queue/README.md) — batch 2
-(Q13, Q20-Q25) is open, pick the lowest ID.
+is landed. The queue is empty. Next pickable card is
+[#78](https://github.com/drawmeanelephant/solipsist/issues/78) (ship,
+build-lane only — not this lane).
 
 Skip: fart app (`make fart` must keep failing). Skip GitHub-as-source.
 Skip publication flows. Skip Wasm in the app.

@@ -113,10 +113,13 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M8** Publish | ✅ gate — stdin secrets, Standard.site / Nostr buttons (#77, #82/#84) |
 | **M9** Ship | 🔧 pipeline exists; clean-Mac proof + credentials + pin open (#78) |
 
-**Gates are not depth.** M3–M8 closed because a list, a verb, or a window
-existed. The app is not at CLI parity and it is not usable as a Mac
-workstation. Remaining work is [#87](https://github.com/drawmeanelephant/solipsist/issues/87).
-Do not grow `MainWindow`.
+**Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
+batch then landed: first-run and problem→page (#88/#94), graph filter /
+activity / plan document (#89/#96), profile 1:1 + execution knobs +
+`recipe-scale` (#90/#95), Standard.site family + package + readable
+proof (#91/#93). Remaining pickable card is
+[#78](https://github.com/drawmeanelephant/solipsist/issues/78) (M9
+ship). Do not grow `MainWindow`.
 
 ---
 
@@ -382,32 +385,38 @@ here, it is not a v1 promise.
 
 ## 8. Pickup (what to do next)
 
-The gate batch (#72–#77) is closed. The active board is
-[#87](https://github.com/drawmeanelephant/solipsist/issues/87).
+The gate batch (#72–#77) and the depth batch (#88–#91) are closed.
+Next is ship.
 
 | Order | Track | Issue | Why this next |
 |------:|-------|-------|----------------|
-| 1 | Usability | [#88](https://github.com/drawmeanelephant/solipsist/issues/88) | First-run, status, problem → page. Nothing else matters if this is still a chassis. |
-| 2 | Play depth | [#89](https://github.com/drawmeanelephant/solipsist/issues/89) | Filter, check badges, activity + timings, plan as a document. |
-| 3 | Inspector depth | [#90](https://github.com/drawmeanelephant/solipsist/issues/90) | Profile 1:1, execution knobs that reach boris, `recipe-scale`. |
-| 4 | Publish depth | [#91](https://github.com/drawmeanelephant/solipsist/issues/91) | Rest of `standard-site`, `boris-package`, readable proof. |
-| 5 | Ship | [#78](https://github.com/drawmeanelephant/solipsist/issues/78) | Credentials, clean-Mac proof, pin bump, testdata. Parallel with 1–4 when someone has Apple certs. |
+| 1 | Ship | [#78](https://github.com/drawmeanelephant/solipsist/issues/78) | Credentials, clean-Mac proof, pin bump, testdata. |
 
-#88 and #89 can run in parallel (Chrome vs `Play/Local`). #90 owns
-`Inspector/` plus a thin Engine flag pass. #91 owns `PublishPane` plus
-publication methods. #78 stays build-lane only.
+#78 stays build-lane only (`scripts/embed-boris.sh`, `Project.yml`,
+entitlements, release workflow, `docs/SHIP-HARDENING.md`). Do not
+expand it into chrome, play, inspector, or publish.
+
+### Landed depth (do not redo)
+
+| Track | Issue | PR |
+|-------|-------|----|
+| Usability | [#88](https://github.com/drawmeanelephant/solipsist/issues/88) | [#94](https://github.com/drawmeanelephant/solipsist/pull/94) |
+| Play depth | [#89](https://github.com/drawmeanelephant/solipsist/issues/89) | [#96](https://github.com/drawmeanelephant/solipsist/pull/96) |
+| Inspector depth | [#90](https://github.com/drawmeanelephant/solipsist/issues/90) | [#95](https://github.com/drawmeanelephant/solipsist/pull/95) |
+| Publish depth | [#91](https://github.com/drawmeanelephant/solipsist/issues/91) | [#93](https://github.com/drawmeanelephant/solipsist/pull/93) |
 
 ### CLI vs app (honest)
 
 Wired as a menu or pane: `build` (IR/HTML/target/edition/all),
 `validate`, `watch --serve`, `check`, `impact`, `plan --profile`,
-`init`, `standard-site login` + `publish`, `nostr plan|sign|publish`,
-`--version`, `--timings` (decoded, not shown), `--report`.
+`init`, `recipe-scale`, `standard-site`
+login/publish/plan/records/verify/sessions/logout/smoke, `nostr`
+plan/sign/publish (per-relay verdicts), `boris-package`, `--version`,
+`--timings` (activity duration), `--report`, Jobs / Incremental /
+Quiet on the child.
 
-Named in this file and **not** a product surface yet: `recipe-scale`,
-`boris-package`, `standard-site` plan/records/verify/sessions/logout/smoke,
-browser OAuth, `github-pages-audit`, per-relay Nostr evidence, Jobs /
-Incremental / Quiet actually reaching the child.
+Named in this file and **not** a product surface yet: browser OAuth,
+`github-pages-audit`.
 
 Out of v1 (unchanged): GitHub as a source, content-audit, source-rag,
 migration labs, Wasm in the app, `validate --watch` until A5 + pin.
