@@ -67,7 +67,8 @@ lives in the issue tracker (#58–#61; briefs in
 `docs/cards/B3-*.md`) — those own grind-lane paths, so they are not
 queue cards.
 
-The active board is the **roadmap batch** (#72–#78, one card per
-milestone gate, dispatch comments on each issue — see
-[`../README.md`](../README.md)). M3/M4 (#72/#73) are done; the queue
-stays empty until M5–M9 surface data-only or docs-only slices.
+The active board is **remaining work after the gates**
+([#87](https://github.com/drawmeanelephant/solipsist/issues/87)).
+#88–#91 own grind-lane paths (Chrome, Play, Inspector, Engine,
+PublishPane). They are not queue cards. The queue stays empty unless
+a child surfaces a docs-only or `Tests/`-only slice.
