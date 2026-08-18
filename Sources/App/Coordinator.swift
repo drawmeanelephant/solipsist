@@ -10,9 +10,11 @@ final class Coordinator {
     private(set) var isRunning = false
     private(set) var state: CoordinatorState = .idle
     private(set) var verb: CoordinatorVerb?
+    private(set) var lastVerb: CoordinatorVerb?
     private(set) var summary = "idle"
     private(set) var exitCode: Int32?
     private(set) var problems: [ProblemItem] = []
+    private var jobStartTime: ContinuousClock.Instant?
     private var task: Task<Void, Never>?
     private var reapTask: Task<Void, Never>?
     private var watchdogTask: Task<Void, Never>?
@@ -181,6 +183,8 @@ final class Coordinator {
         isRunning = true
         state = verb.writesTree ? .building : .validating
         self.verb = verb
+        self.lastVerb = verb
+        self.jobStartTime = .now
         jobOrigin = origin
         timedOut = false
         summary = "\(verb.rawValue)…"
@@ -259,6 +263,10 @@ final class Coordinator {
         reapTask = nil
         watchdogTask?.cancel()
         watchdogTask = nil
+
+        let duration = jobStartTime.map { $0.duration(to: .now) } ?? .zero
+        jobStartTime = nil
+        JobNotificationDispatcher.notifyIfBackgrounded(verb: verb, exit: exit, duration: duration)
 
         let origin = jobOrigin
         let wasTimeout = timedOut

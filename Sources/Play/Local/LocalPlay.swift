@@ -68,13 +68,20 @@ struct LocalPlay: PlaySurface {
             ContentUnavailableView {
                 Label(source.title, systemImage: "folder")
             } description: {
-                Text("This folder is no longer reachable. Remove it from the sidebar or reopen it.")
+                Text("This folder is unreachable. Relocate it or remove it from the sidebar.")
+            } actions: {
+                Button("Relocate…") {
+                    store.presentRelocatePanel(for: source.id)
+                }
+                Button("Remove", role: .destructive) {
+                    store.remove(source.id)
+                }
             }
         case .empty:
             ContentUnavailableView {
                 Label("No Pages", systemImage: "doc.text")
             } description: {
-                Text("The graph for this folder has no pages.")
+                Text("The graph for this folder has no pages. Open a folder with boris.json (e.g. Stunts/happy) to view pages.")
             }
         case .failed(let message):
             ContentUnavailableView {
