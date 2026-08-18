@@ -5,6 +5,23 @@ import Foundation
 /// `WorkspaceStore.addLocal`. This is not `BorisEngine` — it is a
 /// settings-adjacent one-shot process with its own cancel path.
 public enum GitClone {
+    /// `/usr/bin/git` on Apple platforms is an `xcrun` wrapper that refuses
+    /// to run inside the App Sandbox ("xcrun: error: cannot be used within
+    /// an App Sandbox"). Resolve the real binary — Command Line Tools or
+    /// Xcode — and fall back to `/usr/bin/git` where that is the only git
+    /// (unsandboxed hosts: spike, tests, non-Apple builds).
+    public static func gitExecutableURL() -> URL {
+        let candidates = [
+            "/Library/Developer/CommandLineTools/usr/bin/git",
+            "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
+            "/usr/bin/git",
+        ]
+        for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
+            return URL(fileURLWithPath: path)
+        }
+        return URL(fileURLWithPath: "/usr/bin/git")
+    }
+
     public struct CloneResult: Sendable {
         public let exitCode: Int32
         public let stderr: String
@@ -66,7 +83,7 @@ public enum GitClone {
     /// finishes; call off the main actor.
     public static func clone(url: String, to dest: URL, session: CloneSession) throws -> CloneResult {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.executableURL = gitExecutableURL()
         process.arguments = ["clone", "--", url, dest.path]
         let errPipe = Pipe()
         process.standardOutput = FileHandle.nullDevice
@@ -94,7 +111,7 @@ public enum GitClone {
             return nil
         }
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.executableURL = gitExecutableURL()
         process.arguments = ["-C", root.path, "status", "--porcelain=v2", "--branch"]
         let pipe = Pipe()
         process.standardOutput = pipe

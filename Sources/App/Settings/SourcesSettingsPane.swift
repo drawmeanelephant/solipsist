@@ -138,6 +138,12 @@ private struct SourceAccountRow: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
+                if let branch = item.branch {
+                    Text("⤷ \(branch)")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
                 if !item.isAvailable {
                     Text("Unreachable — Relocate / Remove")
                         .font(.caption)

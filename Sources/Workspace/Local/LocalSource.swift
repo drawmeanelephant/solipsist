@@ -10,6 +10,9 @@ struct LocalSource: PublicationSource, Hashable, Sendable, Codable {
     var displayPath: String
     /// Transient: resolved at load time. Not persisted.
     var isAvailable: Bool = true
+    /// Transient: current checkout branch when the folder has `.git`
+    /// (read at add/load time via `GitClone.currentBranch`). Not persisted.
+    var branch: String? = nil
 
     var kind: SourceKind { .local }
 

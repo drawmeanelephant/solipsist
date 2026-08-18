@@ -24,6 +24,14 @@ final class GitCloneTests: XCTestCase {
         XCTAssertFalse(GitClone.isValidCloneURL("git@host")) // scp-like needs a path
     }
 
+    // MARK: - Executable resolution
+
+    func testGitExecutableResolutionFindsARunnableGit() {
+        let git = GitClone.gitExecutableURL()
+        XCTAssertTrue(FileManager.default.isExecutableFile(atPath: git.path))
+        XCTAssertEqual(git.path, GitClone.gitExecutableURL().path, "resolution must be deterministic")
+    }
+
     // MARK: - Repo naming
 
     func testRepoNameFromUrl() {
