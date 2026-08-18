@@ -48,9 +48,22 @@ public final class PublishCredentialManager: SecretProviding, @unchecked Sendabl
         return nil
     }
 
+    /// Takes a buffer the caller may wipe after one stdin write.
+    /// Ephemeral secrets are consumed; Keychain entries are copied.
+    public func takeSecretForUse(for target: String) -> SecureBuffer? {
+        if ephemeral.hasSecret(for: target) {
+            return ephemeral.consumeSecret(for: target)
+        }
+        return try? keychain.loadSecret(account: target, service: service)
+    }
+
     /// Checks if a credential is saved in the macOS Keychain for the target.
     public func isRemembered(for target: String) -> Bool {
         keychain.hasSecret(account: target, service: service)
+    }
+
+    public func hasSecret(for target: String) -> Bool {
+        ephemeral.hasSecret(for: target) || isRemembered(for: target)
     }
 
     /// Clears any credential stored in both ephemeral memory and Keychain for the target.

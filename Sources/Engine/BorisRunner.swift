@@ -66,7 +66,8 @@ public enum BorisRunner {
         binary: URL,
         arguments: [String],
         workingDirectory: URL? = nil,
-        handle: RunHandle? = nil
+        handle: RunHandle? = nil,
+        stdin: SecureBuffer? = nil
     ) throws -> RunOutput {
         let fm = FileManager.default
         let tmpDir = fm.temporaryDirectory
@@ -98,12 +99,28 @@ public enum BorisRunner {
         process.standardOutput = stdoutHandle
         process.standardError = stderrHandle
 
+        let stdinPipe: Pipe?
+        if stdin != nil {
+            let pipe = Pipe()
+            process.standardInput = pipe
+            stdinPipe = pipe
+        } else {
+            process.standardInput = FileHandle.nullDevice
+            stdinPipe = nil
+        }
+
         handle?.attach(process)
         do {
             try process.run()
         } catch {
+            stdin?.wipe()
             throw BorisRunnerError.launchFailed(String(describing: error))
         }
+
+        if let stdin, let stdinPipe {
+            try StdinSecretWriter.writeAndWipe(stdin, to: stdinPipe.fileHandleForWriting)
+        }
+
         process.waitUntilExit()
 
         let stdout = (try? Data(contentsOf: stdoutURL)) ?? Data()

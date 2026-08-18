@@ -11,6 +11,7 @@ struct PublishPane: View {
     @State private var profile: PublicationProfile?
     @State private var proofFiles: [ProofFileItem] = []
     @State private var loadError: String?
+    @State private var credentialEpoch = 0
 
     var body: some View {
         List {
@@ -47,7 +48,7 @@ struct PublishPane: View {
                         runtime.coordinator.run(.plan, store: store, runtime: runtime)
                     }
                     .controlSize(.small)
-                    .disabled(runtime.coordinator.isRunning)
+                    .disabled(!runtime.coordinator.canRunVerb)
 
                     if let target = profile?.publication?.target {
                         if target == "standard-site" {
@@ -60,7 +61,7 @@ struct PublishPane: View {
                             }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)
-                            .disabled(runtime.coordinator.isRunning)
+                            .disabled(!runtime.coordinator.canRunVerb)
                         } else if target == "nostr" {
                             Button("Publish to Nostr…") {
                                 runtime.coordinator.run(
@@ -71,12 +72,14 @@ struct PublishPane: View {
                             }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)
-                            .disabled(runtime.coordinator.isRunning)
+                            .disabled(!runtime.coordinator.canRunVerb)
                         }
                     }
                 }
 
-                Text("Results land in the problems list. Stop (⌘.) cancels the job.")
+                credentialRow
+
+                Text("Secrets go to boris on stdin. Results land in the problems list.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -111,8 +114,11 @@ struct PublishPane: View {
             load()
         }
         .onChange(of: runtime.coordinator.isRunning) { wasRunning, isRunning in
-            if wasRunning, !isRunning, let root = try? source.workspaceRoot() {
-                scanProofFiles(in: root)
+            if wasRunning, !isRunning {
+                credentialEpoch += 1
+                if let root = try? source.workspaceRoot() {
+                    scanProofFiles(in: root)
+                }
             }
         }
     }
@@ -137,6 +143,45 @@ struct PublishPane: View {
         }
 
         scanProofFiles(in: root)
+    }
+
+    @ViewBuilder
+    private var credentialRow: some View {
+        let target = credentialTarget
+        HStack {
+            Text("Credential")
+            Spacer()
+            Text(credentialStatus)
+                .foregroundStyle(.secondary)
+            if let target, runtime.credentials.hasSecret(for: target) {
+                Button("Forget") {
+                    try? runtime.credentials.clearCredential(for: target)
+                    credentialEpoch += 1
+                }
+                .controlSize(.small)
+            }
+        }
+        .font(.caption)
+    }
+
+    private var credentialTarget: String? {
+        switch profile?.publication?.target {
+        case "standard-site": PublishTargets.standardSite
+        case "nostr": PublishTargets.nostr
+        default: nil
+        }
+    }
+
+    private var credentialStatus: String {
+        _ = credentialEpoch
+        guard let target = credentialTarget else { return "not required" }
+        if runtime.credentials.isRemembered(for: target) {
+            return "in Keychain"
+        }
+        if runtime.credentials.hasSecret(for: target) {
+            return "this session"
+        }
+        return "not set"
     }
 
     private func scanProofFiles(in root: URL) {

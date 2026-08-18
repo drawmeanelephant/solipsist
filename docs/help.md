@@ -34,8 +34,8 @@ Every menu verb and keyboard shortcut:
 | Build This | — | Build the selected HTML target or edition (Outputs tab). |
 | Check | — | Run static documentation intelligence and reference checks. |
 | Impact | — | Analyze ripple effects of node changes across the graph (enabled when a page is selected). |
-| Publish to Standard.site | — | Run `boris standard-site publish` for the selected source. |
-| Publish to Nostr… | — | Run `boris nostr plan` for the selected source (sign/publish is not wired yet). |
+| Publish to Standard.site | — | Prompt for an app password (stdin), `login --app-password`, then `publish`. Optional Keychain remember. |
+| Publish to Nostr… | — | Prompt for nsec/hex (stdin), then `nostr plan` → `sign --key-stdin` → `publish`. Optional Keychain remember. |
 | Stop | `⌘.` | Cancel the running job (SIGTERM, then SIGKILL after 2s). With no job, stops preview watch. Tree-writing jobs freeze watch until they finish. |
 
 ### View

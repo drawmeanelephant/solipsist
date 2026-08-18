@@ -67,14 +67,15 @@ targets:
           /bin/bash "${SRCROOT}/scripts/embed-boris.sh" "${SRCROOT}" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
 
   # M1 engine spike: a headless CLI that runs the bundled boris binary and
-  # decodes its JSON contracts. Shares Sources/Models and Sources/Engine
-  # with the app.
+  # decodes its JSON contracts. Shares Sources/Models, Sources/Engine, and
+  # Sources/Security (stdin secret buffers) with the app.
   spike:
     type: tool
     platform: macOS
     sources:
       - path: Sources/Models
       - path: Sources/Engine
+      - path: Sources/Security
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Spike
     settings:
@@ -96,6 +97,7 @@ targets:
       - path: Sources/Play/Local/LocalPlayGraph.swift
       - path: Sources/App/CoordinatorProblems.swift
       - path: Sources/Engine/ChildProcessControl.swift
+      - path: Sources/Engine/BorisRunner.swift
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
     settings:

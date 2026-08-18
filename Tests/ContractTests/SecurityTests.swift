@@ -183,4 +183,28 @@ final class SecurityTests: XCTestCase {
         manager.wipeAllEphemeral()
         XCTAssertNil(manager.provideSecret(for: PublishTargets.standardSite))
     }
+
+    func testTakeSecretForUseConsumesEphemeralAndCopiesKeychain() throws {
+        let mockKeychain = MockKeychainStore()
+        let mockEphemeral = EphemeralSecretStore()
+        let manager = PublishCredentialManager(
+            keychain: mockKeychain,
+            ephemeral: mockEphemeral,
+            service: "test.service"
+        )
+
+        let session = SecureBuffer(utf8String: "ephemeral-once")
+        try manager.setCredential(session, for: PublishTargets.nostr, rememberInKeychain: false)
+        let taken = manager.takeSecretForUse(for: PublishTargets.nostr)
+        XCTAssertEqual(taken?.copyBytes(), Array("ephemeral-once".utf8))
+        XCTAssertFalse(manager.hasSecret(for: PublishTargets.nostr))
+
+        let remembered = SecureBuffer(utf8String: "keychain-copy")
+        try manager.setCredential(remembered, for: PublishTargets.standardSite, rememberInKeychain: true)
+        let copy = manager.takeSecretForUse(for: PublishTargets.standardSite)
+        XCTAssertEqual(copy?.copyBytes(), Array("keychain-copy".utf8))
+        XCTAssertTrue(manager.isRemembered(for: PublishTargets.standardSite))
+        copy?.wipe()
+        XCTAssertTrue(manager.hasSecret(for: PublishTargets.standardSite))
+    }
 }
