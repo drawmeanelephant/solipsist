@@ -100,6 +100,88 @@ final class WorkspaceStore {
         }
     }
 
+    // MARK: - Git clone (M12 / #131)
+
+    /// True while a `git clone` is in flight; the Settings pane shows a
+    /// cancel affordance off this.
+    private(set) var isCloning = false
+    private var activeCloneSession: CloneSession?
+
+    /// Settings + File menu entry point. Prompts for a clone URL, then a
+    /// destination parent folder, then clones and adds the result as a
+    /// Local source through the same store Open… writes.
+    func presentClonePanel() {
+        let alert = NSAlert()
+        alert.messageText = "Add Git Repository"
+        alert.informativeText = "Enter a clone URL. The repository will be cloned into the folder you choose and added as a Local source."
+        alert.addButton(withTitle: "Clone")
+        alert.addButton(withTitle: "Cancel")
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 360, height: 24))
+        field.placeholderString = "https://github.com/user/repo.git"
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        let urlString = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard GitClone.isValidCloneURL(urlString) else {
+            lastError = "Not a git clone URL: \(urlString)"
+            return
+        }
+
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.treatsFilePackagesAsDirectories = true
+        panel.prompt = "Clone Into"
+        panel.message = "Choose a parent folder. \(GitClone.repoName(from: urlString)) will be created inside it."
+        guard panel.runModal() == .OK, let parent = panel.url else { return }
+
+        let dest = parent.appendingPathComponent(GitClone.repoName(from: urlString), isDirectory: true)
+        cloneRepository(urlString: urlString, to: dest)
+    }
+
+    /// Runs `/usr/bin/git clone -- <url> <dest>` off the main actor, then
+    /// either adds the folder via `addLocal` (same store as Open…) or
+    /// surfaces git's exit + stderr on `lastError`. Cancel = SIGTERM.
+    func cloneRepository(urlString: String, to dest: URL) {
+        lastError = nil
+        isCloning = true
+        let session = CloneSession()
+        activeCloneSession = session
+        Task.detached { [weak self] in
+            let result: GitClone.CloneResult
+            do {
+                result = try GitClone.clone(url: urlString, to: dest, session: session)
+            } catch {
+                await MainActor.run {
+                    guard let self else { return }
+                    self.isCloning = false
+                    self.activeCloneSession = nil
+                    self.lastError = "git clone failed: \(String(describing: error))"
+                }
+                return
+            }
+            await MainActor.run {
+                guard let self else { return }
+                self.isCloning = false
+                self.activeCloneSession = nil
+                if result.isSuccess {
+                    self.addLocal(url: dest)
+                } else {
+                    self.lastError = "git clone failed (exit \(result.exitCode)): \(result.stderr)"
+                }
+            }
+        }
+    }
+
+    /// SIGTERM the in-flight clone. The cloned directory (if any) is left
+    /// in place; nothing is added to the source list.
+    func cancelClone() {
+        activeCloneSession?.terminate()
+    }
+
     func addLocal(url: URL) {
         lastError = nil
         let standardized = url.standardizedFileURL

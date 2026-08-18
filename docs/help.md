@@ -21,6 +21,7 @@ Every menu verb and keyboard shortcut:
 | --- | --- | --- |
 | New Project… | `⌘N` | Initialize a new Boris project in a folder (`boris init`) and add it as a source. |
 | Open… | `⌘O` | Open a Boris publication folder as a source. Same store as Settings → Sources. |
+| Clone Repository… | — | Clone a git URL into a chosen folder and add the result as a Local source. Also in Settings → Sources. |
 | Open Recent | — | Re-open a folder from the system recent-documents list. Shows No Recent Folders when empty. Clear Menu wipes the list. |
 | Relocate Source… | — | Point an unreachable source at its new folder (enabled when the selected source is stale). Also in Settings → Sources. |
 | Remove Source | — | Remove the currently selected source from the workspace (enabled when a source is selected). Also in Settings → Sources. |

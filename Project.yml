@@ -105,6 +105,7 @@ targets:
       - path: Sources/Workspace/WorkspacePersistence.swift
       - path: Sources/Workspace/WorkspaceSelection.swift
       - path: Sources/Workspace/Local/LocalSource.swift
+      - path: Sources/Workspace/Git
       - path: Sources/Companions/CompanionID.swift
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
