@@ -10,9 +10,9 @@ Native macOS SwiftUI app. Boris is the engine — a subprocess, never a
 library. We decode its versioned JSON contracts and host the surfaces
 we refuse to write (`watch --serve`, `boris-editor`).
 
-**Baseline:** afterparty `boris/0.8.1`. **Pin:** `b82e9e2` (kit
-metadata in `vendor/boris-agent-kit/`). A3/A4/A13 merged after that
-pin; bump when we vendor a newer kit.
+**Baseline:** afterparty `boris/0.8.1`. **Pin:** `6b930b7` (kit
+metadata in `vendor/boris-agent-kit/`). Contains A1/A14/A7 + A3/A4/A13
+(boris#648 / #643 / #642 / #641).
 
 ## Hard boundaries
 

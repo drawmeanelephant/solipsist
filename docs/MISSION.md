@@ -78,9 +78,8 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
   Settings, mailbox sidebar, reading pane, native compose
   [#106](https://github.com/drawmeanelephant/solipsist/issues/106)).
   Sequence: [ROADMAP.md](ROADMAP.md) §8.
-- **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `b82e9e2`.
-  A3/A4/A13/A1/A14/A7 have merged after that pin — bump when we vendor
-  a newer kit (#78).
+- **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `6b930b7`
+  (contains A1/A14/A7 + A3/A4/A13).
 - **Next:** clean-Mac ship (#78), then the Mail-body recut. Roadmap
   **P** is withdrawn — the public site ships via Cloudflare Pages
   (`site/`).
