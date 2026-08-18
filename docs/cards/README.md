@@ -73,12 +73,16 @@ hosted Edit from the selected page, native Compose.
 
 #78 stays build-lane only. Do not pick an M10 card by growing ship.
 
+## Git (pickable)
+
+| Card | Issue | Lane | Parallel with | Gate |
+|------|-------|------|----------------|------|
+| [Add Git Repository…](GIT-CLONE.md) | [#131](https://github.com/drawmeanelephant/solipsist/issues/131) | Settings / workspace | #110 | clone URL → folder → Local source; branch in Settings |
+
 ## Do not start yet
 
-GitHub as a source. Wasm in the app. The fart app. Compose **depth**
-(diagnostics, bundle `oliver`). Preview, editor host, and publish
-already have gates — M10 wires them into Mail's shape; it does not
-rebuild them.
+GitHub OAuth / `SourceKind.github` payload. Wasm in the app. The
+fart app. Compose **depth**. #136 splitter crash (macOS 27 beta).
 
 ## Shared noun kinds (play writes, inspector reads)
 

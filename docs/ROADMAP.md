@@ -103,12 +103,11 @@ No scraped prose. No homegrown graph. No third settings store.
   highlight, front-matter form, Cooklang autocomplete, bundling
   `oliver` next to `boris`. The M10 gate is the window + save +
   preview seam (#106 / #108), not those.
-- **Git / GitHub as sources**, added in Settings → Sources the same
-  way a local folder is. A GitHub repo is the second account type
-  (already reserved on `SourceKind`). Local git remotes on a folder
-  we already have (status, fetch, Boris’s Pages workflow) sit next
-  to that — still `Source`, not a third store. Pages as a *target*
-  does not require this.
+- **GitHub as its own `SourceKind`** (OAuth / app password, not
+  just a clone). First git slice is pickable:
+  [#131](https://github.com/drawmeanelephant/solipsist/issues/131)
+  (clone URL → folder → Local source). Pages as a *target* does
+  not require either.
 - Content-audit mailbox (`boris-content-audit`)
 - Source-RAG export for AI assist
 - `validate --watch` once A5 exists (replaces save-triggered one-shots)
@@ -454,19 +453,19 @@ here, it is not a v1 promise.
 
 ## 8. Pickup (what to do next)
 
-The gate batch (#72–#77) and the depth batch (#88–#91) are closed.
-Next **ship** is #78. Next **product cut** is M10 (Mail body) — after
-or beside ship, never inside it.
+M10 and M11 landed. Remaining **ship** is Apple-account only.
+Next **product** slice is git clone as a Local source.
 
 | Order | Track | Issue | Why this next |
 |------:|-------|-------|----------------|
-| 1 | Ship | [#78](https://github.com/drawmeanelephant/solipsist/issues/78) | Credentials, clean-Mac proof, pin bump, testdata. |
-| 2 | Mail body | [#98](https://github.com/drawmeanelephant/solipsist/issues/98) ([#99](https://github.com/drawmeanelephant/solipsist/issues/99)–[#102](https://github.com/drawmeanelephant/solipsist/issues/102), [#106](https://github.com/drawmeanelephant/solipsist/issues/106)) | Settings, mailboxes, reading, hosted Edit, native Compose. |
+| 1 | Git | [#131](https://github.com/drawmeanelephant/solipsist/issues/131) | Settings → Add Git Repository… clone URL → folder → `addLocal`. |
+| 2 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. Parallel with #131. |
+| 3 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
 
-#78 stays build-lane only (`scripts/embed-boris.sh`, `Project.yml`,
-entitlements, release workflow, `docs/SHIP-HARDENING.md`). Do not
-expand it into chrome, play, inspector, or publish. M10 owns those
-paths.
+[#131](https://github.com/drawmeanelephant/solipsist/issues/131) is
+clone-as-local, not GitHub OAuth. Do not start `SourceKind.github`
+payload work in that PR. #136 (splitter crash) stays parked on
+macOS 27 beta.
 
 ### Landed depth (do not redo)
 
@@ -490,8 +489,9 @@ Quiet on the child.
 Named in this file and **not** a product surface yet: browser OAuth,
 `github-pages-audit`.
 
-Out of v1 (unchanged): GitHub as a source, content-audit, source-rag,
-migration labs, Wasm in the app, `validate --watch` until A5 + pin.
+Out of v1 (unchanged): GitHub OAuth / `SourceKind.github` payload,
+content-audit, source-rag, migration labs, Wasm in the app,
+`validate --watch` until A5 + pin. Clone-as-local is #131.
 Compose **depth** (diagnostics, bundle `oliver`) stays Later; the
 M10 compose window is #106 / #108.
 
