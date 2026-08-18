@@ -87,6 +87,57 @@ final class CompanionURLTests: XCTestCase {
         }
     }
 
+    func testEditorURLAcceptsExtraFragmentKeys() throws {
+        let input = "http://127.0.0.1:49152/#token=0123456789abcdef&open=content/index.md"
+        let url = try EditorURL.parse(input)
+        XCTAssertEqual(url.host, "127.0.0.1")
+        XCTAssertEqual(url.fragment, "token=0123456789abcdef&open=content/index.md")
+    }
+
+    func testEditorURLTokenNeedNotBeFirstFragmentKey() throws {
+        let input = "http://127.0.0.1:8080/#open=content/index.md&token=feedface"
+        let url = try EditorURL.parse(input)
+        XCTAssertEqual(url.host, "127.0.0.1")
+    }
+
+    func testEditorURLOpeningAppendsAuthorOwnedPath() throws {
+        let base = try EditorURL.parse("http://127.0.0.1:8080/#token=abcd")
+        let opened = EditorURL.opening(base, sourcePath: "guides/getting-started.md")
+        XCTAssertEqual(opened.fragment, "token=abcd&open=content/guides/getting-started.md")
+        let parsed = try EditorURL.parse(opened.absoluteString)
+        XCTAssertEqual(parsed.fragment, opened.fragment)
+    }
+
+    func testEditorURLOpeningReplacesExistingOpen() throws {
+        let base = try EditorURL.parse("http://127.0.0.1:8080/#token=abcd&open=content/old.md")
+        let opened = EditorURL.opening(base, sourcePath: "index.md")
+        XCTAssertEqual(opened.fragment, "token=abcd&open=content/index.md")
+    }
+
+    func testEditorURLOpeningLeavesInvalidSourcePathAlone() throws {
+        let base = try EditorURL.parse("http://127.0.0.1:8080/#token=abcd")
+        XCTAssertEqual(EditorURL.opening(base, sourcePath: nil).fragment, "token=abcd")
+        XCTAssertEqual(EditorURL.opening(base, sourcePath: "").fragment, "token=abcd")
+        XCTAssertEqual(EditorURL.opening(base, sourcePath: "../secret").fragment, "token=abcd")
+        XCTAssertEqual(EditorURL.opening(base, sourcePath: "/etc/passwd").fragment, "token=abcd")
+        XCTAssertEqual(EditorURL.opening(base, sourcePath: "content/../secret").fragment, "token=abcd")
+    }
+
+    func testEditorURLProjectPathFromGraphSourcePath() {
+        XCTAssertEqual(EditorURL.projectPath(fromSourcePath: "index.md"), "content/index.md")
+        XCTAssertEqual(EditorURL.projectPath(fromSourcePath: "guides/getting-started.md"), "content/guides/getting-started.md")
+        XCTAssertEqual(EditorURL.projectPath(fromSourcePath: "content/index.md"), "content/index.md")
+        XCTAssertEqual(EditorURL.projectPath(fromSourcePath: "themes/boris/layouts/main.html"), "themes/boris/layouts/main.html")
+        XCTAssertEqual(EditorURL.projectPath(fromSourcePath: "boris.json"), "boris.json")
+        XCTAssertEqual(EditorURL.projectPath(fromSourcePath: "dist/index.html"), "content/dist/index.html")
+        XCTAssertNil(EditorURL.projectPath(fromSourcePath: nil))
+        XCTAssertNil(EditorURL.projectPath(fromSourcePath: "  "))
+        XCTAssertNil(EditorURL.projectPath(fromSourcePath: "../secret"))
+        XCTAssertNil(EditorURL.projectPath(fromSourcePath: "content/../secret"))
+        XCTAssertNil(EditorURL.projectPath(fromSourcePath: "/content/index.md"))
+        XCTAssertNil(EditorURL.projectPath(fromSourcePath: "/etc/passwd"))
+    }
+
     // MARK: - PreviewURL Tests
 
     func testPreviewURLLoopbackRules() throws {

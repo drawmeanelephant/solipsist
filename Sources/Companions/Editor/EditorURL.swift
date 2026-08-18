@@ -1,6 +1,14 @@
 import Foundation
 
 /// Helper parser for Boris editor token launch lines.
+///
+/// The afterparty Svelte shell reads the fragment with `URLSearchParams`
+/// and takes only `token`. Extra keys are ignored today. A15
+/// ([boris#649](https://github.com/drawmeanelephant/boris/issues/649))
+/// proposes an optional `open=<project-relative path>` key that the
+/// shell would feed to its own `openFile`. This parser matches that
+/// `URLSearchParams` shape so a second fragment key is not rejected,
+/// and `opening(_:sourcePath:)` is how the companion appends `open=`.
 public enum EditorURL {
     public enum ParseError: LocalizedError, Equatable {
         case empty
@@ -26,6 +34,7 @@ public enum EditorURL {
     }
 
     /// Parses a `BORIS_EDITOR_URL=http://127.0.0.1:<port>/#token=<hex>` line or raw URL.
+    /// Extra fragment keys (`&open=…`) are allowed; `token` must still be hex.
     public static func parse(_ raw: String) throws -> URL {
         var trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.hasPrefix("BORIS_EDITOR_URL=") {
@@ -43,14 +52,74 @@ public enum EditorURL {
         guard let host = components.host?.lowercased(), host == "127.0.0.1" || host == "localhost" || host == "::1" || host == "[::1]" else {
             throw ParseError.notLoopback
         }
-        guard let fragment = components.fragment, fragment.hasPrefix("token=") else {
+        guard let token = fragmentItems(components.fragment).first(where: { $0.name == "token" })?.value else {
             throw ParseError.missingTokenFragment
         }
-        let token = String(fragment.dropFirst("token=".count))
-        guard !token.isEmpty, token.allSatisfy({ $0.isHexDigit }) else {
+        guard !token.isEmpty, token.allSatisfy(\.isHexDigit) else {
             throw ParseError.invalidTokenHex
         }
 
         return url
+    }
+
+    /// Appends or replaces `open=` with the author-owned project path for
+    /// a graph `sourcePath`. Returns `url` unchanged when the path is
+    /// missing or would fail `file_api.validatePath`.
+    public static func opening(_ url: URL, sourcePath: String?) -> URL {
+        guard let project = projectPath(fromSourcePath: sourcePath) else { return url }
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        var items = fragmentItems(components.fragment).filter { $0.name != "open" }
+        items.append(URLQueryItem(name: "open", value: project))
+        components.fragment = encodedFragment(items)
+        return components.url ?? url
+    }
+
+    /// Maps a graph `sourcePath` (content-root relative) onto the
+    /// project-relative path `boris-editor` accepts. Matches the Svelte
+    /// shell's `projectPathForProblem`: `content/` / `themes/` / `boris.json`
+    /// pass through; everything else is prefixed with `content/`.
+    public static func projectPath(fromSourcePath sourcePath: String?) -> String? {
+        guard let raw = sourcePath?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return nil
+        }
+        let normalized = raw.replacingOccurrences(of: "\\", with: "/")
+        if normalized.hasPrefix("/") { return nil }
+        let project: String
+        if normalized == "boris.json" || normalized.hasPrefix("content/") || normalized.hasPrefix("themes/") {
+            project = normalized
+        } else {
+            project = "content/" + normalized.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        }
+        return isAuthorOwned(project) ? project : nil
+    }
+
+    // MARK: - Fragment (URLSearchParams)
+
+    private static func fragmentItems(_ fragment: String?) -> [URLQueryItem] {
+        guard let fragment, !fragment.isEmpty else { return [] }
+        var components = URLComponents()
+        components.percentEncodedQuery = fragment
+        return components.queryItems ?? []
+    }
+
+    private static func encodedFragment(_ items: [URLQueryItem]) -> String {
+        var components = URLComponents()
+        components.queryItems = items
+        return components.percentEncodedQuery ?? ""
+    }
+
+    /// afterparty `editor/src/file_api.zig` `validatePath`: no leading `/`,
+    /// no empty/`.`/`..` segments, author-owned roots only.
+    private static func isAuthorOwned(_ path: String) -> Bool {
+        if path.isEmpty || path.count > 4096 { return false }
+        if path.hasPrefix("/") { return false }
+        if path.contains("\\") || path.contains("\0") { return false }
+        let segments = path.split(separator: "/", omittingEmptySubsequences: false)
+        for segment in segments {
+            if segment.isEmpty || segment == "." || segment == ".." { return false }
+        }
+        return path == "boris.json"
+            || path.hasPrefix("content/")
+            || path.hasPrefix("themes/")
     }
 }

@@ -936,9 +936,9 @@ Fact-checked against the tree (not against a live afterparty checkout — we do 
 | Source | What it pins |
 |--------|----------------|
 | `docs/issues/boris-A14-editor-launch-contract.md` | Launch line `BORIS_EDITOR_URL=http://127.0.0.1:<port>/#token=<32 hex>`. Flags: `[DIR] [--boris PATH] [--ui-dir DIR] [--port PORT]`. Token in the **fragment**, not query. Non-goals: no NDJSON, no WKWebView-specific behavior. |
-| `docs/issues/README.md` | "M10 editor wiring (#102) may later need an open-file deep link on `boris-editor`; do not draft it until it is fact-checked against afterparty. Do not invent a query/fragment." |
-| `Sources/Companions/Editor/EditorURL.swift` | Accepts only loopback `http` + `#token=<hex>`. No `file`, `path`, or `sourcePath` parameter. A second fragment key would fail `hasPrefix("token=")`. |
-| `Sources/Engine/EditorServer.swift` | Args: `contentRoot --boris <engine> --port 0`. No file argument. |
+| `docs/issues/README.md` | A15 ([boris#649](https://github.com/drawmeanelephant/boris/issues/649)) filed after the afterparty fact-check. Solipsist appends `#token=…&open=` from `sourcePath`; do not invent a different query/fragment. |
+| `Sources/Companions/Editor/EditorURL.swift` | Loopback `http` + `#token=<hex>`. Extra fragment keys allowed (`URLSearchParams` shape). `opening(_:sourcePath:)` appends `open=` for an author-owned project path. |
+| `Sources/Engine/EditorServer.swift` | Args: `projectRoot --boris <engine> --port 0`. DIR is the project folder (must contain `content/`), not the content tree. |
 | `docs/cards/parallel/editor-shell.md` | "Do not put the token into query or logs." |
 
 There is no proven query or fragment the Svelte shell honors for a file. **Do not invent one. Do not draft `docs/issues/boris-A*-editor-open-file.md` in M10.** Surface `sourcePath` in chrome and stop.

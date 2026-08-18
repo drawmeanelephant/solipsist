@@ -9,8 +9,11 @@ public struct EditorExit: Sendable {
 
 /// The M6 author companion host (A14 / #75): a long-lived `boris-editor` subprocess.
 ///
-/// Runs `boris-editor <contentRoot> --boris <engineBinary> --port 0` with
-/// `cwd = workingDirectory`. The startup line on stderr:
+/// Runs `boris-editor <projectRoot> --boris <engineBinary> --port 0` with
+/// `cwd = projectRoot`. DIR must be the project folder (the one that
+/// contains `content/`) — afterparty `project.discover` rejects a
+/// content-tree path with "has no content directory". The startup line
+/// on stderr:
 ///
 ///     BORIS_EDITOR_URL=http://127.0.0.1:<port>/#token=<32 hex chars>
 ///
@@ -31,15 +34,14 @@ public final class EditorServer: @unchecked Sendable {
     public init(
         editorBinary: URL,
         engineBinary: URL,
-        contentRoot: URL,
-        workingDirectory: URL,
+        projectRoot: URL,
         uiDir: URL? = nil,
         port: Int = 0
     ) {
         let process = Process()
         process.executableURL = editorBinary
         var args = [
-            contentRoot.path,
+            projectRoot.path,
             "--boris", engineBinary.path,
             "--port", String(port),
         ]
@@ -47,7 +49,7 @@ public final class EditorServer: @unchecked Sendable {
             args.append(contentsOf: ["--ui-dir", uiDir.path])
         }
         process.arguments = args
-        process.currentDirectoryURL = workingDirectory
+        process.currentDirectoryURL = projectRoot
         process.standardOutput = FileHandle.nullDevice
         process.standardError = stderrPipe
         self.process = process
