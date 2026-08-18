@@ -2,6 +2,47 @@ import Foundation
 
 /// Coordinator states from the #58 state machine. `validating` is any
 /// non-tree-writing one-shot; `building` is any tree-writing one-shot.
+enum CoordinatorVerb: String, Sendable {
+    case plan
+    case validate
+    case buildIR
+    case buildHTML
+    case buildThis = "build this"
+    case buildAll
+    case check
+    case impact
+    case publishStandardSite = "publish Standard.site"
+    case standardSiteVerify = "Standard.site verify"
+    case standardSiteRecords = "Standard.site records"
+    case standardSiteSessions = "Standard.site sessions"
+    case standardSiteLogout = "Standard.site logout"
+    case standardSiteSmoke = "Standard.site smoke"
+    case publishNostr = "publish Nostr"
+    case package
+
+    /// Jobs that write trees watch also owns (`dist/`, `.boris`, proof, packages).
+    var writesTree: Bool {
+        switch self {
+        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite, .publishNostr, .package:
+            true
+        case .plan, .validate, .check, .impact, .standardSiteVerify, .standardSiteRecords, .standardSiteSessions, .standardSiteLogout, .standardSiteSmoke:
+            false
+        }
+    }
+
+    var timeout: Duration {
+        writesTree ? CoordinatorPolicy.buildTimeout : CoordinatorPolicy.oneShotTimeout
+    }
+
+    var secretTarget: String? {
+        switch self {
+        case .publishNostr: PublishTargets.nostr
+        case .publishStandardSite: PublishTargets.standardSite
+        default: nil
+        }
+    }
+}
+
 enum CoordinatorState: String, Sendable {
     case idle
     case watching
