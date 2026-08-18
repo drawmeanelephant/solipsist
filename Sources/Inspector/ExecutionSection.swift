@@ -3,22 +3,22 @@ import SwiftUI
 /// Machine-local execution knobs. These write UserDefaults only — never
 /// `boris.json` (D2).
 struct ExecutionSection: View {
-    @AppStorage(Self.jobsKey) private var jobs = 1
-    @AppStorage(Self.incrementalKey) private var incremental = false
-    @AppStorage(Self.quietKey) private var quiet = false
+    @AppStorage(BorisExecutionKnobs.jobsKey) private var jobs = 1
+    @AppStorage(BorisExecutionKnobs.incrementalKey) private var incremental = false
+    @AppStorage(BorisExecutionKnobs.quietKey) private var quiet = false
 
-    static let jobsKey = "solipsist.execution.jobs"
-    static let incrementalKey = "solipsist.execution.incremental"
-    static let quietKey = "solipsist.execution.quiet"
-    static let jobsRange = 1...64
+    static let jobsKey = BorisExecutionKnobs.jobsKey
+    static let incrementalKey = BorisExecutionKnobs.incrementalKey
+    static let quietKey = BorisExecutionKnobs.quietKey
+    static let jobsRange = BorisExecutionKnobs.jobsRange
 
     var body: some View {
-        Stepper(value: $jobs, in: Self.jobsRange) {
+        Stepper(value: $jobs, in: BorisExecutionKnobs.jobsRange) {
             LabeledContent("Jobs", value: "\(clampedJobs)")
         }
         .onChange(of: jobs) { _, newValue in
-            if !Self.jobsRange.contains(newValue) {
-                jobs = min(max(newValue, Self.jobsRange.lowerBound), Self.jobsRange.upperBound)
+            if !BorisExecutionKnobs.jobsRange.contains(newValue) {
+                jobs = min(max(newValue, BorisExecutionKnobs.jobsRange.lowerBound), BorisExecutionKnobs.jobsRange.upperBound)
             }
         }
         Toggle("Incremental", isOn: $incremental)
@@ -29,6 +29,6 @@ struct ExecutionSection: View {
     }
 
     private var clampedJobs: Int {
-        min(max(jobs, Self.jobsRange.lowerBound), Self.jobsRange.upperBound)
+        min(max(jobs, BorisExecutionKnobs.jobsRange.lowerBound), BorisExecutionKnobs.jobsRange.upperBound)
     }
 }

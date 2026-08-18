@@ -147,35 +147,72 @@ public struct GraphNode: Codable, Sendable {
 // MARK: - Cooklang recipes (IR 0.4 facet)
 
 /// `recipe` on a graph node (`ir-graph-0.4.0.schema.json`).
-public struct CookRecipe: Codable, Sendable {
+public struct CookRecipe: Codable, Sendable, Equatable {
     public var ingredients: [CookIngredient]
     public var cookware: [CookCookware]
     public var timers: [CookTimer]
+
+    public init(
+        ingredients: [CookIngredient] = [],
+        cookware: [CookCookware] = [],
+        timers: [CookTimer] = []
+    ) {
+        self.ingredients = ingredients
+        self.cookware = cookware
+        self.timers = timers
+    }
 }
 
-public struct CookIngredient: Codable, Sendable {
+public struct CookIngredient: Codable, Sendable, Equatable {
     public var name: String
     public var quantity: CookQuantity
     /// Short-hand preparation from `(...)`; empty when absent.
     public var preparation: String
     /// Entity id of the referenced recipe when the author wrote `@./path`.
     public var recipeRef: String?
+
+    public init(
+        name: String,
+        quantity: CookQuantity,
+        preparation: String = "",
+        recipeRef: String? = nil
+    ) {
+        self.name = name
+        self.quantity = quantity
+        self.preparation = preparation
+        self.recipeRef = recipeRef
+    }
 }
 
-public struct CookCookware: Codable, Sendable {
+public struct CookCookware: Codable, Sendable, Equatable {
     public var name: String
     public var quantity: CookQuantity
+
+    public init(name: String, quantity: CookQuantity) {
+        self.name = name
+        self.quantity = quantity
+    }
 }
 
-public struct CookTimer: Codable, Sendable {
+public struct CookTimer: Codable, Sendable, Equatable {
     /// Empty for an anonymous timer.
     public var name: String
     public var quantity: CookQuantity
+
+    public init(name: String, quantity: CookQuantity) {
+        self.name = name
+        self.quantity = quantity
+    }
 }
 
-public struct CookQuantity: Codable, Sendable {
+public struct CookQuantity: Codable, Sendable, Equatable {
     public var amount: String
     public var unit: String
+
+    public init(amount: String, unit: String = "") {
+        self.amount = amount
+        self.unit = unit
+    }
 }
 
 public struct GraphEndpoint: Codable, Sendable {
@@ -307,7 +344,7 @@ public struct CompletionRelation: Codable, Sendable {
 
 /// Strict mirror of profile schema v1. Unknown keys are ignored on decode
 /// (D8); do not invent keys when encoding.
-public struct PublicationProfile: Codable, Sendable {
+public struct PublicationProfile: Codable, Sendable, Equatable {
     public var format: String
     public var schema_version: Int?
     public var input: String?
@@ -316,19 +353,45 @@ public struct PublicationProfile: Codable, Sendable {
     public var publication: PublicationDeclaration?
     public var targets: [PublicationTarget]?
     public var editions: PublicationEditions?
+
+    public init(
+        format: String = "boris-publication-profile",
+        schema_version: Int? = 1,
+        input: String? = nil,
+        input_format: String? = nil,
+        site: PublicationSite? = nil,
+        publication: PublicationDeclaration? = nil,
+        targets: [PublicationTarget]? = nil,
+        editions: PublicationEditions? = nil
+    ) {
+        self.format = format
+        self.schema_version = schema_version
+        self.input = input
+        self.input_format = input_format
+        self.site = site
+        self.publication = publication
+        self.targets = targets
+        self.editions = editions
+    }
 }
 
-public struct PublicationSite: Codable, Sendable {
+public struct PublicationSite: Codable, Sendable, Equatable {
     public var url: String?
     public var title: String?
     public var description: String?
+
+    public init(url: String? = nil, title: String? = nil, description: String? = nil) {
+        self.url = url
+        self.title = title
+        self.description = description
+    }
 }
 
-public struct PublicationDeclaration: Codable, Sendable {
+public struct PublicationDeclaration: Codable, Sendable, Equatable {
     public var target: String
-    public var base_url: String
-    public var origin: String
-    public var base_path: String
+    public var base_url: String?
+    public var origin: String?
+    public var base_path: String?
     public var site_kind: String?
     public var did: String?
     public var pds: String?
@@ -339,19 +402,61 @@ public struct PublicationDeclaration: Codable, Sendable {
     public var include: [String]?
     public var exclude: [String]?
     public var prune: Bool?
+
+    public init(
+        target: String,
+        base_url: String? = nil,
+        origin: String? = nil,
+        base_path: String? = nil,
+        site_kind: String? = nil,
+        did: String? = nil,
+        pds: String? = nil,
+        pds_origin: String? = nil,
+        name: String? = nil,
+        description: String? = nil,
+        show_in_discover: Bool? = nil,
+        include: [String]? = nil,
+        exclude: [String]? = nil,
+        prune: Bool? = nil
+    ) {
+        self.target = target
+        self.base_url = base_url
+        self.origin = origin
+        self.base_path = base_path
+        self.site_kind = site_kind
+        self.did = did
+        self.pds = pds
+        self.pds_origin = pds_origin
+        self.name = name
+        self.description = description
+        self.show_in_discover = show_in_discover
+        self.include = include
+        self.exclude = exclude
+        self.prune = prune
+    }
 }
 
-public struct PublicationLayoutRule: Codable, Sendable {
+public struct PublicationLayoutRule: Codable, Sendable, Equatable {
     public var selector: String
     public var layout: String
+
+    public init(selector: String, layout: String) {
+        self.selector = selector
+        self.layout = layout
+    }
 }
 
-public struct PublicationPathOutput: Codable, Sendable {
+public struct PublicationPathOutput: Codable, Sendable, Equatable {
     public var path: String
     public var limit: Int?
+
+    public init(path: String, limit: Int? = nil) {
+        self.path = path
+        self.limit = limit
+    }
 }
 
-public struct PublicationTarget: Codable, Sendable {
+public struct PublicationTarget: Codable, Sendable, Equatable {
     public var name: String
     public var output: String
     public var `public`: Bool?
@@ -361,29 +466,87 @@ public struct PublicationTarget: Codable, Sendable {
     public var sitemap: PublicationPathOutput?
     public var rss: PublicationPathOutput?
     public var llms: PublicationPathOutput?
+
+    public init(
+        name: String,
+        output: String,
+        public: Bool? = nil,
+        theme: String? = nil,
+        layout: String? = nil,
+        layout_rules: [PublicationLayoutRule]? = nil,
+        sitemap: PublicationPathOutput? = nil,
+        rss: PublicationPathOutput? = nil,
+        llms: PublicationPathOutput? = nil
+    ) {
+        self.name = name
+        self.output = output
+        self.public = `public`
+        self.theme = theme
+        self.layout = layout
+        self.layout_rules = layout_rules
+        self.sitemap = sitemap
+        self.rss = rss
+        self.llms = llms
+    }
 }
 
-public struct PublicationEdition: Codable, Sendable {
+public struct PublicationEdition: Codable, Sendable, Equatable {
     public var output: String
+
+    public init(output: String) {
+        self.output = output
+    }
 }
 
-public struct PublicationRagEdition: Codable, Sendable {
+public struct PublicationRagEdition: Codable, Sendable, Equatable {
     public var output: String
     public var scope: String?
     public var split_size: Int?
     public var bundles_only: Bool?
+
+    public init(
+        output: String,
+        scope: String? = nil,
+        split_size: Int? = nil,
+        bundles_only: Bool? = nil
+    ) {
+        self.output = output
+        self.scope = scope
+        self.split_size = split_size
+        self.bundles_only = bundles_only
+    }
 }
 
-public struct PublicationContextEdition: Codable, Sendable {
+public struct PublicationContextEdition: Codable, Sendable, Equatable {
     public var output: String
     public var scope: String?
     public var split_size: Int?
+
+    public init(
+        output: String,
+        scope: String? = nil,
+        split_size: Int? = nil
+    ) {
+        self.output = output
+        self.scope = scope
+        self.split_size = split_size
+    }
 }
 
-public struct PublicationEditions: Codable, Sendable {
+public struct PublicationEditions: Codable, Sendable, Equatable {
     public var ir: PublicationEdition?
     public var rag: PublicationRagEdition?
     public var context: PublicationContextEdition?
+
+    public init(
+        ir: PublicationEdition? = nil,
+        rag: PublicationRagEdition? = nil,
+        context: PublicationContextEdition? = nil
+    ) {
+        self.ir = ir
+        self.rag = rag
+        self.context = context
+    }
 }
 
 // MARK: - Publication plan (`boris-publication-plan`, schema v1)

@@ -19,13 +19,14 @@ enum CoordinatorVerb: String, Sendable {
     case standardSiteSmoke = "Standard.site smoke"
     case publishNostr = "publish Nostr"
     case package
+    case recipeScale = "recipe-scale"
 
     /// Jobs that write trees watch also owns (`dist/`, `.boris`, proof, packages).
     var writesTree: Bool {
         switch self {
         case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite, .publishNostr, .package:
             true
-        case .plan, .validate, .check, .impact, .standardSiteVerify, .standardSiteRecords, .standardSiteSessions, .standardSiteLogout, .standardSiteSmoke:
+        case .plan, .validate, .check, .impact, .standardSiteVerify, .standardSiteRecords, .standardSiteSessions, .standardSiteLogout, .standardSiteSmoke, .recipeScale:
             false
         }
     }

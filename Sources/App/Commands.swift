@@ -99,6 +99,11 @@ struct SolipsistCommands: Commands {
             }
             .disabled(!hasPage || !runtime.coordinator.canRunVerb)
 
+            Button("Recipe Scale") {
+                runtime.coordinator.run(.recipeScale, store: store, runtime: runtime)
+            }
+            .disabled(!hasPage || !runtime.coordinator.canRunVerb)
+
             Divider()
 
             Button("Publish to Standard.site") {

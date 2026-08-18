@@ -92,8 +92,8 @@ targets:
         type: folder
       - path: Sources/Models
       - path: Sources/Security
-      - path: Sources/Inspector/InspectorProfile.swift
-      - path: Sources/Inspector/ThemeCatalog.swift
+      - path: Sources/Engine
+      - path: Sources/Inspector
       - path: Sources/Play/Local/LocalPlayGraph.swift
       - path: Sources/App/CoordinatorActivity.swift
       - path: Sources/Play/Local/ProblemResolver.swift
@@ -102,9 +102,9 @@ targets:
       - path: Sources/App/SaveValidateGate.swift
       - path: Sources/Workspace/Source.swift
       - path: Sources/Workspace/WorkspacePersistence.swift
+      - path: Sources/Workspace/WorkspaceSelection.swift
       - path: Sources/Workspace/Local/LocalSource.swift
-      - path: Sources/Engine/ChildProcessControl.swift
-      - path: Sources/Engine/BorisRunner.swift
+      - path: Sources/Companions/CompanionID.swift
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
     settings:

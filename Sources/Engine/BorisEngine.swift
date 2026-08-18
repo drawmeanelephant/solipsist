@@ -84,6 +84,15 @@ public struct BorisPublishResult: Sendable {
     public let stderr: String
 }
 
+/// Result of recipe-scale evaluation.
+public struct BorisRecipeScale: Sendable {
+    public let exitCode: Int32
+    public let recipe: CookRecipe?
+    public let scale: Double
+    public let stdout: String
+    public let stderr: String
+}
+
 public enum BorisEngineError: Error, Sendable, CustomStringConvertible {
     case binaryNotFound
     case missingArtifact(String)
@@ -137,7 +146,8 @@ public actor BorisEngine {
     public func buildIR(
         contentRoot: URL,
         outDir: URL,
-        timings: Bool = false
+        timings: Bool = false,
+        knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisBuild {
         try FileManager.default.createDirectory(
             at: outDir, withIntermediateDirectories: true
@@ -145,8 +155,12 @@ public actor BorisEngine {
         var arguments = [
             "--out", outDir.lastPathComponent,
             "--input", contentRoot.path,
-            "--quiet",
         ]
+        if let knobs {
+            knobs.apply(to: &arguments, defaultQuiet: true)
+        } else {
+            arguments.append("--quiet")
+        }
         if timings {
             arguments.append("--timings")
         }
@@ -204,7 +218,8 @@ public actor BorisEngine {
     public func buildHTML(
         contentRoot: URL,
         htmlDir: URL,
-        reportURL: URL? = nil
+        reportURL: URL? = nil,
+        knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisHTMLBuild {
         try FileManager.default.createDirectory(
             at: htmlDir, withIntermediateDirectories: true
@@ -212,8 +227,12 @@ public actor BorisEngine {
         var arguments = [
             "--input", contentRoot.path,
             "--html-dir", htmlDir.lastPathComponent,
-            "--quiet",
         ]
+        if let knobs {
+            knobs.apply(to: &arguments, defaultQuiet: true)
+        } else {
+            arguments.append("--quiet")
+        }
         if let reportURL {
             arguments += ["--report", reportURL.path]
         }
@@ -238,7 +257,8 @@ public actor BorisEngine {
         target: PublicationTarget,
         siteURL: String? = nil,
         workingDirectory: URL? = nil,
-        timings: Bool = false
+        timings: Bool = false,
+        knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisEntryBuildResult {
         let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
         let fm = FileManager.default
@@ -250,8 +270,12 @@ public actor BorisEngine {
             "--input", contentRoot.path,
             "--target", "\(target.name)=\(target.output)",
             "--report", reportURL.path,
-            "--quiet",
         ]
+        if let knobs {
+            knobs.apply(to: &args, defaultQuiet: true)
+        } else {
+            args.append("--quiet")
+        }
         if let theme = target.theme, !theme.isEmpty {
             args.append(contentsOf: ["--theme", theme])
         }
@@ -308,10 +332,16 @@ public actor BorisEngine {
         splitSize: Int? = nil,
         isComplete: Bool = false,
         workingDirectory: URL? = nil,
-        timings: Bool = false
+        timings: Bool = false,
+        knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisEntryBuildResult {
         let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
-        var args = ["--input", contentRoot.path, "--quiet"]
+        var args = ["--input", contentRoot.path]
+        if let knobs {
+            knobs.apply(to: &args, defaultQuiet: true)
+        } else {
+            args.append("--quiet")
+        }
         switch kind {
         case "ir":
             args.append(contentsOf: ["--out", outputDir])
@@ -364,7 +394,8 @@ public actor BorisEngine {
         contentRoot: URL,
         profile: PublicationProfile,
         workingDirectory: URL? = nil,
-        timings: Bool = true
+        timings: Bool = true,
+        knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisFanoutResult {
         let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
         var results: [BorisEntryBuildResult] = []
@@ -377,7 +408,8 @@ public actor BorisEngine {
                     target: target,
                     siteURL: profile.site?.url,
                     workingDirectory: cwd,
-                    timings: timings
+                    timings: timings,
+                    knobs: knobs
                 )
                 results.append(res)
                 if !res.isSuccess {
@@ -394,7 +426,8 @@ public actor BorisEngine {
                 target: PublicationTarget(name: "default", output: "dist"),
                 siteURL: profile.site?.url,
                 workingDirectory: cwd,
-                timings: timings
+                timings: timings,
+                knobs: knobs
             )
             results.append(res)
             if !res.isSuccess {
@@ -414,7 +447,8 @@ public actor BorisEngine {
                     kind: "ir",
                     outputDir: ir.output,
                     workingDirectory: cwd,
-                    timings: timings
+                    timings: timings,
+                    knobs: knobs
                 )
                 results.append(res)
                 if !res.isSuccess {
@@ -433,7 +467,8 @@ public actor BorisEngine {
                     scope: rag.scope,
                     splitSize: rag.split_size,
                     workingDirectory: cwd,
-                    timings: timings
+                    timings: timings,
+                    knobs: knobs
                 )
                 results.append(res)
                 if !res.isSuccess {
@@ -452,7 +487,8 @@ public actor BorisEngine {
                     scope: context.scope,
                     splitSize: context.split_size,
                     workingDirectory: cwd,
-                    timings: timings
+                    timings: timings,
+                    knobs: knobs
                 )
                 results.append(res)
                 if !res.isSuccess {
@@ -545,19 +581,24 @@ public actor BorisEngine {
     /// `--report PATH` to write the rendered JSON to a file instead. On
     /// afterparty, `check` exits 0 with findings by default and only exits 1
     /// with `--fail-on-unreferenced` — either way the report decodes fine.
-    public func check(contentRoot: URL, workingDirectory: URL? = nil) async throws -> BorisAnalysis {
+    public func check(contentRoot: URL, workingDirectory: URL? = nil, knobs: BorisExecutionKnobs? = nil) async throws -> BorisAnalysis {
         let fm = FileManager.default
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-check-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
+        var args = [
+            "check",
+            "--input", contentRoot.path,
+            "--format", "json",
+            "--report", reportURL.path,
+        ]
+        if let knobs {
+            knobs.apply(to: &args, defaultQuiet: true)
+        } else {
+            args.append("--quiet")
+        }
         let out = try await run(
-            arguments: [
-                "check",
-                "--input", contentRoot.path,
-                "--format", "json",
-                "--report", reportURL.path,
-                "--quiet",
-            ],
+            arguments: args,
             workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
         )
         let report = try decode(AnalysisReport.self, from: reportURL, artifact: "check report")
@@ -566,19 +607,24 @@ public actor BorisEngine {
 
     /// Runs `boris impact <pageID> --format json --report <file>` and decodes
     /// the report.
-    public func impact(contentRoot: URL, pageID: String, workingDirectory: URL? = nil) async throws -> BorisAnalysis {
+    public func impact(contentRoot: URL, pageID: String, workingDirectory: URL? = nil, knobs: BorisExecutionKnobs? = nil) async throws -> BorisAnalysis {
         let fm = FileManager.default
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-impact-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
+        var args = [
+            "impact", pageID,
+            "--input", contentRoot.path,
+            "--format", "json",
+            "--report", reportURL.path,
+        ]
+        if let knobs {
+            knobs.apply(to: &args, defaultQuiet: true)
+        } else {
+            args.append("--quiet")
+        }
         let out = try await run(
-            arguments: [
-                "impact", pageID,
-                "--input", contentRoot.path,
-                "--format", "json",
-                "--report", reportURL.path,
-                "--quiet",
-            ],
+            arguments: args,
             workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
         )
         let report = try decode(AnalysisReport.self, from: reportURL, artifact: "impact report")
@@ -614,14 +660,17 @@ public actor BorisEngine {
     public func validate(
         contentRoot: URL,
         reportURL: URL,
-        workingDirectory: URL? = nil
+        workingDirectory: URL? = nil,
+        knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisValidate {
+        var args = [
+            "validate",
+            "--input", contentRoot.path,
+            "--report", reportURL.path,
+        ]
+        knobs?.apply(to: &args, defaultQuiet: false)
         let out = try await run(
-            arguments: [
-                "validate",
-                "--input", contentRoot.path,
-                "--report", reportURL.path,
-            ],
+            arguments: args,
             workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
         )
         var report: HTMLBuildReport?
@@ -806,6 +855,70 @@ public actor BorisEngine {
             workingDirectory: bundleURL.deletingLastPathComponent()
         )
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
+    // MARK: Recipe Scale
+
+    /// Runs `boris recipe-scale` (or evaluates scaled Cooklang recipe).
+    public func recipeScale(
+        contentRoot: URL,
+        pageID: String,
+        factor: Double = 1.0,
+        workingDirectory: URL? = nil,
+        knobs: BorisExecutionKnobs? = nil
+    ) async throws -> BorisRecipeScale {
+        var args = [
+            "recipe-scale",
+            pageID,
+            "--scale", "\(factor)",
+            "--input", contentRoot.path,
+        ]
+        if let knobs {
+            knobs.apply(to: &args, defaultQuiet: true)
+        } else {
+            args.append("--quiet")
+        }
+
+        let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
+        let out = try? await run(arguments: args, workingDirectory: cwd)
+
+        if let out, out.exitCode == 0, let recipe = decodeJSON(CookRecipe.self, from: out.stdout) {
+            return BorisRecipeScale(
+                exitCode: out.exitCode,
+                recipe: recipe,
+                scale: factor,
+                stdout: out.stdoutText,
+                stderr: out.stderrText
+            )
+        }
+
+        // Fallback: evaluate scaling directly from local graph artifact if available
+        let graphURL = contentRoot.appendingPathComponent(".boris/graph.json")
+        let altGraphURL = cwd.appendingPathComponent(".boris/graph.json")
+        let targetGraphURL = FileManager.default.fileExists(atPath: graphURL.path) ? graphURL : altGraphURL
+        if FileManager.default.fileExists(atPath: targetGraphURL.path),
+           let data = try? Data(contentsOf: targetGraphURL),
+           let graph = try? JSONDecoder().decode(Graph.self, from: data),
+           let node = graph.nodes.first(where: { $0.id == pageID }),
+           let originalRecipe = node.recipe
+        {
+            let scaled = RecipeScaleHelper.scale(recipe: originalRecipe, factor: factor)
+            return BorisRecipeScale(
+                exitCode: 0,
+                recipe: scaled,
+                scale: factor,
+                stdout: out?.stdoutText ?? "",
+                stderr: out?.stderrText ?? ""
+            )
+        }
+
+        return BorisRecipeScale(
+            exitCode: out?.exitCode ?? 1,
+            recipe: nil,
+            scale: factor,
+            stdout: out?.stdoutText ?? "",
+            stderr: out?.stderrText ?? ""
+        )
     }
 
     // MARK: Probe
