@@ -115,6 +115,7 @@ targets:
       - path: Sources/Compose/ComposeHighlighter.swift
       - path: Sources/Compose/ComposeDiagnostic.swift
       - path: Sources/Compose/ComposeFrontmatter.swift
+      - path: Sources/Compose/ComposeCookCompletion.swift
       - path: Sources/Compose/MarkupRenderService.swift
       - path: Sources/Compose/ComposePageResolver.swift
       - path: Sources/Compose/OliverRenderService.swift
