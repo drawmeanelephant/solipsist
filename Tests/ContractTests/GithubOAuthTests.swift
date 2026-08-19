@@ -218,7 +218,6 @@ final class GithubOAuthTests: XCTestCase {
         XCTAssertEqual(item.detailLine, "/tmp/blog")
         XCTAssertTrue(item.isAvailable)
         XCTAssertNil(item.branch)
-        XCTAssertEqual(source.tokenAccount, "github:acme/blog")
         XCTAssertEqual(source.remoteURL, URL(string: "https://github.com/acme/blog"))
 
         var unavailable = source

@@ -217,6 +217,7 @@ final class AddGithubFlowModel {
 
         let dest = parent.appendingPathComponent(repository, isDirectory: true)
         let urlString = "https://github.com/\(owner)/\(repository).git"
+        let helperApp = Bundle.main.executableURL
         let session = CloneSession()
         cloneSession = session
         step = .cloning(owner: owner, repository: repository)
@@ -227,7 +228,7 @@ final class AddGithubFlowModel {
             // failure leaves the token in the Keychain — accepted, the
             // same posture as any OAuth app.
             do {
-                try tokenStore.save(token, owner: owner, repository: repository)
+                try tokenStore.save(token)
             } catch {
                 cloneSession = nil
                 isBusy = false
@@ -238,7 +239,12 @@ final class AddGithubFlowModel {
             let result: GitClone.CloneResult
             do {
                 result = try await Task.detached {
-                    try GitClone.clone(url: urlString, to: dest, session: session)
+                    try GitClone.clone(
+                        url: urlString,
+                        to: dest,
+                        session: session,
+                        credentialHelperApp: helperApp
+                    )
                 }.value
             } catch {
                 cloneSession = nil
