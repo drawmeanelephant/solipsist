@@ -5,6 +5,7 @@ import SwiftUI
 struct SourcesSettingsPane: View {
     @Environment(WorkspaceStore.self) private var store
     @State private var confirmRemove = false
+    @State private var showAddGithub = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -14,7 +15,7 @@ struct SourcesSettingsPane: View {
                 sourceList
                 actionBar
                 Text(
-                    "A source is a place content lives. Local folders now. GitHub — and other remotes — later, in this same list."
+                    "A source is a place content lives: local folders and GitHub accounts, in this same list."
                 )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -34,6 +35,9 @@ struct SourcesSettingsPane: View {
             }
         } message: {
             Text("The folder on disk is not deleted.")
+        }
+        .sheet(isPresented: $showAddGithub) {
+            AddGithubAccountSheet()
         }
     }
 
@@ -66,6 +70,9 @@ struct SourcesSettingsPane: View {
                 Button("Add Git Repository…") {
                     store.presentClonePanel()
                 }
+                Button("Add GitHub Account…") {
+                    showAddGithub = true
+                }
             }
             Button("Relocate…") {
                 if let id = store.selection.sourceID {
@@ -89,7 +96,7 @@ struct SourcesSettingsPane: View {
                 .foregroundStyle(.secondary)
             Text("No Sources")
                 .font(.headline)
-            Text("A source is a place content lives — an account, not a file tree. Local folders now (a folder with `boris.json`, for example `Stunts/happy`). GitHub and other remotes later, in this same list.")
+            Text("A source is a place content lives — an account, not a file tree. Local folders (a folder with `boris.json`, for example `Stunts/happy`) and GitHub accounts, in this same list.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -99,6 +106,9 @@ struct SourcesSettingsPane: View {
             }
             Button("Add Git Repository…") {
                 store.presentClonePanel()
+            }
+            Button("Add GitHub Account…") {
+                showAddGithub = true
             }
             Spacer(minLength: 0)
         }

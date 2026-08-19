@@ -80,11 +80,23 @@ public enum GitClone {
 
     /// Run `/usr/bin/git clone -- <url> <dest>`. SIGTERM on the child is
     /// available through the returned session. Blocks until the clone
-    /// finishes; call off the main actor.
-    public static func clone(url: String, to dest: URL, session: CloneSession) throws -> CloneResult {
+    /// finishes; call off the main actor. `environment` merges over the
+    /// inherited environment — the default disables git's interactive
+    /// terminal prompts so a private repo without credentials fails
+    /// fast with git's error instead of hanging on a hidden prompt.
+    public static func clone(
+        url: String,
+        to dest: URL,
+        session: CloneSession,
+        environment: [String: String] = [:]
+    ) throws -> CloneResult {
         let process = Process()
         process.executableURL = gitExecutableURL()
         process.arguments = ["clone", "--", url, dest.path]
+        var env = ProcessInfo.processInfo.environment
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        env.merge(environment) { _, new in new }
+        process.environment = env
         let errPipe = Pipe()
         process.standardOutput = FileHandle.nullDevice
         process.standardError = errPipe

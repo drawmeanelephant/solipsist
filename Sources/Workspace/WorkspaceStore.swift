@@ -214,11 +214,15 @@ final class WorkspaceStore {
 
     private func resolvedURL(for id: SourceID) -> URL? {
         if let url = scopedURLs[id] { return url }
-        guard let item = sources.first(where: { $0.id == id }),
-              case .local(let local) = item,
-              let resolved = try? local.resolve().url
-        else { return nil }
-        return resolved.standardizedFileURL
+        guard let item = sources.first(where: { $0.id == id }) else { return nil }
+        switch item {
+        case .local(let local):
+            guard let resolved = try? local.resolve().url else { return nil }
+            return resolved.standardizedFileURL
+        case .github(let github):
+            guard let resolved = try? github.resolve().url else { return nil }
+            return resolved.standardizedFileURL
+        }
     }
 
     func addLocal(url: URL) {
@@ -243,6 +247,40 @@ final class WorkspaceStore {
             persist()
         } catch {
             lastError = String(describing: error)
+        }
+    }
+
+    /// Add an authenticated GitHub source (M15): the working copy was
+    /// already cloned by the sheet; here it is bookmarked like any
+    /// folder and the identity is attached. The token was saved to the
+    /// Keychain by the sheet under the same owner/repo.
+    @discardableResult
+    func addGithub(
+        workingCopy url: URL,
+        owner: String,
+        repository: String,
+        defaultBranch: String,
+        grantedScopes: [String]
+    ) -> GithubSource? {
+        lastError = nil
+        let standardized = url.standardizedFileURL
+        do {
+            var github = try GithubSource.make(
+                workingCopy: standardized,
+                owner: owner,
+                repository: repository,
+                defaultBranch: defaultBranch,
+                grantedScopes: grantedScopes
+            )
+            github = beginAccess(github)
+            sources.append(.github(github))
+            select(github.id)
+            noteRecent(standardized)
+            persist()
+            return github
+        } catch {
+            lastError = String(describing: error)
+            return nil
         }
     }
 
@@ -272,14 +310,29 @@ final class WorkspaceStore {
         }
 
         do {
-            var local = try LocalSource.make(from: standardized)
-            local.id = id
             endAccess(id)
-            local = beginAccess(local)
-            if let index = sources.firstIndex(where: { $0.id == id }) {
-                sources[index] = .local(local)
+            if let index = sources.firstIndex(where: { $0.id == id }),
+               case .github(let github) = sources[index]
+            {
+                var next = try GithubSource.make(
+                    workingCopy: standardized,
+                    owner: github.owner,
+                    repository: github.repository,
+                    defaultBranch: github.defaultBranch,
+                    grantedScopes: github.grantedScopes
+                )
+                next.id = id
+                next = beginAccess(next)
+                sources[index] = .github(next)
             } else {
-                sources.append(.local(local))
+                var local = try LocalSource.make(from: standardized)
+                local.id = id
+                local = beginAccess(local)
+                if let index = sources.firstIndex(where: { $0.id == id }) {
+                    sources[index] = .local(local)
+                } else {
+                    sources.append(.local(local))
+                }
             }
             select(id)
             noteRecent(standardized)
@@ -325,10 +378,15 @@ final class WorkspaceStore {
             if case .local(let local) = item { return local }
             return nil
         }
+        let githubs: [GithubSource] = sources.compactMap { item in
+            if case .github(let github) = item { return github }
+            return nil
+        }
         let payload = PersistedWorkspace(
             sources: locals,
             selected: selection.sourceID,
-            mailbox: selection.mailbox
+            mailbox: selection.mailbox,
+            github: githubs
         )
         do {
             defaults.set(try WorkspacePersistence.encode(payload), forKey: WorkspacePersistence.defaultsKey)
@@ -351,6 +409,13 @@ final class WorkspaceStore {
                     refreshed = true
                 }
                 return .local(local)
+            }
+            sources += payload.github.map { raw in
+                var github = beginAccess(raw)
+                if github.isAvailable, github.bookmarkData != raw.bookmarkData {
+                    refreshed = true
+                }
+                return .github(github)
             }
             selection = WorkspaceSelectionRules.restore(
                 selected: payload.selected,
@@ -405,6 +470,36 @@ final class WorkspaceStore {
             local.isAvailable = false
         }
         return local
+    }
+
+    /// GitHub working-copy variant: resolve the bookmark, start access,
+    /// refresh a stale bookmark, read the branch. Same failure posture
+    /// as the local path — unavailable badge, no `lastError`.
+    private func beginAccess(_ source: GithubSource) -> GithubSource {
+        var github = source
+        do {
+            let resolved = try github.resolve()
+            var isDirectory: ObjCBool = false
+            let exists = FileManager.default.fileExists(
+                atPath: resolved.url.path,
+                isDirectory: &isDirectory
+            ) && isDirectory.boolValue
+            guard exists, resolved.url.startAccessingSecurityScopedResource() else {
+                github.isAvailable = false
+                return github
+            }
+            scopedURLs[github.id] = resolved.url
+            github.displayPath = resolved.url.standardizedFileURL.path
+            github.title = "\(github.owner)/\(github.repository)"
+            github.isAvailable = true
+            if resolved.stale, let refreshed = try? github.refreshedBookmark() {
+                github.bookmarkData = refreshed.bookmarkData
+            }
+            github.branch = GitClone.currentBranch(at: resolved.url)
+        } catch {
+            github.isAvailable = false
+        }
+        return github
     }
 
     private func endAccess(_ id: SourceID) {
