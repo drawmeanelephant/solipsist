@@ -25,6 +25,8 @@ struct ComposeEditorView: View {
     /// Character offset to jump the editor selection to (click-to-line).
     @State private var jumpToCharacter: Int?
     @State private var showPreview = true
+    /// LATER-3.3: leading pane editing the closed front-matter key set.
+    @State private var showFrontmatter = false
     @State private var previewOptions = MarkupRenderOptions()
     @State private var saveError: String?
 
@@ -33,6 +35,10 @@ struct ComposeEditorView: View {
             toolbar
             Divider()
             HSplitView {
+                if showFrontmatter {
+                    ComposeFrontmatterForm(document: document)
+                        .frame(minWidth: 230, idealWidth: 270, maxWidth: 360, maxHeight: .infinity)
+                }
                 ComposeTextView(document: document, jumpToCharacter: jumpToCharacter)
                     .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
                 if showPreview {
@@ -106,6 +112,12 @@ struct ComposeEditorView: View {
                 Label("Preview", systemImage: "eye")
             }
             .toggleStyle(.button)
+
+            Toggle(isOn: $showFrontmatter) {
+                Label("Front Matter", systemImage: "doc.text.magnifyingglass")
+            }
+            .toggleStyle(.button)
+            .help("Edit the front-matter block (closed key set)")
 
             Menu {
                 previewOptionsContent
