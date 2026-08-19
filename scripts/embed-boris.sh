@@ -8,11 +8,17 @@
 #   - Matching codesign identity and hardened runtime options for App Sandbox
 #     execution compliance.
 #
-# Search order:
+# Boris search order:
 #   1. Explicit env overrides: SOLIPSIST_BORIS_BIN, or SOLIPSIST_BORIS_ARM64_BIN + SOLIPSIST_BORIS_X86_64_BIN
 #   2. Prebuilt kits next to this repo (SUPPORT-NOT-FOR-GITHUB / sibling kit)
 #   3. Existing zig-out in a boris checkout
 #   4. Build from BORIS_REPO_DIR (default: ../boris)
+#
+# Oliver (compose preview renderer) is embedded alongside boris so the
+# release app renders previews without SOLIPSIST_OLIVER_BIN. Provenance:
+# oliver is NOT shipped by the boris agent kit — source it from the oliver
+# repo's own build (../oliver/zig-out/bin/oliver) or a kit that carries it.
+# Search order: SOLIPSIST_OLIVER_BIN, kit bin dirs, oliver repo zig-out.
 #
 # Usage: embed-boris.sh SRCROOT DEST_DIR
 
@@ -102,7 +108,8 @@ bundle_and_sign() {
     }
   fi
 
-  # Embed companion binaries (boris-editor, oliver, etc.) if available
+  # Embed companion binaries (boris-editor, boris-package, boris-source-rag)
+  # from kit bin dirs when available.
   local comp_candidates=(
     "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/boris-agent-kit/bin"
     "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin"
@@ -110,7 +117,7 @@ bundle_and_sign() {
   )
   for cdir in "${comp_candidates[@]}"; do
     if [[ -d "$cdir" ]]; then
-      for comp in boris-editor oliver boris-package boris-source-rag; do
+      for comp in boris-editor boris-package boris-source-rag; do
         if [[ -x "$cdir/$comp" && ! -f "$DEST_DIR/$comp" ]]; then
           cp "$cdir/$comp" "$DEST_DIR/$comp"
           chmod +x "$DEST_DIR/$comp"
@@ -123,6 +130,57 @@ bundle_and_sign() {
       done
     fi
   done
+
+  bundle_oliver "$sign_identity"
+}
+
+find_oliver() {
+  if [[ -n "${SOLIPSIST_OLIVER_BIN:-}" && -x "${SOLIPSIST_OLIVER_BIN}" ]]; then
+    echo "${SOLIPSIST_OLIVER_BIN}"
+    return 0
+  fi
+
+  # Kit bin dirs (a kit that ships oliver) first, then the oliver repo build.
+  # Depth mirrors the boris candidates so both the main checkout and nested
+  # worktrees resolve the sibling oliver checkout.
+  local candidates=(
+    "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/boris-agent-kit/bin/oliver"
+    "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin/oliver"
+    "$SRCROOT/../boris-agent-kit/bin/oliver"
+    "$SRCROOT/../oliver/zig-out/bin/oliver"
+    "$SRCROOT/../../oliver/zig-out/bin/oliver"
+    "$SRCROOT/../../../oliver/zig-out/bin/oliver"
+  )
+  local c
+  for c in "${candidates[@]}"; do
+    if [[ -x "$c" ]]; then
+      echo "$c"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Bundles the oliver renderer with the same codesign identity/path as boris.
+# Skips when already present (companion/kit path won). Absence is a notice,
+# not a failure: preview falls back to SOLIPSIST_OLIVER_BIN / dev checkouts.
+bundle_oliver() {
+  local sign_identity="${1:--}"
+  if [[ -f "$DEST_DIR/oliver" ]]; then
+    return 0
+  fi
+  local oliver
+  if ! oliver="$(find_oliver)"; then
+    echo "embed-boris: notice: no oliver binary found — compose preview falls back to SOLIPSIST_OLIVER_BIN"
+    return 0
+  fi
+  cp "$oliver" "$DEST_DIR/oliver"
+  chmod +x "$DEST_DIR/oliver"
+  if [[ -n "$sign_identity" ]]; then
+    codesign --force --options runtime --sign "$sign_identity" "$DEST_DIR/oliver" 2>/dev/null || \
+    codesign --force --options runtime --sign - "$DEST_DIR/oliver" 2>/dev/null || true
+  fi
+  echo "embed-boris: bundled oliver (provenance: $oliver)"
 }
 
 mkdir -p "$DEST_DIR"

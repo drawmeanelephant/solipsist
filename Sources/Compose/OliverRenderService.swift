@@ -15,13 +15,33 @@ struct OliverRenderService: MarkupRenderService {
         _ source: String,
         language: ComposeLanguage,
         options: MarkupRenderOptions
-    ) async throws -> String {
+    ) async throws -> MarkupRenderResult {
+        var engineOptions = Self.engineOptions(options)
+        engineOptions.diagnostics = true
         let result = try await renderer.render(
             source: source,
             frontend: Self.frontend(for: language),
-            options: Self.engineOptions(options)
+            options: engineOptions
         )
-        return result.html
+        return MarkupRenderResult(
+            html: result.html,
+            diagnostics: Self.composeDiagnostics(from: result.diagnostics)
+        )
+    }
+
+    /// Maps Oliver's span-based diagnostics into the compose problems seam.
+    /// Only the rendered fields are read; unknown severities degrade to a
+    /// warning (D8) and `span.start` becomes the click-to-line character
+    /// index.
+    static func composeDiagnostics(from diagnostics: [OliverDiagnostic]) -> [ComposeDiagnostic] {
+        diagnostics.map { diagnostic in
+            ComposeDiagnostic(
+                severity: diagnostic.severity == "error" ? .error : .warning,
+                message: diagnostic.message ?? diagnostic.code ?? "render diagnostic",
+                line: diagnostic.line,
+                characterIndex: diagnostic.span?.start
+            )
+        }
     }
 
     // MARK: - Mapping (pure, tested)

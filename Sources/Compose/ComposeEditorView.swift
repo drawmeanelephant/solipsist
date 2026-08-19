@@ -1,27 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// One diagnostic for the compose element's problems seam. The hook-in card
-/// maps Oliver's structured diagnostics (exact source spans) into this
-/// shape; the element itself only renders what it is given.
-struct ComposeDiagnostic: Identifiable, Equatable {
-    enum Severity: Equatable {
-        case warning
-        case error
-    }
-
-    let id = UUID()
-    let severity: Severity
-    let message: String
-    let line: Int?
-
-    init(severity: Severity, message: String, line: Int? = nil) {
-        self.severity = severity
-        self.message = message
-        self.line = line
-    }
-}
-
 /// The compose element: a full-featured Markdown / Textile / Cooklang
 /// editing surface that will be hooked into the app by a later card.
 ///
@@ -35,13 +14,22 @@ struct ComposeEditorView: View {
     @Bindable var document: ComposeDocument
 
     var renderService: any MarkupRenderService = PlaceholderRenderService()
-    var diagnostics: [ComposeDiagnostic] = []
+    /// Cooklang completion vocabulary (LATER-3.4); `.empty` (default) keeps
+    /// the popup off for hosts without a `.boris/` index.
+    var cookCompletion: ComposeCookCompletion = .empty
     /// Called after an explicit save actually wrote the buffer. The host
     /// (ComposeWindow) uses this to flow the save into the coordinator's
     /// save→validate gate.
     var onSave: (() -> Void)?
 
+    /// Problems from the live preview render (LATER-3.1). Computed from the
+    /// render, not injected by the host.
+    @State private var diagnostics: [ComposeDiagnostic] = []
+    /// Character offset to jump the editor selection to (click-to-line).
+    @State private var jumpToCharacter: Int?
     @State private var showPreview = true
+    /// LATER-3.3: leading pane editing the closed front-matter key set.
+    @State private var showFrontmatter = false
     @State private var previewOptions = MarkupRenderOptions()
     @State private var saveError: String?
 
@@ -50,25 +38,63 @@ struct ComposeEditorView: View {
             toolbar
             Divider()
             HSplitView {
-                ComposeTextView(document: document)
-                    .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
+                if showFrontmatter {
+                    ComposeFrontmatterForm(document: document)
+                        .frame(minWidth: 230, idealWidth: 270, maxWidth: 360, maxHeight: .infinity)
+                }
+                ComposeTextView(
+                    document: document,
+                    jumpToCharacter: jumpToCharacter,
+                    completion: cookCompletion
+                )
+                .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
                 if showPreview {
                     ComposePreviewView(
                         source: document.text,
                         language: document.language,
                         options: previewOptions,
-                        renderService: renderService
+                        renderService: renderService,
+                        onDiagnostics: { diagnostics = $0 }
                     )
                     .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             if !diagnostics.isEmpty {
                 Divider()
-                ComposeDiagnosticsPane(diagnostics: diagnostics)
-                    .frame(minHeight: 72, idealHeight: 110, maxHeight: 180)
+                ComposeDiagnosticsPane(diagnostics: diagnostics) { selected in
+                    if let index = characterIndex(for: selected, in: document.text) {
+                        jumpToCharacter = index
+                    }
+                }
+                .frame(minHeight: 72, idealHeight: 110, maxHeight: 180)
             }
         }
         .navigationTitle(document.statusText)
+    }
+
+    /// Resolve a diagnostic to a character offset: Oliver's `span.start`
+    /// when present, else the start of the reported line. UTF-16 offsets
+    /// (NSRange units) — a best-effort jump like the highlighter, clamped
+    /// so it can never exceed the buffer.
+    private func characterIndex(for diagnostic: ComposeDiagnostic, in text: String) -> Int? {
+        if let index = diagnostic.characterIndex {
+            return min(max(index, 0), text.utf16.count)
+        }
+        guard let line = diagnostic.line, line >= 1 else { return nil }
+        let nsString = text as NSString
+        var found: Int?
+        var currentLine = 1
+        nsString.enumerateSubstrings(
+            in: NSRange(location: 0, length: nsString.length),
+            options: [.byLines, .substringNotRequired]
+        ) { _, range, _, stop in
+            if currentLine == line {
+                found = range.location
+                stop.pointee = true
+            }
+            currentLine += 1
+        }
+        return found
     }
 
     private var toolbar: some View {
@@ -93,6 +119,12 @@ struct ComposeEditorView: View {
                 Label("Preview", systemImage: "eye")
             }
             .toggleStyle(.button)
+
+            Toggle(isOn: $showFrontmatter) {
+                Label("Front Matter", systemImage: "doc.text.magnifyingglass")
+            }
+            .toggleStyle(.button)
+            .help("Edit the front-matter block (closed key set)")
 
             Menu {
                 previewOptionsContent
@@ -160,10 +192,11 @@ struct ComposeEditorView: View {
     }
 }
 
-/// The problems seam: renders diagnostics the host injects. Empty by design
-/// until the hook-in card wires Oliver's structured diagnostics through.
+/// The problems seam: renders the diagnostics the editor computed from the
+/// live render (LATER-3.1). Clicking a row jumps the editor to the span.
 private struct ComposeDiagnosticsPane: View {
     let diagnostics: [ComposeDiagnostic]
+    var onSelect: (ComposeDiagnostic) -> Void = { _ in }
 
     var body: some View {
         List(diagnostics) { diagnostic in
@@ -178,98 +211,9 @@ private struct ComposeDiagnosticsPane: View {
                 Text(diagnostic.message)
                     .textSelection(.enabled)
             }
-        }
-    }
-}
-
-/// NSTextView host with live heuristic highlighting. The text storage is
-/// re-painted after every edit; the buffer in `ComposeDocument` stays the
-/// single source of truth.
-private struct ComposeTextView: NSViewRepresentable {
-    @Bindable var document: ComposeDocument
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(document: document)
-    }
-
-    func makeNSView(context: Context) -> NSTextView {
-        let textView = NSTextView()
-        textView.delegate = context.coordinator
-        textView.isRichText = false
-        textView.allowsUndo = true
-        textView.isAutomaticQuoteSubstitutionEnabled = false
-        textView.isAutomaticDashSubstitutionEnabled = false
-        textView.isAutomaticTextReplacementEnabled = false
-        textView.isContinuousSpellCheckingEnabled = false
-        textView.font = baseFont
-        textView.textContainerInset = NSSize(width: 10, height: 10)
-        textView.isVerticallyResizable = true
-        textView.autoresizingMask = [.width]
-        textView.textContainer?.widthTracksTextView = true
-
-        context.coordinator.applyHighlight(
-            textView,
-            text: document.text,
-            language: document.language,
-            force: true
-        )
-        return textView
-    }
-
-    func updateNSView(_ textView: NSTextView, context: Context) {
-        context.coordinator.document = document
-        if textView.string != document.text {
-            textView.string = document.text
-            context.coordinator.applyHighlight(textView, text: document.text, language: document.language, force: true)
-        } else {
-            context.coordinator.applyHighlight(textView, text: document.text, language: document.language)
-        }
-    }
-
-    private var baseFont: NSFont {
-        NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-    }
-
-    @MainActor
-    final class Coordinator: NSObject, NSTextViewDelegate {
-        var document: ComposeDocument
-        private var isApplying = false
-
-        /// Last state we painted, so programmatic syncs (which fire on every
-        /// `document` change) do not re-paint an unchanged buffer.
-        private var lastHighlightedText: String?
-        private var lastHighlightedLanguage: ComposeLanguage?
-
-        init(document: ComposeDocument) {
-            self.document = document
-        }
-
-        func textDidChange(_ notification: Notification) {
-            guard
-                !isApplying,
-                let textView = notification.object as? NSTextView
-            else { return }
-            isApplying = true
-            defer { isApplying = false }
-
-            document.text = textView.string
-            applyHighlight(textView, text: textView.string, language: document.language)
-        }
-
-        func applyHighlight(_ textView: NSTextView, text: String, language: ComposeLanguage, force: Bool = false) {
-            guard force || text != lastHighlightedText || language != lastHighlightedLanguage else { return }
-            lastHighlightedText = text
-            lastHighlightedLanguage = language
-
-            let highlighted = ComposeHighlighter.highlight(text, language: language)
-            textView.textStorage?.beginEditing()
-            textView.textStorage?.setAttributedString(highlighted)
-            textView.textStorage?.endEditing()
-            textView.typingAttributes = [.font: baseFont, .foregroundColor: NSColor.labelColor]
-        }
-
-        private var baseFont: NSFont {
-            NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+            .contentShape(Rectangle())
+            .onTapGesture { onSelect(diagnostic) }
+            .help("Jump to this diagnostic")
         }
     }
 }

@@ -126,10 +126,21 @@ The two tool cards run through the coordinator's single `Process?` slot;
 | [3.4 Cooklang autocomplete](LATER-compose-cooklang.md) | #167 | compose | after 3.3 | `@` suggests corpus ingredients from completion.json |
 | [3.5 Bundle oliver](LATER-compose-bundle-oliver.md) | #167 | ship | parallel | Resources/oliver next to boris; preview without env override |
 
+## M15 — GitHub source (pickable)
+
+The deferred ROADMAP §3 "Later" item — GitHub as its own
+`SourceKind` (OAuth device flow + PAT fallback, not just a clone).
+Design gate: [`docs/GITHUB-OAUTH-DESIGN.md`](../GITHUB-OAUTH-DESIGN.md).
+
+| Card | Issue | Lane | Parallel with | Gate |
+|------|-------|------|----------------|------|
+| [GitHub source](GITHUB-OAUTH.md) | [#179](https://github.com/drawmeanelephant/solipsist/issues/179) | workspace / settings / play | — | device flow → Keychain → working copy; Remote mailbox Sync; restart keeps the source |
+
 ## Do not start yet
 
-GitHub OAuth / `SourceKind.github` payload. Wasm in the app. The
-fart app. Fetch / pull / commit / push.
+Wasm in the app. The fart app. Commit / push / PR authoring / issues
+mailboxes (fetch + `pull --ff-only` moved up with the GitHub source;
+remote *writes* stay later).
 
 ## Shared noun kinds (play writes, inspector reads)
 

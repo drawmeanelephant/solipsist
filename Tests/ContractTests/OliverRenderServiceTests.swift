@@ -72,8 +72,55 @@ final class OliverRenderServiceTests: XCTestCase {
             throw XCTSkip("SOLIPSIST_OLIVER_BIN not set")
         }
         let service = OliverRenderService(renderer: OliverRenderer(binaryURL: URL(fileURLWithPath: bin)))
-        let html = try await service.render("h1. Title", language: .textile, options: MarkupRenderOptions())
-        XCTAssertTrue(html.contains("<h1>Title</h1>"))
+        let result = try await service.render("h1. Title", language: .textile, options: MarkupRenderOptions())
+        XCTAssertTrue(result.html.contains("<h1>Title</h1>"))
+    }
+
+    func testServiceSurfaceDiagnosticsThroughOliver() async throws {
+        guard let bin = ProcessInfo.processInfo.environment["SOLIPSIST_OLIVER_BIN"], !bin.isEmpty else {
+            throw XCTSkip("SOLIPSIST_OLIVER_BIN not set")
+        }
+        let service = OliverRenderService(renderer: OliverRenderer(binaryURL: URL(fileURLWithPath: bin)))
+        var options = MarkupRenderOptions()
+        options.frontmatter = .yaml
+        let result = try await service.render(
+            "---\ntitle: x\n\n# Hi\n",
+            language: .markdown,
+            options: options
+        )
+        XCTAssertFalse(result.diagnostics.isEmpty)
+        XCTAssertEqual(result.diagnostics.first?.severity, .warning)
+        XCTAssertEqual(result.diagnostics.first?.line, 1)
+    }
+
+    // MARK: - Diagnostic mapping (pure)
+
+    func testComposeDiagnosticsMappingCarriesSpans() {
+        let oliver = [
+            OliverDiagnostic(
+                severity: "warning",
+                code: "unclosed-frontmatter",
+                offset: 1,
+                line: 1,
+                column: 1,
+                span: OliverDiagnostic.Span(start: 0, end: 4),
+                message: "front matter fence `---` never closed"
+            )
+        ]
+        let mapped = OliverRenderService.composeDiagnostics(from: oliver)
+        XCTAssertEqual(mapped.count, 1)
+        XCTAssertEqual(mapped[0].severity, .warning)
+        XCTAssertEqual(mapped[0].message, "front matter fence `---` never closed")
+        XCTAssertEqual(mapped[0].line, 1)
+        XCTAssertEqual(mapped[0].characterIndex, 0)
+    }
+
+    func testComposeDiagnosticsMappingDefaultsUnknownSeverityToWarning() {
+        let mapped = OliverRenderService.composeDiagnostics(from: [
+            OliverDiagnostic(severity: "info", code: "whatever", message: nil)
+        ])
+        XCTAssertEqual(mapped[0].severity, .warning)
+        XCTAssertEqual(mapped[0].message, "whatever") // code fallback
     }
 
     // MARK: - Helpers

@@ -58,4 +58,11 @@ final class OliverRenderOptionsTests: XCTestCase {
         let args = options.arguments(frontend: .markdown)
         XCTAssertEqual(args.suffix(2), ["--to", "xhtml"])
     }
+
+    func testDiagnosticsFlagEmitsWhenSet() {
+        XCTAssertFalse(OliverRenderOptions().arguments(frontend: .markdown).contains("--diagnostics"))
+        var options = OliverRenderOptions()
+        options.diagnostics = true
+        XCTAssertEqual(options.arguments(frontend: .markdown).suffix(2), ["--diagnostics", "json"])
+    }
 }
