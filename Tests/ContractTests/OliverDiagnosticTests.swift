@@ -4,9 +4,11 @@ import XCTest
 /// Shapes pinned from a live probe of the built CLI (2026-08-19) — stderr is
 /// a JSON array with exact source spans; stdout stays pure HTML.
 final class OliverDiagnosticTests: XCTestCase {
-    private let probeFrontmatter = #"[{"severity":"warning","code":"unclosed-frontmatter","offset":1,"line":1,"column":1,"span":{"start":0,"end":4},"message":"front matter fence `---` never closed"}]"#
+    private let probeFrontmatter = #"[{"severity":"warning","code":"unclosed-frontmatter","offset":1,"line":1,"column":1,""#
+        + #"span":{"start":0,"end":4},"message":"front matter fence `---` never closed"}]"#
 
-    private let probeCooklang = #"[{"severity":"warning","code":"unclosed-braces","offset":12,"line":1,"column":12,"span":{"start":11,"end":12},"message":"unclosed `{` (no `}` on the line)"}]"#
+    private let probeCooklang = #"[{"severity":"warning","code":"unclosed-braces","offset":12,"line":1,"column":12,""#
+        + #"span":{"start":11,"end":12},"message":"unclosed `{` (no `}` on the line)"}]"#
 
     func testDecodesProbedFrontmatterDiagnostic() {
         let decoded = OliverRenderer.decodeDiagnostics(from: probeFrontmatter)

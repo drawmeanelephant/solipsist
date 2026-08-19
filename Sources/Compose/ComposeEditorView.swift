@@ -68,11 +68,11 @@ struct ComposeEditorView: View {
             return min(max(index, 0), text.utf16.count)
         }
         guard let line = diagnostic.line, line >= 1 else { return nil }
-        let ns = text as NSString
+        let nsString = text as NSString
         var found: Int?
         var currentLine = 1
-        ns.enumerateSubstrings(
-            in: NSRange(location: 0, length: ns.length),
+        nsString.enumerateSubstrings(
+            in: NSRange(location: 0, length: nsString.length),
             options: [.byLines, .substringNotRequired]
         ) { _, range, _, stop in
             if currentLine == line {
@@ -296,8 +296,8 @@ private struct ComposeTextView: NSViewRepresentable {
         func jump(to character: Int?, in textView: NSTextView) {
             guard let character, character != lastJumpedCharacter else { return }
             lastJumpedCharacter = character
-            let ns = textView.string as NSString
-            let clamped = min(max(character, 0), ns.length)
+            let nsString = textView.string as NSString
+            let clamped = min(max(character, 0), nsString.length)
             let range = NSRange(location: clamped, length: 0)
             textView.setSelectedRange(range)
             textView.scrollRangeToVisible(range)
