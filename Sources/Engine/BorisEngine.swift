@@ -551,6 +551,28 @@ public actor BorisEngine {
         return server
     }
 
+    // MARK: Validate watch (A5 / #161)
+
+    /// Starts `boris validate --watch --watch-json` for `contentRoot` and
+    /// returns the live problems daemon. `workingDirectory` is the project
+    /// folder (D1). Validate writes nothing, so the daemon is a sibling of
+    /// the preview watch — never a third watch — and needs no tree-write
+    /// suspend. The caller owns the lifetime — call `stop()` (SIGTERM →
+    /// graceful exit 0, A12) when done. `nonisolated`: reads only the
+    /// immutable `binaryURL`.
+    public nonisolated func validateStart(
+        contentRoot: URL,
+        workingDirectory: URL
+    ) throws -> ValidateWatch {
+        let watch = ValidateWatch(
+            binary: binaryURL,
+            contentRoot: contentRoot,
+            workingDirectory: workingDirectory
+        )
+        try watch.start()
+        return watch
+    }
+
     // MARK: Editor (M6)
 
     /// Starts `boris-editor` for the project at `workingDirectory` (A14).

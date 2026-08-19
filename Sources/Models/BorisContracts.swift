@@ -21,7 +21,7 @@ import Foundation
 /// A single structured diagnostic (boris/docs/contracts/diagnostics.md).
 /// Field order is normative: severity, code, message, remediation,
 /// sourcePath, line, column, id.
-public struct Diagnostic: Codable, Sendable {
+public struct Diagnostic: Codable, Equatable, Sendable {
     public var severity: String
     public var code: String
     public var message: String

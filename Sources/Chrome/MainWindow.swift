@@ -33,9 +33,11 @@ struct MainWindow: View {
         }
         .onAppear {
             runtime.coordinator.syncSaveWatch(store: store, runtime: runtime)
+            runtime.coordinator.syncValidateWatch(store: store, runtime: runtime)
         }
         .onChange(of: store.selection.sourceID) {
             runtime.coordinator.syncSaveWatch(store: store, runtime: runtime)
+            runtime.coordinator.syncValidateWatch(store: store, runtime: runtime)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             statusBar

@@ -37,11 +37,12 @@ final class WatchEventTests: XCTestCase {
                 line: #"{"event":"build-failed","phase":"rebuild","errors":1,"recoverable":true,"duration_ms":14}"#
             )
         )
-        guard case .buildFailed(let errors, let recoverable) = failed else {
+        guard case .buildFailed(let errors, let recoverable, let diagnostics) = failed else {
             return XCTFail("expected build-failed, got \(failed)")
         }
         XCTAssertEqual(errors, 1)
         XCTAssertTrue(recoverable)
+        XCTAssertTrue(diagnostics.isEmpty, "a build-failed without a diagnostics key decodes to an empty array")
 
         let watchError = try XCTUnwrap(
             WatchEvent.decode(line: #"{"event":"watch-error","message":"poll error (BrokenPipe)","recoverable":true}"#)
@@ -125,6 +126,73 @@ final class WatchEventTests: XCTestCase {
                 "watch stopped: signal",
             ]
         )
+    }
+
+    // MARK: A5 validate --watch (boris#647, #161) — probe-shaped fixtures
+
+    func testValidateStreamBuildSucceededOutcome() {
+        // The probed A5 shape at bf464a0: mode "validate", rebuild cycles
+        // carry `changed`, build-succeeded has pages_written null.
+        var parser = WatchStreamParser()
+        parser.consume(line: #"{"event":"hello","watch_events_schema":1,"compiler":"boris/0.8.1"}"#)
+        parser.consume(line: #"{"event":"build-started","phase":"initial","mode":"validate","targets":["default"]}"#)
+        parser.consume(line: #"{"event":"build-succeeded","phase":"initial","mode":"validate","targets":["default"],"pages_written":null,"duration_ms":22}"#)
+        XCTAssertEqual(parser.buildOutcome, .succeeded(changed: nil))
+        XCTAssertTrue(parser.problems.isEmpty)
+
+        // Probe-shaped build-failed (bf464a0): full diagnostic objects with
+        // nulls, built via the json() test helper so the line stays readable.
+        let failedObject: [String: Any] = [
+            "event": "build-failed", "phase": "rebuild", "mode": "validate",
+            "changed": ["guides.md"], "errors": 2, "recoverable": true, "duration_ms": 23,
+            "diagnostics": [
+                [
+                    "severity": "error", "code": "EROUTEMISSING",
+                    "message": "does not resolve to a published output [fix the path, or publish the file it names]",
+                    "remediation": "Fix the path, or publish the file it names",
+                    "sourcePath": "guides.html", "line": 133, "column": NSNull(), "id": NSNull(),
+                ],
+            ],
+        ]
+        let failedLine = String(data: json(failedObject), encoding: .utf8) ?? ""
+        parser.consume(line: failedLine)
+        guard case .failed(let diagnostics) = parser.buildOutcome else {
+            return XCTFail("expected .failed after build-failed")
+        }
+        XCTAssertEqual(diagnostics.count, 1)
+        XCTAssertEqual(diagnostics.first?.code, "EROUTEMISSING")
+        XCTAssertEqual(diagnostics.first?.sourcePath, "guides.html")
+        XCTAssertEqual(diagnostics.first?.line, 133)
+        // The summary string still surfaces for the HTML watch — the daemon
+        // filters it structurally, the parser keeps it.
+        XCTAssertEqual(parser.problems, ["build failed: 2 errors (recoverable)"])
+
+        parser.consume(line: #"{"event":"build-succeeded","phase":"rebuild","mode":"validate","changed":["guides.md"],"pages_written":null,"duration_ms":30}"#)
+        XCTAssertEqual(parser.buildOutcome, .succeeded(changed: ["guides.md"]))
+    }
+
+    func testValidateBuildOutcomeIsHandshakeGated() {
+        // D8: a build event before a supported hello is not trusted — no
+        // outcome drives the pane.
+        var parser = WatchStreamParser()
+        parser.consume(line: #"{"event":"build-succeeded","phase":"initial","mode":"validate"}"#)
+        XCTAssertNil(parser.buildOutcome)
+        XCTAssertTrue(parser.problems.isEmpty)
+
+        // An unknown schema also gates the outcome while surfacing the
+        // schema problem.
+        parser.consume(line: #"{"event":"hello","watch_events_schema":2}"#)
+        parser.consume(line: #"{"event":"build-failed","errors":1,"recoverable":true,"diagnostics":[]}"#)
+        XCTAssertNil(parser.buildOutcome)
+        XCTAssertEqual(parser.problems.first, "watch events schema 2 is not supported (supported: 1)")
+    }
+
+    func testBuildFailedSummaryPrefixMarksOnlyBuildFailures() {
+        XCTAssertTrue(
+            WatchStreamParser.buildFailedSummary(errors: 1, recoverable: true)
+                .hasPrefix(WatchStreamParser.buildFailedSummaryPrefix)
+        )
+        XCTAssertFalse("watch error: poll error".hasPrefix(WatchStreamParser.buildFailedSummaryPrefix))
     }
 
     func testFullFixtureStreamServesOnce() {

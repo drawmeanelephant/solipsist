@@ -24,6 +24,11 @@ final class Coordinator {
     private var watchdogTask: Task<Void, Never>?
     private var debounceTask: Task<Void, Never>?
     private weak var activeWatch: WatchServer?
+    /// The A5 problems daemon (#161), one per selected source (bound-root
+    /// rule: a foreign root is idle, never consumed). Sibling of the
+    /// preview watch — never a third watch.
+    private weak var activeValidateWatch: ValidateWatch?
+    private var validateWatchSourceID: SourceID?
     private var watchSuspends = 0
     private var saveGate = SaveValidateGate()
     @ObservationIgnored
@@ -117,7 +122,108 @@ final class Coordinator {
         saveWatcher.start(path: root.path)
     }
 
+    /// Start / stop the A5 problems daemon for the selected source (bound
+    /// root: idempotent for the same root, SIGTERM on switch, never consume
+    /// a foreign root). Runs alongside the save watcher; the daemon's own
+    /// debounce retires the one-shot save-validate while it is live.
+    func syncValidateWatch(store: WorkspaceStore, runtime: AppRuntime) {
+        let folder: (any PlayFolderSource)?
+        switch store.selectedSource {
+        case .local(let source): folder = source
+        case .github(let source): folder = source
+        case nil: folder = nil
+        }
+        guard let folder, folder.isAvailable,
+              let root = try? folder.contentRoot(),
+              FileManager.default.fileExists(atPath: root.path),
+              let engine = runtime.engine
+        else {
+            stopValidateWatch()
+            return
+        }
+        if validateWatchSourceID == folder.id, let watch = activeValidateWatch, watch.isRunning {
+            return
+        }
+        stopValidateWatch()
+        validateWatchSourceID = folder.id
+        do {
+            let watch = try engine.validateStart(
+                contentRoot: root,
+                workingDirectory: try folder.workspaceRoot()
+            )
+            activeValidateWatch = watch
+            watch.onBuild = { [weak self] outcome in
+                Task { @MainActor in self?.handleValidateBuild(outcome) }
+            }
+            watch.onProblem = { [weak self] message in
+                Task { @MainActor in self?.handleValidateProblem(message) }
+            }
+            watch.onExit = { [weak self] exit in
+                Task { @MainActor in self?.handleValidateExit(watch, exit) }
+            }
+        } catch {
+            validateWatchSourceID = nil
+            problems = CoordinatorProblems.fromFailure(
+                code: "validate-watch",
+                message: "could not start the validation daemon: \(error)"
+            )
+        }
+    }
+
+    private func stopValidateWatch() {
+        guard let watch = activeValidateWatch else {
+            validateWatchSourceID = nil
+            return
+        }
+        watch.onBuild = nil
+        watch.onProblem = nil
+        watch.onExit = nil
+        watch.stop()
+        activeValidateWatch = nil
+        validateWatchSourceID = nil
+    }
+
+    /// The daemon's build cycles drive the problems pane: `.failed`
+    /// replaces the problems with the stream's diagnostics (mapped by the
+    /// existing check-report path), `.succeeded` clears them.
+    private func handleValidateBuild(_ outcome: WatchBuildOutcome) {
+        switch outcome {
+        case .failed(let diagnostics):
+            problems = diagnostics.map(CoordinatorProblems.from(diagnostic:))
+        case .succeeded:
+            problems = []
+        }
+    }
+
+    /// `watch-error` / unexpected `watch-stopped` surface as a problem,
+    /// never swallowed (D11 — same rule as the preview watch).
+    private func handleValidateProblem(_ message: String) {
+        problems = CoordinatorProblems.fromFailure(code: "validate-watch", message: message)
+    }
+
+    /// Only spontaneous exits land here (callbacks are cleared before our
+    /// own `stop()`). A non-zero exit surfaces, never swallowed.
+    private func handleValidateExit(_ watch: ValidateWatch, _ exit: WatchExit) {
+        guard activeValidateWatch === watch else { return }
+        activeValidateWatch = nil
+        validateWatchSourceID = nil
+        if exit.exitCode != 0 {
+            let tail = exit.stderrTail.trimmingCharacters(in: .whitespacesAndNewlines)
+            let suffix = tail.isEmpty ? "" : " — \(tail.suffix(200))"
+            problems = CoordinatorProblems.fromFailure(
+                code: "validate-watch",
+                message: "validation daemon exited (\(exit.exitCode))\(suffix)"
+            )
+        }
+    }
+
     func noteSave() {
+        // While the A5 daemon is live, boris owns the debounce and `changed`
+        // gives per-save attribution — the one-shot save-validate retires.
+        if let watch = activeValidateWatch, watch.isRunning {
+            saveGate.dropAll()
+            return
+        }
         if saveGate.noteSave(now: .now, state: state) == .armDebounce {
             armDebounce()
         }
@@ -131,6 +237,7 @@ final class Coordinator {
         watchdogTask = nil
         saveWatcher.stop()
         watchingSourceID = nil
+        stopValidateWatch()
         if state != .terminating {
             stop(runtime: runtime)
         }
