@@ -112,20 +112,21 @@ No scraped prose. No homegrown graph. No third settings store.
 - **GitHub as its own `SourceKind`** (OAuth / app password, not
   just a clone). The clone slice landed as M12:
   [#131](https://github.com/drawmeanelephant/solipsist/issues/131)
-  → PRs #152/#153 (URL → folder → Local source). OAuth / app
-  password remains. Pages as a *target* does not require either.
-  **M15:** device-flow OAuth + PAT fallback, Keychain token, working
-  copy, Remote mailbox Sync (fetch + `pull --ff-only`;
-  commit/push/PR stay later). Design gate:
-  [`docs/GITHUB-OAUTH-DESIGN.md`](GITHUB-OAUTH-DESIGN.md) —
-  [#179](https://github.com/drawmeanelephant/solipsist/issues/179).
+  → PRs #152/#153 (URL → folder → Local source). **M15** landed:
+  device-flow OAuth + PAT fallback, Keychain token, working copy,
+  Remote mailbox Sync, sign-out (PRs #180–#184;
+  [`GITHUB-OAUTH-DESIGN.md`](GITHUB-OAUTH-DESIGN.md)). The remote
+  *write* verbs (commit / push / PR authoring / issues mailbox) are
+  **M16** — design gate
+  [`M16-WRITE-REMOTE-DESIGN.md`](M16-WRITE-REMOTE-DESIGN.md),
+  [#185](https://github.com/drawmeanelephant/solipsist/issues/185).
 - Content-audit mailbox (`boris-content-audit`)
 - Source-RAG export for AI assist
 - `validate --watch` once A5 exists (replaces save-triggered one-shots)
 - Cooklang recipe-scale as a first-class mailbox (v1: available from
   the page inspector when the corpus has recipes)
-- Fetch / pull / commit / push on a checkout (clone is M12; remotes
-  stay later)
+- A Pull Requests mailbox (the issues mailbox filters PRs out of the
+  REST list; a dedicated PR mailbox stays later)
 - Width-adaptive list-left-of-letter split (M10 default is stacked)
 - The fart app (CI job reserved, `make fart` refuses; do not build it)
 
@@ -151,7 +152,8 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M12** Clone | ✅ Add Git Repository… → Local source ([#131](https://github.com/drawmeanelephant/solipsist/issues/131); PRs #152/#153) |
 | **M13** Graph folders | ✅ trunk mailboxes from `graph.parent` ([#142](https://github.com/drawmeanelephant/solipsist/issues/142); #144–#146 → PRs #154/#155/#156) |
 | **M14** Watch contract | ✅ A1 `--watch-json` + letter SSE ([#143](https://github.com/drawmeanelephant/solipsist/issues/143); #147/#148 → PRs #157/#158) |
-| **M15** GitHub source | filed — OAuth device flow + `SourceKind.github` payload ([#179](https://github.com/drawmeanelephant/solipsist/issues/179); design [`GITHUB-OAUTH-DESIGN.md`](GITHUB-OAUTH-DESIGN.md)) |
+| **M15** GitHub source | ✅ OAuth device flow + `SourceKind.github` payload, working copy, Remote mailbox Sync, sign-out ([#179](https://github.com/drawmeanelephant/solipsist/issues/179); PRs #180–#184) |
+| **M16** Write the remote | filed — commit / push / PR authoring / issues mailbox ([#185](https://github.com/drawmeanelephant/solipsist/issues/185); design [`M16-WRITE-REMOTE-DESIGN.md`](M16-WRITE-REMOTE-DESIGN.md)) |
 
 **Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
 batch then landed: first-run and problem→page (#88/#94), graph filter /
@@ -604,20 +606,20 @@ here, it is not a v1 promise.
 
 ## 8. Pickup (what to do next)
 
-M10–M14 and the post-ship batch (#165/#166/#167 — content-audit,
-source-rag, compose depth) landed. Remaining **ship** is Apple-account
-only. Next **product** slice is M15, the GitHub source (the deferred
-ROADMAP §3 item) — design gate
-[`docs/GITHUB-OAUTH-DESIGN.md`](GITHUB-OAUTH-DESIGN.md).
+M10–M14, the post-ship batch (#165/#166/#167), and **M15** (the
+GitHub source, PRs #180–#184) landed. Remaining **ship** is
+Apple-account only. Next **product** slice is M16, the remote *write*
+verbs — design gate
+[`docs/M16-WRITE-REMOTE-DESIGN.md`](M16-WRITE-REMOTE-DESIGN.md).
 
 | Order | Track | Issue | Why this next |
 |------:|-------|-------|----------------|
-| 1 | M15 GitHub source | [#179](https://github.com/drawmeanelephant/solipsist/issues/179) | Board is empty; the deferred OAuth/`SourceKind.github` payload is the only named product item left. Device flow → Keychain → working copy → Remote mailbox. |
-| 2 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. Parallel with #179. |
-| 3 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
-
-#179 is OAuth + `SourceKind.github` payload, not the M12 clone
-(clone-as-local stays landed and untouched).
+| 1 | M16-1 Commit | [#185](https://github.com/drawmeanelephant/solipsist/issues/185) | M15 shipped the full read side (Sync + Remote mailbox); commit is the first write verb and unblocks push + PR. |
+| 2 | M16-2 Push | #185 | after M16-1 — pushes its commits through the credential helper. |
+| 3 | M16-3 PR | #185 | after M16-2 — push branch → `POST /pulls`. |
+| 4 | M16-4 Issues | #185 | parallel with M16-1 — the mailbox is independent of the git verbs. |
+| 5 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. Parallel with the M16 slices. |
+| 6 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
 
 ### Landed depth (do not redo)
 
@@ -642,9 +644,10 @@ Named in this file and **not** a product surface yet: browser OAuth,
 `github-pages-audit`, A1 `--watch-json` (M14), trunk mailbox
 folders (M13).
 
-Out of v1 (unchanged): GitHub OAuth / `SourceKind.github` payload,
-content-audit, source-rag, migration labs, Wasm in the app,
+Out of v1 (unchanged): migration labs, Wasm in the app,
 `validate --watch` until A5 + pin. Clone-as-local is M12 / #131.
+GitHub source is M15 (landed); its remote *write* verbs are M16
+(commit / push / PR authoring / issues mailbox).
 Compose **depth** (diagnostics, bundle `oliver`) stays Later; the
 M10 compose window is #106 / #108.
 
