@@ -81,6 +81,70 @@ data: 1
 - Prefer `--port 0` + stderr-line discovery over fixed ports (no collisions).
 - Graceful teardown: SIGTERM → exit 0, cleanup message (A12).
 
+### `validate --watch` (A5) — live problems daemon (design for #161)
+
+**Status: upstream RFC** — [boris#647](https://github.com/drawmeanelephant/boris/issues/647)
+(`docs/issues/boris-A5-check-watch-rfc.md`), not in the pinned kit
+(`6b930b7`). This subsection is the Solipsist consumption design so
+[#161](https://github.com/drawmeanelephant/solipsist/issues/161) is
+pickable the moment the pin carries it. Nothing here is probed yet —
+when A5 lands, re-probe before trusting a single line.
+
+**The contract (from the RFC).** `boris validate --watch [--input DIR]
+[--report PATH]` joins the artifact-free preflight with the watch
+daemon: same debounce (100ms) / coalescing (2s cap) / ignore rules /
+signal handlers as HTML watch, but the rebuild action is `validate`
+instead of the HTML publish. Writes nothing but the optional report
+file (replaced every cycle, never appended). Output flags are rejected
+(exit 2). SIGTERM/SIGINT → graceful exit 0 (A12). When A1 is present it
+consumes the same NDJSON protocol with `mode: "validate"`:
+
+```
+{"event":"hello","watch_events_schema":1,"compiler":"boris/0.8.1"}
+{"event":"build-started","phase":"initial","mode":"validate"}
+{"event":"build-succeeded","phase":"initial","mode":"validate","errors":0}
+{"event":"build-failed","phase":"rebuild","mode":"validate","changed":["guides/overview.md"],"errors":1,"diagnostics":[{"severity":"error","code":"EFRONTMATTER","message":"…","remediation":"","sourcePath":"guides/overview.md","line":2,"column":1,"id":null}]}
+{"event":"watch-stopped","reason":"signal"}
+```
+
+**Consumption design (pickable when the pin carries A5).**
+
+- **Engine** — a `ValidateWatch` long-lived process mirroring
+  `WatchServer`'s argv discipline: `validate --watch --watch-json
+  --input <contentRoot>`, `cwd = project folder` (D1), stderr →
+  NDJSON, no `--serve` (no helper URL), no output flags, no
+  `--report` (stream-only — the app already has the A1 parser).
+  One `Process` per surface: HTML watch (Preview/letter) and
+  validate watch (problems) are siblings, both Engine-owned; never
+  a third watch.
+- **Decoder** — `WatchEvent` / `WatchStreamParser` (M14-1) consume
+  the stream unchanged: same `hello` handshake at
+  `watch_events_schema: 1`, `mode` is informational, unknown
+  versions degrade (D8). Additive addition only: a
+  `buildSucceeded` case (currently `.unknown`-skipped for the HTML
+  watch) so the pane can clear on success. The `build-failed`
+  `diagnostics` array is byte-identical to
+  `html-build-report-0.1.0`, so it decodes straight into
+  `[Diagnostic]` and maps with the existing
+  `CoordinatorProblems.from(diagnostic:)` — no new problem shape.
+- **Coordinator** — register the validate watch like the preview
+  watch (`activeWatch`-style, single-owner per selected source);
+  bound-root rule identical: a foreign root is idle, never
+  consume. Start when a source is selected; stop on source switch
+  (SIGTERM, A12). `build-failed` → replace the pane's problems
+  with the event's diagnostics; `build-succeeded` → clear;
+  `watch-error` / unexpected `watch-stopped` → surface, never
+  swallow (same rule as M14).
+- **SaveValidateGate** — the save-triggered one-shot validate side
+  retires while the daemon is live: boris owns the debounce, `changed`
+  gives per-save attribution, and a keystroke never costs a render.
+  The manual Validate menu verb and `check` stay unchanged.
+- **Gate for #161** — save a page → problems update from the A5
+  stream within debounce, no second HTML watch, no one-shot validate
+  subprocess; fixture NDJSON (`mode: "validate"`) decodes with the
+  existing parser; `SKIP_EMBED_BORIS=1 make build` + `make test`
+  green. No live `validate --watch` in CI.
+
 ---
 
 ## 2. `completion.json` — the editor completion surface (M3)
