@@ -1,8 +1,9 @@
 # Engine Contracts — probed hands-on against afterparty (M2–M8 design input)
 
 **Date:** 2026-08-17 · **Engine:** afterparty, `boris/0.8.1` (kit pin
-was `b82e9e2` when these tables were probed; current pin is `6b930b7`,
-which contains A1/A14/A7 + A3/A4/A13 — record only, tables not re-probed)
+was `b82e9e2` when these tables were probed; current pin is `bf464a0`,
+which contains A1/A14/A7 + A3/A4/A13 + A15 `open=` + A5
+`validate --watch` — record only, tables not re-probed)
 · **Content:** the afterparty dogfood site (25 pages, /tmp/apws)
 for §1–§4; the in-repo `Stunts/happy` corpus for §5–§7.
 
@@ -83,12 +84,13 @@ data: 1
 
 ### `validate --watch` (A5) — live problems daemon (design for #161)
 
-**Status: upstream RFC** — [boris#647](https://github.com/drawmeanelephant/boris/issues/647)
-(`docs/issues/boris-A5-check-watch-rfc.md`), not in the pinned kit
-(`6b930b7`). This subsection is the Solipsist consumption design so
+**Status: carried by the pin** — [boris#647](https://github.com/drawmeanelephant/boris/issues/647)
+(`docs/issues/boris-A5-check-watch-rfc.md`) merged upstream (boris#651)
+and present in the pinned kit (`bf464a0`). This subsection is the
+Solipsist consumption design so
 [#161](https://github.com/drawmeanelephant/solipsist/issues/161) is
-pickable the moment the pin carries it. Nothing here is probed yet —
-when A5 lands, re-probe before trusting a single line.
+pickable. **Nothing here is probed yet** — re-probe the RFC's claims
+before trusting a single line.
 
 **The contract (from the RFC).** `boris validate --watch [--input DIR]
 [--report PATH]` joins the artifact-free preflight with the watch

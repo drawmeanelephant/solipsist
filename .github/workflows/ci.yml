@@ -34,7 +34,7 @@ jobs:
         with:
           repository: drawmeanelephant/boris
           path: boris
-          ref: 6b930b7bd35a1803b365a073c226df22631dc3f7
+          ref: bf464a02883d1dce1d9f990739183c248e68c5c3
 
       - name: Install Zig
         uses: mlugg/setup-zig@v2

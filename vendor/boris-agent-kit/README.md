@@ -10,7 +10,7 @@ vanish.
 
 ## What's here
 
-- `MANIFEST.json` — commit `6b930b7bd35a1803b365a073c226df22631dc3f7`,
+- `MANIFEST.json` — commit `bf464a02883d1dce1d9f990739183c248e68c5c3`,
   branch `afterparty`, platform `Darwin-arm64`, Zig 0.16.0, `dirty: false`,
   per-binary sha256. Engine sha256 is a local `zig build` of that commit;
   the other nine fingerprints remain the archived `b82e9e2` kit (those
@@ -23,8 +23,8 @@ vanish.
 
 | Field | Value |
 |-------|-------|
-| Commit | `6b930b7` (`boris/0.8.1`, afterparty; contains A1/A14/A7 + A3/A4/A13) |
-| Engine binary sha256 | `2ced4d5fa87be7bdc258670ca90821e60f20db4b232403e27098ed0b78909551` |
+| Commit | `bf464a0` (`boris/0.8.1`, afterparty; A1/A14/A7 + A3/A4/A13 + **A15 `open=`** (boris#649) + **A5 `validate --watch`** (boris#647) + editor validation #652/#654/#656/#658/#659) |
+| Engine binary sha256 | `f6d17ad1792c1a62922c11c2775646e0ef07756bcaf05e3c8b802eab938f5519` |
 | Behavior | local spike decodes IR via `SOLIPSIST_BORIS_BIN` |
 
 ## Reproducing the binaries (if the kit is gone)
@@ -33,7 +33,7 @@ The kit was built from the pinned commit. The engine and the toolchain
 binaries rebuild from the boris source checkout at that commit:
 
 ```bash
-cd <boris-repo>          # checkout at 6b930b7
+cd <boris-repo>          # checkout at bf464a0
 zig build               # installs: boris, boris-source-rag, boris-package, boris-job-runner
 # the standalone tools each build from their own build.zig:
 zig build --build-file tools/search-index/build.zig       # boris-search-index
