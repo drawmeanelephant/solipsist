@@ -13,25 +13,31 @@ public struct WatchExit: Sendable {
 
 /// The M4 preview server (D5): a long-lived `boris watch --serve` subprocess.
 ///
-/// Runs `boris watch --serve --port 0 --input <contentRoot>` with
-/// `cwd = workingDirectory` (D1: the app runs boris with cwd = project
+/// Runs `boris watch --serve --watch-json --port 0 --input <contentRoot>`
+/// with `cwd = workingDirectory` (D1: the app runs boris with cwd = project
 /// folder, so workspace-relative layouts/themes resolve and output trees
-/// stay contained; `--input` may be absolute). stderr is streamed through
-/// a pipe; the only line the app parses is the startup line:
+/// stay contained; `--input` may be absolute). With `--watch-json` (A1,
+/// boris#648) stderr is exclusively NDJSON — no prose port line. The
+/// pinned kit emits `hello` (schema 1) first, then `serve-started` with
+/// `url` / `helper` / `port`.
 ///
-///     preview: http://127.0.0.1:PORT/  (auto-reload helper: http://127.0.0.1:PORT/__boris/)
-///
-/// `onServe` fires exactly once, with the `http://127.0.0.1:PORT/__boris/`
-/// helper URL (the helper page owns the iframe + SSE `EventSource` and
-/// auto-reloads — the web view needs no SSE handling of its own).
+/// `onServe` fires exactly once, from the `serve-started` event, with the
+/// `http://127.0.0.1:PORT/__boris/` helper URL (the helper page owns the
+/// iframe + SSE `EventSource` and auto-reloads — the web view needs no SSE
+/// handling of its own). `onProblem` fires for `build-failed` /
+/// `watch-error` / unexpected `watch-stopped` — never swallowed.
 /// `onExit` fires exactly once, when the process ends.
 ///
-/// Both callbacks run on an arbitrary background thread — hop to the main
+/// Callbacks run on an arbitrary background thread — hop to the main
 /// actor before touching UI. A server is one-shot: after `stop()` or a
 /// spontaneous exit it cannot be restarted; the caller creates a new one.
 public final class WatchServer: @unchecked Sendable {
-    /// Fired once with the helper URL after the startup port line is parsed.
+    /// Fired once with the helper URL after the `serve-started` event.
     public var onServe: ((URL) -> Void)?
+
+    /// Fired for `build-failed` / `watch-error` / unexpected `watch-stopped`
+    /// events — problems the watch stream reports without ending the process.
+    public var onProblem: ((String) -> Void)?
 
     /// Fired exactly once when the process ends (after `stop()` or on its own).
     public var onExit: ((WatchExit) -> Void)?
@@ -40,15 +46,18 @@ public final class WatchServer: @unchecked Sendable {
     private var process: Process?
     private let stderrPipe = Pipe()
     private var stderrAccumulator = Data()
+    private var lineBuffer = Data()
+    private var parser = WatchStreamParser()
     private var stderrTailText = ""
     private var _serveURL: URL?
-    private var didServe = false
+    private var didFireServe = false
+    private var deliveredProblemCount = 0
 
     public init(binary: URL, contentRoot: URL, workingDirectory: URL, port: Int = 0) {
         let process = Process()
         process.executableURL = binary
         process.arguments = [
-            "watch", "--serve",
+            "watch", "--serve", "--watch-json",
             "--port", String(port),
             "--input", contentRoot.path,
         ]
@@ -177,27 +186,44 @@ public final class WatchServer: @unchecked Sendable {
     private func consume(_ data: Data) {
         lock.lock()
         stderrAccumulator.append(data)
-        // Bound the buffer: only the tail is kept for diagnostics, and the
-        // moderately sized stream keeps the port scan cheap.
+        // Bound the buffer: only the tail is kept for diagnostics.
         if stderrAccumulator.count > 65_536 {
             stderrAccumulator.removeFirst(stderrAccumulator.count - 32_768)
         }
         stderrTailText = String(decoding: stderrAccumulator.suffix(4_096), as: UTF8.self)
 
-        var url: URL?
-        var serveCallback: ((URL) -> Void)?
-        if !didServe {
-            url = scanServeURL(in: stderrAccumulator)
-            if let url {
-                didServe = true
-                _serveURL = url
-                serveCallback = onServe
+        // Feed complete NDJSON lines to the parser; keep the trailing
+        // fragment for the next chunk.
+        lineBuffer.append(data)
+        while let newline = lineBuffer.firstIndex(of: 0x0A) {
+            let lineData = lineBuffer[..<newline]
+            lineBuffer.removeSubrange(...newline)
+            if let line = String(data: lineData, encoding: .utf8) {
+                parser.consume(line: line)
             }
         }
+
+        var serveURL: URL?
+        var serveCallback: ((URL) -> Void)?
+        if parser.didServe, !didFireServe {
+            didFireServe = true
+            _serveURL = parser.serveURL
+            serveURL = parser.serveURL
+            serveCallback = onServe
+        }
+        var problems: [String] = []
+        if parser.problems.count > deliveredProblemCount {
+            problems = Array(parser.problems[deliveredProblemCount...])
+            deliveredProblemCount = parser.problems.count
+        }
+        let problemCallback = onProblem
         lock.unlock()
 
-        if let url, let serveCallback {
-            serveCallback(url)
+        if let serveURL, let serveCallback {
+            serveCallback(serveURL)
+        }
+        for problem in problems {
+            problemCallback?(problem)
         }
     }
 
@@ -214,44 +240,6 @@ public final class WatchServer: @unchecked Sendable {
         _suspended = false
         lock.unlock()
         onExit?(exit)
-    }
-
-    /// Scans the accumulated stderr bytes for NDJSON `serve-started` or prose
-    /// `http://127.0.0.1:<port>` and returns the helper URL `http://127.0.0.1:<port>/__boris/`.
-    private func scanServeURL(in data: Data) -> URL? {
-        // 1. A1 structured NDJSON serve-started event: {"event":"serve-started",..."helper":"..."...}
-        if let str = String(data: data, encoding: .utf8) {
-            for line in str.components(separatedBy: .newlines) {
-                if line.contains("\"event\":\"serve-started\""),
-                   let lineData = line.data(using: .utf8),
-                   let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any]
-                {
-                    if let helper = json["helper"] as? String, let url = URL(string: helper) {
-                        return url
-                    }
-                    if let rawURL = json["url"] as? String, let url = URL(string: rawURL) {
-                        return url.appendingPathComponent("__boris/")
-                    }
-                    if let port = json["port"] as? Int {
-                        return URL(string: "http://127.0.0.1:\(port)/__boris/")
-                    }
-                }
-            }
-        }
-
-        // 2. Prose line fallback: `http://127.0.0.1:PORT`
-        let hostPrefix = Data("http://127.0.0.1:".utf8)
-        guard var index = data.range(of: hostPrefix)?.lowerBound else { return nil }
-        index += hostPrefix.count
-        var portBytes: [UInt8] = []
-        while index < data.count, portBytes.count < 6, data[index] >= 0x30, data[index] <= 0x39 {
-            portBytes.append(data[index])
-            index += 1
-        }
-        guard !portBytes.isEmpty,
-              let port = Int(String(decoding: portBytes, as: UTF8.self))
-        else { return nil }
-        return URL(string: "http://127.0.0.1:\(port)/__boris/")
     }
 }
 

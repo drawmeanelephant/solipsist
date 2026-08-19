@@ -22,6 +22,11 @@ final class PreviewSession {
 
     private(set) var phase: Phase = .idle
 
+    /// Most recent problem reported by the watch stream (`build-failed` /
+    /// `watch-error` / unexpected `watch-stopped`) while still serving the
+    /// last good build. Surfaced in `statusText`; never swallowed.
+    private(set) var lastProblem: String?
+
     /// The helper URL (`…/__boris/`) the web view should load, if serving.
     var serveURL: URL? {
         if case .serving(let url) = phase { return url }
@@ -47,6 +52,9 @@ final class PreviewSession {
         case .starting:
             return "Starting boris watch…"
         case .serving(let url):
+            if let lastProblem {
+                return "Serving \(url.absoluteString) — \(lastProblem)"
+            }
             return "Serving \(url.absoluteString)"
         case .failed(let message):
             return message
@@ -92,6 +100,9 @@ final class PreviewSession {
             server.onServe = { [weak self] url in
                 Task { @MainActor in self?.handleServe(url: url) }
             }
+            server.onProblem = { [weak self] message in
+                Task { @MainActor in self?.handleProblem(message) }
+            }
             server.onExit = { [weak self] exit in
                 Task { @MainActor in self?.handleExit(exit) }
             }
@@ -122,6 +133,7 @@ final class PreviewSession {
         if let server {
             coordinator?.unregisterWatch(server)
             server.onServe = nil
+            server.onProblem = nil
             server.onExit = nil
             server.stop()
             self.server = nil
@@ -133,7 +145,19 @@ final class PreviewSession {
     private func handleServe(url: URL) {
         timeoutTask?.cancel()
         timeoutTask = nil
+        lastProblem = nil
         phase = .serving(url)
+    }
+
+    /// Surfaces a watch-stream problem. While serving, the last good build
+    /// keeps serving and the problem shows in the status line; before the
+    /// port arrives, it fails the phase like a non-zero exit would.
+    private func handleProblem(_ message: String) {
+        if case .serving = phase {
+            lastProblem = message
+        } else {
+            phase = .failed(message)
+        }
     }
 
     private func handleExit(_ exit: WatchExit) {
@@ -145,6 +169,7 @@ final class PreviewSession {
         timeoutTask?.cancel()
         timeoutTask = nil
         rootPath = nil
+        lastProblem = nil
         if exit.exitCode == 0 {
             phase = .idle
         } else {
