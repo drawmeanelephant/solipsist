@@ -1,6 +1,7 @@
 # M16 — Write the remote: commit / push / PR authoring / issues mailbox
 
-**Status:** design gate for
+**Status:** landed — all four slices shipped (PRs #187 commit · #188
+push · #189 PR authoring · #190 issues mailbox) against
 [#185](https://github.com/drawmeanelephant/solipsist/issues/185) (cards
 `cards/M16-commit.md` · `M16-push.md` · `M16-pr.md` · `M16-issues.md`).
 Drafted by the dispatcher after M15 fully shipped (PRs #180–#184). The

@@ -116,10 +116,10 @@ No scraped prose. No homegrown graph. No third settings store.
   device-flow OAuth + PAT fallback, Keychain token, working copy,
   Remote mailbox Sync, sign-out (PRs #180–#184;
   [`GITHUB-OAUTH-DESIGN.md`](GITHUB-OAUTH-DESIGN.md)). The remote
-  *write* verbs (commit / push / PR authoring / issues mailbox) are
-  **M16** — design gate
+  *write* verbs (commit / push / PR authoring / issues mailbox)
+  landed as **M16** (PRs #187–#190;
   [`M16-WRITE-REMOTE-DESIGN.md`](M16-WRITE-REMOTE-DESIGN.md),
-  [#185](https://github.com/drawmeanelephant/solipsist/issues/185).
+  [#185](https://github.com/drawmeanelephant/solipsist/issues/185)).
 - Content-audit mailbox (`boris-content-audit`)
 - Source-RAG export for AI assist
 - `validate --watch` once A5 exists (replaces save-triggered one-shots)
@@ -153,7 +153,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M13** Graph folders | ✅ trunk mailboxes from `graph.parent` ([#142](https://github.com/drawmeanelephant/solipsist/issues/142); #144–#146 → PRs #154/#155/#156) |
 | **M14** Watch contract | ✅ A1 `--watch-json` + letter SSE ([#143](https://github.com/drawmeanelephant/solipsist/issues/143); #147/#148 → PRs #157/#158) |
 | **M15** GitHub source | ✅ OAuth device flow + `SourceKind.github` payload, working copy, Remote mailbox Sync, sign-out ([#179](https://github.com/drawmeanelephant/solipsist/issues/179); PRs #180–#184) |
-| **M16** Write the remote | filed — commit / push / PR authoring / issues mailbox ([#185](https://github.com/drawmeanelephant/solipsist/issues/185); design [`M16-WRITE-REMOTE-DESIGN.md`](M16-WRITE-REMOTE-DESIGN.md)) |
+| **M16** Write the remote | ✅ commit / push / PR authoring / issues mailbox ([#185](https://github.com/drawmeanelephant/solipsist/issues/185); PRs #187–#190) |
 
 **Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
 batch then landed: first-run and problem→page (#88/#94), graph filter /
@@ -606,20 +606,16 @@ here, it is not a v1 promise.
 
 ## 8. Pickup (what to do next)
 
-M10–M14, the post-ship batch (#165/#166/#167), and **M15** (the
-GitHub source, PRs #180–#184) landed. Remaining **ship** is
-Apple-account only. Next **product** slice is M16, the remote *write*
-verbs — design gate
-[`docs/M16-WRITE-REMOTE-DESIGN.md`](M16-WRITE-REMOTE-DESIGN.md).
+M10–M14, the post-ship batch (#165/#166/#167), **M15** (GitHub
+source, PRs #180–#184), and **M16** (remote write verbs — commit /
+push / PR authoring / issues mailbox, PRs #187–#190) all landed.
+Remaining is **ship**, Apple-account only: notarization (#110) then
+the clean-Mac proof (#111).
 
 | Order | Track | Issue | Why this next |
 |------:|-------|-------|----------------|
-| 1 | M16-1 Commit | [#185](https://github.com/drawmeanelephant/solipsist/issues/185) | M15 shipped the full read side (Sync + Remote mailbox); commit is the first write verb and unblocks push + PR. |
-| 2 | M16-2 Push | #185 | after M16-1 — pushes its commits through the credential helper. |
-| 3 | M16-3 PR | #185 | after M16-2 — push branch → `POST /pulls`. |
-| 4 | M16-4 Issues | #185 | parallel with M16-1 — the mailbox is independent of the git verbs. |
-| 5 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. Parallel with the M16 slices. |
-| 6 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
+| 1 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. |
+| 2 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
 
 ### Landed depth (do not redo)
 
@@ -647,7 +643,8 @@ folders (M13).
 Out of v1 (unchanged): migration labs, Wasm in the app,
 `validate --watch` until A5 + pin. Clone-as-local is M12 / #131.
 GitHub source is M15 (landed); its remote *write* verbs are M16
-(commit / push / PR authoring / issues mailbox).
+(landed — commit / push / PR authoring / issues mailbox, PRs
+#187–#190).
 Compose **depth** (diagnostics, bundle `oliver`) stays Later; the
 M10 compose window is #106 / #108.
 
