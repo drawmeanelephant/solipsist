@@ -11,6 +11,10 @@ struct PlayPage: Identifiable, Hashable, Sendable {
     let depth: Int
     let tags: [String]
     let sourcePath: String
+    /// The trunk this row belongs to (M13-2): the root `role == .trunk`
+    /// whose `parent` chain this row reaches, or nil for non-trunk roots.
+    /// Drives the trunk-mailbox filter; never the sidebar.
+    let trunkID: String?
 
     init(
         id: String,
@@ -19,7 +23,8 @@ struct PlayPage: Identifiable, Hashable, Sendable {
         role: PageRole = .trunk,
         depth: Int = 0,
         tags: [String] = [],
-        sourcePath: String = ""
+        sourcePath: String = "",
+        trunkID: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -28,6 +33,7 @@ struct PlayPage: Identifiable, Hashable, Sendable {
         self.depth = depth
         self.tags = tags
         self.sourcePath = sourcePath
+        self.trunkID = trunkID
     }
 }
 
@@ -47,7 +53,7 @@ enum LocalPlayGraph {
         }
 
         var rows: [PlayPage] = []
-        func emit(_ node: GraphNode, depth: Int) {
+        func emit(_ node: GraphNode, depth: Int, trunkID: String?) {
             rows.append(
                 PlayPage(
                     id: node.id,
@@ -56,22 +62,30 @@ enum LocalPlayGraph {
                     role: node.role,
                     depth: depth,
                     tags: node.tags ?? [],
-                    sourcePath: node.sourcePath
+                    sourcePath: node.sourcePath,
+                    trunkID: trunkID
                 )
             )
             for child in children[node.id] ?? [] {
-                emit(child, depth: depth + 1)
+                emit(child, depth: depth + 1, trunkID: trunkID)
             }
         }
 
         // Trunks first so a mixed-index corpus still reads as a publication.
         for node in roots where node.role == .trunk {
-            emit(node, depth: 0)
+            emit(node, depth: 0, trunkID: node.id)
         }
         for node in roots where node.role != .trunk {
-            emit(node, depth: 0)
+            emit(node, depth: 0, trunkID: nil)
         }
         return rows
+    }
+
+    /// The trunk mailbox's letter list (M13-2): the trunk row plus every
+    /// descendant whose `parent` chain reaches it. Empty when the id is
+    /// missing from the current graph — never a fall-through to all pages.
+    static func pages(in pages: [PlayPage], trunkID: String) -> [PlayPage] {
+        pages.filter { $0.trunkID == trunkID }
     }
 
     /// The sidebar's folder rows under Pages (M13-1): roots whose role

@@ -36,8 +36,9 @@ struct LocalPlay: PlaySurface {
             case WorkspaceMailbox.activity:
                 ActivityPane()
             default:
-                // Unknown mailbox (e.g. a future trunk id) is not Pages.
-                unknownMailbox
+                // Unknown mailbox is a trunk id (M13): Pages means all;
+                // a trunk id means that folder and its descendants.
+                trunkMailbox
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -52,20 +53,21 @@ struct LocalPlay: PlaySurface {
         }
     }
 
-    /// Placeholder until M13-2 lands the trunk folder filter. Unknown
-    /// mailboxes must not surface the full Pages list.
-    @ViewBuilder
-    private var unknownMailbox: some View {
-        ContentUnavailableView {
-            Label(rawMailboxName, systemImage: "folder")
-                .accessibilityLabel("\(source.title), \(rawMailboxName)")
-        } description: {
-            Text("This mailbox has no list in this build yet.")
-        }
+    /// The raw mailbox value when it is a trunk id (not one of the known
+    /// M10 tokens and not nil). Trunk ids come from `graph.parent` only.
+    private var trunkID: String? {
+        guard
+            let mailbox = store.selection.mailbox,
+            !WorkspaceMailbox.isKnown(mailbox)
+        else { return nil }
+        return mailbox
     }
 
-    private var rawMailboxName: String {
-        WorkspaceMailbox.displayName(store.selection.mailbox ?? "")
+    /// The letter list for the current trunk folder, or the full list when
+    /// the mailbox is Pages. Empty when the id is stale — never all pages.
+    private var displayedPages: [PlayPage] {
+        guard let trunkID else { return loadedPages }
+        return LocalPlayGraph.pages(in: loadedPages, trunkID: trunkID)
     }
 
     private var loadedPages: [PlayPage] {
@@ -86,26 +88,64 @@ struct LocalPlay: PlaySurface {
 
     @ViewBuilder
     private var pagesMailbox: some View {
+        mailboxContent(pages: loadedPages, empty: .noPages)
+    }
+
+    /// Unknown mailbox = trunk id: the folder's letter list, or an honest
+    /// empty state when the folder has none in the current graph.
+    @ViewBuilder
+    private var trunkMailbox: some View {
+        mailboxContent(pages: displayedPages, empty: .emptyFolder)
+    }
+
+    private enum MailboxEmptyKind {
+        /// The source's graph has no pages at all.
+        case noPages
+        /// The trunk folder has no pages in the current graph (or its id
+        /// is stale — the graph no longer contains it).
+        case emptyFolder
+    }
+
+    @ViewBuilder
+    private func mailboxContent(pages: [PlayPage], empty: MailboxEmptyKind) -> some View {
         switch state {
         case .idle, .reading, .building:
             ProgressView(progressTitle)
                 .controlSize(.small)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .unavailable:
-            ContentUnavailableView {
-                Label(source.title, systemImage: "folder")
-                    .accessibilityLabel("\(source.title), unreachable")
-            } description: {
-                Text("This folder is unreachable. Relocate it from File → Relocate Source… or Settings → Sources, or remove it.")
-            } actions: {
-                Button("Relocate…") {
-                    store.presentRelocatePanel(for: source.id)
-                }
-                Button("Remove", role: .destructive) {
-                    store.remove(source.id)
-                }
-            }
+            unreachableContent
+        case .failed(let message):
+            failedContent(message)
         case .empty:
+            emptyContent(empty)
+        case .ready where pages.isEmpty:
+            emptyContent(empty)
+        case .ready:
+            pagesSplit(pages)
+        }
+    }
+
+    private var unreachableContent: some View {
+        ContentUnavailableView {
+            Label(source.title, systemImage: "folder")
+                .accessibilityLabel("\(source.title), unreachable")
+        } description: {
+            Text("This folder is unreachable. Relocate it from File → Relocate Source… or Settings → Sources, or remove it.")
+        } actions: {
+            Button("Relocate…") {
+                store.presentRelocatePanel(for: source.id)
+            }
+            Button("Remove", role: .destructive) {
+                store.remove(source.id)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func emptyContent(_ kind: MailboxEmptyKind) -> some View {
+        switch kind {
+        case .noPages:
             ContentUnavailableView {
                 Label("No Pages", systemImage: "doc.text")
             } description: {
@@ -114,16 +154,23 @@ struct LocalPlay: PlaySurface {
             .accessibilityElement(children: .combine)
             .accessibilityLabel("No Pages")
             .accessibilityHint("Add Stunts/happy from Settings → Sources or File → Open… to see a working publication.")
-        case .failed(let message):
+        case .emptyFolder:
             ContentUnavailableView {
-                Label("Graph Unavailable", systemImage: "exclamationmark.triangle")
+                Label("No Pages in This Folder", systemImage: "folder")
             } description: {
-                Text(message)
-            } actions: {
-                Button("Try Again") { reload() }
+                Text("This folder has no pages in the current graph.")
             }
-        case .ready(let pages):
-            pagesSplit(pages)
+            .accessibilityLabel("No Pages in This Folder")
+        }
+    }
+
+    private func failedContent(_ message: String) -> some View {
+        ContentUnavailableView {
+            Label("Graph Unavailable", systemImage: "exclamationmark.triangle")
+        } description: {
+            Text(message)
+        } actions: {
+            Button("Try Again") { reload() }
         }
     }
 
