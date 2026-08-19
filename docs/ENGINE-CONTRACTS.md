@@ -84,30 +84,38 @@ data: 1
 
 ### `validate --watch` (A5) — live problems daemon (design for #161)
 
-**Status: carried by the pin** — [boris#647](https://github.com/drawmeanelephant/boris/issues/647)
-(`docs/issues/boris-A5-check-watch-rfc.md`) merged upstream (boris#651)
-and present in the pinned kit (`bf464a0`). This subsection is the
-Solipsist consumption design so
-[#161](https://github.com/drawmeanelephant/solipsist/issues/161) is
-pickable. **Nothing here is probed yet** — re-probe the RFC's claims
-before trusting a single line.
+**Status: carried + probed (2026-08-19)** — [boris#647](https://github.com/drawmeanelephant/boris/issues/647)
+(`docs/issues/boris-A5-check-watch-rfc.md`) merged upstream (boris#651),
+present in the pinned kit (`bf464a0`), and every claim below verified
+live against that binary (initial + rebuild cycles, error cycle,
+graceful SIGTERM). Implemented as [#161](https://github.com/drawmeanelephant/solipsist/issues/161)
+(`ValidateWatch` + decoder + coordinator + save-gate retirement).
 
-**The contract (from the RFC).** `boris validate --watch [--input DIR]
-[--report PATH]` joins the artifact-free preflight with the watch
-daemon: same debounce (100ms) / coalescing (2s cap) / ignore rules /
-signal handlers as HTML watch, but the rebuild action is `validate`
-instead of the HTML publish. Writes nothing but the optional report
-file (replaced every cycle, never appended). Output flags are rejected
-(exit 2). SIGTERM/SIGINT → graceful exit 0 (A12). When A1 is present it
-consumes the same NDJSON protocol with `mode: "validate"`:
+**The contract (probed at `bf464a0`).** `boris validate --watch [--input
+DIR] [--report PATH]` joins the artifact-free preflight with the watch
+daemon: same debounce / coalescing / ignore rules / signal handlers as
+HTML watch, but the rebuild action is `validate` instead of the HTML
+publish. Writes nothing but the optional report file (replaced every
+cycle, never appended). Output flags are rejected (exit 2).
+SIGTERM/SIGINT → graceful exit 0, `watch-stopped reason:"signal"` (A12).
+Consumes the same NDJSON protocol with `mode: "validate"` (events on
+**stderr**, same `hello` handshake at `watch_events_schema: 1`):
 
 ```
 {"event":"hello","watch_events_schema":1,"compiler":"boris/0.8.1"}
-{"event":"build-started","phase":"initial","mode":"validate"}
-{"event":"build-succeeded","phase":"initial","mode":"validate","errors":0}
-{"event":"build-failed","phase":"rebuild","mode":"validate","changed":["guides/overview.md"],"errors":1,"diagnostics":[{"severity":"error","code":"EFRONTMATTER","message":"…","remediation":"","sourcePath":"guides/overview.md","line":2,"column":1,"id":null}]}
+{"event":"build-started","phase":"initial","mode":"validate","targets":["default"]}
+{"event":"build-succeeded","phase":"initial","mode":"validate","targets":["default"],"pages_written":null,"duration_ms":22}
+{"event":"build-failed","phase":"rebuild","mode":"validate","changed":["guides.md"],"errors":2,"diagnostics":[{"severity":"error","code":"EROUTEMISSING","message":"does not resolve to a published output [fix the path, or publish the file it names]","remediation":"Fix the path, or publish the file it names","sourcePath":"guides.html","line":133,"column":null,"id":null}],"recoverable":true,"duration_ms":23}
+{"event":"watcher-started","mode":"validate","targets":["default"]}
 {"event":"watch-stopped","reason":"signal"}
 ```
+
+Probe corrections vs the RFC draft: `build-succeeded` carries
+`pages_written: null` (validate writes nothing) and **no** `errors`
+key; rebuild cycles carry `changed`; `build-failed` diagnostics are
+the `html-build-report-0.1.0` shape with `recoverable`; the daemon
+keeps watching after a failed build. The consumption design below
+holds as written.
 
 **Consumption design (pickable when the pin carries A5).**
 
