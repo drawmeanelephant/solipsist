@@ -465,3 +465,185 @@ Produces `packages/<archive>` (default `boris-package.tar`) containing
 chain (`_boris/proof/`) is separate and emitted by the compiler build
 (`artifacts.json` → `checks.json` → `claims.json` → `touches.json` →
 `proof-pack.json` + `index.html`).
+
+---
+
+## 8. `boris-content-audit` — the audit mailbox surface (probed 2026-08-19)
+
+Standalone kit binary (**not** the embedded `boris`). App surface: #165
+(content-audit mailbox). Probe corpora: `Stunts/happy` and
+`Stunts/dogfood` (in-repo).
+
+**Provenance:** probed against the agent-kit build present at probe time,
+which reports `tool_version "0.1.0"` (sha256 `730b8c45…`).
+`vendor/boris-agent-kit/MANIFEST.json` records the archived fingerprint
+(`1dab7767…`) — the vendor README notes a rebuilt kit hashes differently
+and behavior is what's pinned.
+
+### Invocation
+
+```
+boris-content-audit --mode=poetry --root=DIR --content-root=REL --out=DIR [options]
+```
+
+| Flag | Behavior |
+|---|---|
+| `--mode=poetry` | Audit-mode registry; poetry is the initial (only) mode |
+| `--root=DIR` | Project root (default `.`). **Never mutated** |
+| `--content-root=REL` | Content root relative to `--root` (default `content`) |
+| `--out=DIR` | Output directory (required). Tool-owned, atomic, never inside the content root |
+| `--policy=FILE` | Versioned JSON policy: eligible/poetry collections, placeholder signatures, density bands, exact mappings |
+| `--previous-report=FILE` | Earlier `report.json` for delta comparison |
+| `--collection=NAME` | Repeatable coverage/records filter |
+| `--format=json\|markdown\|html\|all` | Report formats to emit (default `all`) |
+| `--fail-on=none\|structural\|policy` | Class that makes exit 1 (default `structural`) |
+| `--revision=STRING` | Explicit source revision (never host-derived) |
+| `--quiet` | Suppress the summary line |
+
+### Exit codes (verified)
+
+| Code | Meaning | Probed |
+|---|---|---|
+| 0 | completed, no selected failure class | `--fail-on=none` on `Stunts/happy` (3 exceptions, exit 0) |
+| 1 | findings selected by `--fail-on` | default run on `Stunts/happy` (3 exceptions) and `Stunts/dogfood` (45) |
+| 2 | usage error | `--mode=bogus`; missing `--out` (usage printed) |
+| 3 | I/O or output-ownership error | `--out=/tmp/…` — macOS `/tmp` is a symlink → `refused: output path contains a symlink component` |
+| 4 | malformed source / policy / previous-report contract | non-JSON `--policy` → `malformed policy '…': InvalidJson` |
+
+### Outputs
+
+Default (`--format=all`): `report.json` + `REPORT.md` + `site/`
+(`index/density/coverage/alignment/changes/exceptions.html` + `audit.css`),
+plus a `.boris-content-audit-output` marker. `--format=json` →
+`report.json` only.
+
+### `report.json` shape (verified, `Stunts/happy`)
+
+```json
+{
+  "format_id": "boris-content-audit",
+  "schema_version": 1,
+  "tool_version": "0.1.0",
+  "mode": "poetry",
+  "source_root_label": "content",
+  "source_revision": null,
+  "policy_digest": "<sha256>",
+  "collection_filter": [],
+  "scope": {"type": "all", "totals": "global"},
+  "totals": {"records_discovered": 3, "source_records": 0, "poetry_records": 0,
+    "other_records": 3, "excluded_records": 0, "mapped_poetry": 0,
+    "orphan_poetry": 0, "ambiguous_poetry": 0, "malformed_records": 3,
+    "dead_references": 0},
+  "coverage_overall": {}, "coverage_by_collection": [], "coverage_by_type": [],
+  "density": [],
+  "alignment": {"counts": {}, "records": []},
+  "exceptions": [
+    {"kind": "malformed_record", "severity": "structural",
+     "record_id": "guides/getting-started.md",
+     "detail": "malformed record: missing_id"}
+  ],
+  "records": [
+    {"id": null, "kind": "other", "collection": "guides",
+     "source_path": "guides/getting-started.md", "status": null,
+     "poetry_type": null, "alignment": null, "owner": null, "evidence": [],
+     "verse_units": 0, "placeholder_units": 0, "substantive_units": 0,
+     "malformed_units": 0, "density_in_band": false, "coverage": null}
+  ],
+  "delta": null
+}
+```
+
+### Findings semantics (probed)
+
+A page without a frontmatter `id` is `malformed_record: missing_id`
+(severity `structural`) — `Stunts/happy` pages carry no `id`, so the
+whole corpus is structural. The mailbox should render `exceptions[]`
+(never swallow) and use `--fail-on` to choose the class the app surfaces
+as a problem.
+
+### App implications (#165)
+
+- `--out` must be a **real path** — `/tmp` on macOS is a symlink and is
+  refused (exit 3). Use a path under the app's container, never the content tree.
+- Separate binary: locate/embed it alongside the engine and run through
+  the coordinator's single `Process?` slot (no second subprocess).
+- Read-only over the source (`--root` never mutated); atomic tool-owned output.
+
+## 9. `boris-source-rag` — the pack-by-tool surface (probed 2026-08-19)
+
+Standalone kit binary (**not** the embedded `boris`) and **not** the
+product `--rag` build projection (that is the M7 edition row). App
+surface: #166. Probe: `Stunts/dogfood` → 48 source files, 50 catalog
+entries.
+
+**Provenance:** same kit build as §8, `tool_version "0.1.0"` (sha256
+`abbd12df…`; MANIFEST archives `d16048c4…`).
+
+### Invocation
+
+```
+boris-source-rag [--root=DIR] [--out=DIR] [--profile=all|core|docs|tools]
+                 [--pack-by=none|tool] [--max-bytes=N] [--split-size=N]
+                 [--no-bundles | --bundles-only] [--quiet]
+```
+
+Default scan under `--root`: dirs `src docs content layouts scripts tools
+ test SUPPORT`; files `AGENTS.md README.md CHANGELOG.md LICENSE build.zig
+ build.zig.zon`. `--no-bundles` and `--bundles-only` are mutually
+exclusive (exit 2).
+
+### Exit codes (verified)
+
+| Code | Meaning | Probed |
+|---|---|---|
+| 0 | success | default run on `Stunts/dogfood` → `Done: 48 source files, 50 catalog entries, 0 skipped` |
+| 2 | usage | `--no-bundles --bundles-only` together (help printed) |
+| 3 | I/O error | — |
+
+### Output tree (default, verified)
+
+`INDEX.md` · `UPLOAD-GUIDE.md` · `catalog.jsonl` · `catalog_meta.json` ·
+`profile_manifest.json` · `part_manifest.json` · bundles
+`boris-source-N.md` / `boris-docs[-N].md` / `boris-content[-N].md` ·
+`files/**` (one markdown document per source path; omitted with
+`--bundles-only`).
+
+With `--pack-by=tool`: the same tree is emitted once per pack under
+`packs/<name>/` (core, docs, content, and one per `tools/<name>/`); the
+root keeps only `INDEX.md` (a router over the packs) and
+`pack_manifest.json`.
+
+### Manifest shapes (verified)
+
+`catalog.jsonl` (one line per entry):
+
+```json
+{"rag_id":"meta/index","rag_path":"INDEX.md","category":"meta","title":"Source RAG corpus — INDEX","source_path":"","lang":"markdown","bytes":0}
+```
+
+`catalog_meta.json`:
+
+```json
+{"format":"boris-source-rag","schema_version":1,"tool_version":"0.1.0","profile":"all","split_size":524288}
+```
+
+`profile_manifest.json`: `{"profile", "source_files", "catalog_entries",
+"skipped", "paths": [...]}`.
+
+`part_manifest.json`: `{"profile", "split_size", "bundles": true,
+"parts": [{"order", "profile", "file", "bundle", "part", "parts",
+"bytes", "sources": [{"order", "source_path", "bytes"}]}]}`.
+
+`pack_manifest.json` (`--pack-by=tool`): `{"format":
+"boris-source-rag-packs", "schema_version": 1, "profile", "pack_by":
+"tool", "packs_dir": "packs", "token_estimate_method": "bytes/4",
+"total_bytes", "total_source_files", "packs": [{"name", "path",
+"source_files", "bytes", "tokens_approx", "purpose", "answers"}]}`.
+
+### App implications (#166)
+
+- Never mutates `--root`; all output goes to `--out`.
+- Default `--max-bytes=524288` and `--split-size=524288` bound bundle sizes.
+- A "Source RAG export" verb can run the default profile, then reveal
+  `--out` in Finder (or open `INDEX.md`). Same single-`Process?`-slot
+  rule as §8.
