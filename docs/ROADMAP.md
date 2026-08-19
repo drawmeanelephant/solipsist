@@ -120,10 +120,10 @@ No scraped prose. No homegrown graph. No third settings store.
   landed as **M16** (PRs #187–#190;
   [`M16-WRITE-REMOTE-DESIGN.md`](M16-WRITE-REMOTE-DESIGN.md),
   [#185](https://github.com/drawmeanelephant/solipsist/issues/185)).
-  A dedicated Pull Requests mailbox (the deferred "Later" item) is
-  **M17** — design gate
+  The dedicated Pull Requests mailbox (the deferred "Later" item)
+  landed as **M17** (PRs #194–#196;
   [`M17-PR-MAILBOX-DESIGN.md`](M17-PR-MAILBOX-DESIGN.md),
-  [#192](https://github.com/drawmeanelephant/solipsist/issues/192).
+  [#192](https://github.com/drawmeanelephant/solipsist/issues/192)).
 - Content-audit mailbox (`boris-content-audit`)
 - Source-RAG export for AI assist
 - `validate --watch` once A5 exists (replaces save-triggered one-shots)
@@ -156,7 +156,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M14** Watch contract | ✅ A1 `--watch-json` + letter SSE ([#143](https://github.com/drawmeanelephant/solipsist/issues/143); #147/#148 → PRs #157/#158) |
 | **M15** GitHub source | ✅ OAuth device flow + `SourceKind.github` payload, working copy, Remote mailbox Sync, sign-out ([#179](https://github.com/drawmeanelephant/solipsist/issues/179); PRs #180–#184) |
 | **M16** Write the remote | ✅ commit / push / PR authoring / issues mailbox ([#185](https://github.com/drawmeanelephant/solipsist/issues/185); PRs #187–#190) |
-| **M17** Pull Requests mailbox | filed — the deferred "Later" item: `/pulls` list + github-only mailbox ([#192](https://github.com/drawmeanelephant/solipsist/issues/192); design [`M17-PR-MAILBOX-DESIGN.md`](M17-PR-MAILBOX-DESIGN.md)) |
+| **M17** Pull Requests mailbox | ✅ `/pulls` list seam + github-only `pulls` mailbox + authoring entry ([#192](https://github.com/drawmeanelephant/solipsist/issues/192); PRs #194–#196) |
 
 **Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
 batch then landed: first-run and problem→page (#88/#94), graph filter /
@@ -610,20 +610,16 @@ here, it is not a v1 promise.
 ## 8. Pickup (what to do next)
 
 M10–M14, the post-ship batch (#165/#166/#167), **M15** (GitHub
-source, PRs #180–#184), and **M16** (remote write verbs — commit /
-push / PR authoring / issues mailbox, PRs #187–#190) all landed.
-Next **product** slice is M17, the Pull Requests mailbox — design
-[`docs/M17-PR-MAILBOX-DESIGN.md`](M17-PR-MAILBOX-DESIGN.md).
-Remaining **ship** stays Apple-account only: notarization (#110) then
-the clean-Mac proof (#111).
+source, PRs #180–#184), **M16** (remote write verbs — commit /
+push / PR authoring / issues mailbox, PRs #187–#190), and **M17**
+(the Pull Requests mailbox, PRs #194–#196) all landed. Remaining is
+**ship**, Apple-account only: notarization (#110) then the clean-Mac
+proof (#111).
 
 | Order | Track | Issue | Why this next |
 |------:|-------|-------|----------------|
-| 1 | M17-1 PR list | [#192](https://github.com/drawmeanelephant/solipsist/issues/192) | the deferred "Later" item; M16 shipped every seam (`/pulls` URL, bearer-`get`, `issues` mailbox pattern) — the list seam is the first slice. |
-| 2 | M17-2 PR mailbox | #192 | after M17-1 — the github-only `pulls` surface, sibling of M16-4. |
-| 3 | M17-3 Authoring entry | #192 | after M17-2 — extract the M16-3 sheet so the mailbox can create PRs. |
-| 4 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. |
-| 5 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
+| 1 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. |
+| 2 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
 
 ### Landed depth (do not redo)
 
@@ -652,7 +648,7 @@ Out of v1 (unchanged): migration labs, Wasm in the app,
 `validate --watch` until A5 + pin. Clone-as-local is M12 / #131.
 GitHub source is M15 (landed); its remote *write* verbs are M16
 (landed — commit / push / PR authoring / issues mailbox, PRs
-#187–#190). A Pull Requests mailbox is M17 (#192, filed).
+#187–#190). A Pull Requests mailbox is M17 (landed, PRs #194–#196).
 Compose **depth** (diagnostics, bundle `oliver`) stays Later; the
 M10 compose window is #106 / #108.
 
