@@ -29,7 +29,6 @@ struct ComposeWindow: View {
                 ComposeEditorView(
                     document: document,
                     renderService: OliverRenderService(),
-                    diagnostics: [],
                     onSave: save
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {

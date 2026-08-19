@@ -49,25 +49,40 @@ protocol MarkupRenderService: Sendable {
         _ source: String,
         language: ComposeLanguage,
         options: MarkupRenderOptions
-    ) async throws -> String
+    ) async throws -> MarkupRenderResult
+}
+
+/// What a renderer returns: the HTML fragment plus any parse diagnostics
+/// (LATER-3.1 — Oliver's span-based diagnostics mapped into the compose
+/// seam). The editor shows diagnostics in the problems pane; the preview
+/// shows only the HTML.
+struct MarkupRenderResult: Sendable {
+    let html: String
+    let diagnostics: [ComposeDiagnostic]
+
+    init(html: String, diagnostics: [ComposeDiagnostic] = []) {
+        self.html = html
+        self.diagnostics = diagnostics
+    }
 }
 
 /// Placeholder: HTML-escapes the source so the preview is safe and shows
 /// exactly what was authored. Same escape policy as Oliver's text writer
 /// (`& < > "` and NUL → U+FFFD) so the swap to the real renderer changes
-/// content, not posture.
+/// content, not posture. No diagnostics — the placeholder has no parser.
 struct PlaceholderRenderService: MarkupRenderService {
     func render(
         _ source: String,
         language: ComposeLanguage,
         options: MarkupRenderOptions
-    ) async throws -> String {
+    ) async throws -> MarkupRenderResult {
         let escaped = source
             .replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "\"", with: "&quot;")
             .replacingOccurrences(of: "\u{0}", with: "\u{FFFD}")
-        return "<pre style=\"white-space: pre-wrap; font: 12px ui-monospace;\">\(escaped)</pre>"
+        let html = "<pre style=\"white-space: pre-wrap; font: 12px ui-monospace;\">\(escaped)</pre>"
+        return MarkupRenderResult(html: html)
     }
 }

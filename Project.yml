@@ -113,6 +113,7 @@ targets:
       - path: Sources/Compose/ComposeLanguage.swift
       - path: Sources/Compose/ComposeDocument.swift
       - path: Sources/Compose/ComposeHighlighter.swift
+      - path: Sources/Compose/ComposeDiagnostic.swift
       - path: Sources/Compose/MarkupRenderService.swift
       - path: Sources/Compose/ComposePageResolver.swift
       - path: Sources/Compose/OliverRenderService.swift

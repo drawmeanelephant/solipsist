@@ -1,27 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// One diagnostic for the compose element's problems seam. The hook-in card
-/// maps Oliver's structured diagnostics (exact source spans) into this
-/// shape; the element itself only renders what it is given.
-struct ComposeDiagnostic: Identifiable, Equatable {
-    enum Severity: Equatable {
-        case warning
-        case error
-    }
-
-    let id = UUID()
-    let severity: Severity
-    let message: String
-    let line: Int?
-
-    init(severity: Severity, message: String, line: Int? = nil) {
-        self.severity = severity
-        self.message = message
-        self.line = line
-    }
-}
-
 /// The compose element: a full-featured Markdown / Textile / Cooklang
 /// editing surface that will be hooked into the app by a later card.
 ///
@@ -35,12 +14,16 @@ struct ComposeEditorView: View {
     @Bindable var document: ComposeDocument
 
     var renderService: any MarkupRenderService = PlaceholderRenderService()
-    var diagnostics: [ComposeDiagnostic] = []
     /// Called after an explicit save actually wrote the buffer. The host
     /// (ComposeWindow) uses this to flow the save into the coordinator's
     /// save→validate gate.
     var onSave: (() -> Void)?
 
+    /// Problems from the live preview render (LATER-3.1). Computed from the
+    /// render, not injected by the host.
+    @State private var diagnostics: [ComposeDiagnostic] = []
+    /// Character offset to jump the editor selection to (click-to-line).
+    @State private var jumpToCharacter: Int?
     @State private var showPreview = true
     @State private var previewOptions = MarkupRenderOptions()
     @State private var saveError: String?
@@ -50,25 +33,55 @@ struct ComposeEditorView: View {
             toolbar
             Divider()
             HSplitView {
-                ComposeTextView(document: document)
+                ComposeTextView(document: document, jumpToCharacter: jumpToCharacter)
                     .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
                 if showPreview {
                     ComposePreviewView(
                         source: document.text,
                         language: document.language,
                         options: previewOptions,
-                        renderService: renderService
+                        renderService: renderService,
+                        onDiagnostics: { diagnostics = $0 }
                     )
                     .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             if !diagnostics.isEmpty {
                 Divider()
-                ComposeDiagnosticsPane(diagnostics: diagnostics)
-                    .frame(minHeight: 72, idealHeight: 110, maxHeight: 180)
+                ComposeDiagnosticsPane(diagnostics: diagnostics) { selected in
+                    if let index = characterIndex(for: selected, in: document.text) {
+                        jumpToCharacter = index
+                    }
+                }
+                .frame(minHeight: 72, idealHeight: 110, maxHeight: 180)
             }
         }
         .navigationTitle(document.statusText)
+    }
+
+    /// Resolve a diagnostic to a character offset: Oliver's `span.start`
+    /// when present, else the start of the reported line. UTF-16 offsets
+    /// (NSRange units) — a best-effort jump like the highlighter, clamped
+    /// so it can never exceed the buffer.
+    private func characterIndex(for diagnostic: ComposeDiagnostic, in text: String) -> Int? {
+        if let index = diagnostic.characterIndex {
+            return min(max(index, 0), text.utf16.count)
+        }
+        guard let line = diagnostic.line, line >= 1 else { return nil }
+        let ns = text as NSString
+        var found: Int?
+        var currentLine = 1
+        ns.enumerateSubstrings(
+            in: NSRange(location: 0, length: ns.length),
+            options: [.byLines, .substringNotRequired]
+        ) { _, range, _, stop in
+            if currentLine == line {
+                found = range.location
+                stop.pointee = true
+            }
+            currentLine += 1
+        }
+        return found
     }
 
     private var toolbar: some View {
@@ -160,10 +173,11 @@ struct ComposeEditorView: View {
     }
 }
 
-/// The problems seam: renders diagnostics the host injects. Empty by design
-/// until the hook-in card wires Oliver's structured diagnostics through.
+/// The problems seam: renders the diagnostics the editor computed from the
+/// live render (LATER-3.1). Clicking a row jumps the editor to the span.
 private struct ComposeDiagnosticsPane: View {
     let diagnostics: [ComposeDiagnostic]
+    var onSelect: (ComposeDiagnostic) -> Void = { _ in }
 
     var body: some View {
         List(diagnostics) { diagnostic in
@@ -178,6 +192,9 @@ private struct ComposeDiagnosticsPane: View {
                 Text(diagnostic.message)
                     .textSelection(.enabled)
             }
+            .contentShape(Rectangle())
+            .onTapGesture { onSelect(diagnostic) }
+            .help("Jump to this diagnostic")
         }
     }
 }
@@ -187,6 +204,8 @@ private struct ComposeDiagnosticsPane: View {
 /// single source of truth.
 private struct ComposeTextView: NSViewRepresentable {
     @Bindable var document: ComposeDocument
+    /// Click-to-line target (LATER-3.1); nil = no pending jump.
+    var jumpToCharacter: Int?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(document: document)
@@ -224,6 +243,7 @@ private struct ComposeTextView: NSViewRepresentable {
         } else {
             context.coordinator.applyHighlight(textView, text: document.text, language: document.language)
         }
+        context.coordinator.jump(to: jumpToCharacter, in: textView)
     }
 
     private var baseFont: NSFont {
@@ -234,6 +254,8 @@ private struct ComposeTextView: NSViewRepresentable {
     final class Coordinator: NSObject, NSTextViewDelegate {
         var document: ComposeDocument
         private var isApplying = false
+        /// Last click-to-line offset we applied, so re-syncs do not re-jump.
+        private var lastJumpedCharacter: Int?
 
         /// Last state we painted, so programmatic syncs (which fire on every
         /// `document` change) do not re-paint an unchanged buffer.
@@ -266,6 +288,19 @@ private struct ComposeTextView: NSViewRepresentable {
             textView.textStorage?.setAttributedString(highlighted)
             textView.textStorage?.endEditing()
             textView.typingAttributes = [.font: baseFont, .foregroundColor: NSColor.labelColor]
+        }
+
+        /// Moves the selection to a character offset (click-to-line).
+        /// Runs after highlight so the storage is current; clamps so a
+        /// stale span can never exceed the buffer.
+        func jump(to character: Int?, in textView: NSTextView) {
+            guard let character, character != lastJumpedCharacter else { return }
+            lastJumpedCharacter = character
+            let ns = textView.string as NSString
+            let clamped = min(max(character, 0), ns.length)
+            let range = NSRange(location: clamped, length: 0)
+            textView.setSelectedRange(range)
+            textView.scrollRangeToVisible(range)
         }
 
         private var baseFont: NSFont {

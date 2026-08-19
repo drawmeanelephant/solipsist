@@ -8,6 +8,9 @@ struct ComposePreviewView: View {
     let language: ComposeLanguage
     let options: MarkupRenderOptions
     let renderService: any MarkupRenderService
+    /// Receives the mapped diagnostics after each render (LATER-3.1). The
+    /// editor owns the problems pane; the preview only renders HTML.
+    var onDiagnostics: ([ComposeDiagnostic]) -> Void = { _ in }
 
     @State private var html: String?
     @State private var renderError: String?
@@ -35,12 +38,15 @@ struct ComposePreviewView: View {
                 guard !Task.isCancelled else { return }
                 let rendered = try await renderService.render(source, language: language, options: options)
                 guard !Task.isCancelled else { return }
-                html = rendered
+                html = rendered.html
                 renderError = nil
+                onDiagnostics(rendered.diagnostics)
             } catch is CancellationError {
                 // A newer request superseded this one; keep the last frame.
             } catch {
                 renderError = String(describing: error)
+                // Never swallow: the problems pane sees the render failure too.
+                onDiagnostics([ComposeDiagnostic(severity: .error, message: String(describing: error))])
             }
         }
     }
