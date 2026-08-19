@@ -114,6 +114,11 @@ No scraped prose. No homegrown graph. No third settings store.
   [#131](https://github.com/drawmeanelephant/solipsist/issues/131)
   → PRs #152/#153 (URL → folder → Local source). OAuth / app
   password remains. Pages as a *target* does not require either.
+  **M15:** device-flow OAuth + PAT fallback, Keychain token, working
+  copy, Remote mailbox Sync (fetch + `pull --ff-only`;
+  commit/push/PR stay later). Design gate:
+  [`docs/GITHUB-OAUTH-DESIGN.md`](GITHUB-OAUTH-DESIGN.md) —
+  [#179](https://github.com/drawmeanelephant/solipsist/issues/179).
 - Content-audit mailbox (`boris-content-audit`)
 - Source-RAG export for AI assist
 - `validate --watch` once A5 exists (replaces save-triggered one-shots)
@@ -146,6 +151,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M12** Clone | ✅ Add Git Repository… → Local source ([#131](https://github.com/drawmeanelephant/solipsist/issues/131); PRs #152/#153) |
 | **M13** Graph folders | ✅ trunk mailboxes from `graph.parent` ([#142](https://github.com/drawmeanelephant/solipsist/issues/142); #144–#146 → PRs #154/#155/#156) |
 | **M14** Watch contract | ✅ A1 `--watch-json` + letter SSE ([#143](https://github.com/drawmeanelephant/solipsist/issues/143); #147/#148 → PRs #157/#158) |
+| **M15** GitHub source | filed — OAuth device flow + `SourceKind.github` payload ([#179](https://github.com/drawmeanelephant/solipsist/issues/179); design [`GITHUB-OAUTH-DESIGN.md`](GITHUB-OAUTH-DESIGN.md)) |
 
 **Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
 batch then landed: first-run and problem→page (#88/#94), graph filter /
@@ -598,22 +604,20 @@ here, it is not a v1 promise.
 
 ## 8. Pickup (what to do next)
 
-M10 and M11 landed. Remaining **ship** is Apple-account only.
-Next **product** slice is M12 clone. M13 and M14 are filed; pick
-them in their own worktrees once the lanes are free.
+M10–M14 and the post-ship batch (#165/#166/#167 — content-audit,
+source-rag, compose depth) landed. Remaining **ship** is Apple-account
+only. Next **product** slice is M15, the GitHub source (the deferred
+ROADMAP §3 item) — design gate
+[`docs/GITHUB-OAUTH-DESIGN.md`](GITHUB-OAUTH-DESIGN.md).
 
 | Order | Track | Issue | Why this next |
 |------:|-------|-------|----------------|
-| 1 | M12 Clone | [#131](https://github.com/drawmeanelephant/solipsist/issues/131) | Settings → Add Git Repository… clone URL → folder → `addLocal`. |
-| 2 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. Parallel with #131. |
+| 1 | M15 GitHub source | [#179](https://github.com/drawmeanelephant/solipsist/issues/179) | Board is empty; the deferred OAuth/`SourceKind.github` payload is the only named product item left. Device flow → Keychain → working copy → Remote mailbox. |
+| 2 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. Parallel with #179. |
 | 3 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
-| 4 | M13 Graph folders | [#142](https://github.com/drawmeanelephant/solipsist/issues/142) | After M12, or parallel if it stays out of Settings / `Workspace/Git/`. First pick #144. |
-| 5 | M14 Watch contract | [#143](https://github.com/drawmeanelephant/solipsist/issues/143) | Parallel with M13 (Engine / Preview / Reading). First pick #147. |
 
-[#131](https://github.com/drawmeanelephant/solipsist/issues/131) is
-clone-as-local, not GitHub OAuth. Do not start `SourceKind.github`
-payload work in that PR. #136 (splitter crash) stays parked on
-macOS 27 beta.
+#179 is OAuth + `SourceKind.github` payload, not the M12 clone
+(clone-as-local stays landed and untouched).
 
 ### Landed depth (do not redo)
 
