@@ -20,11 +20,13 @@ enum CoordinatorVerb: String, Sendable {
     case publishNostr = "publish Nostr"
     case package
     case recipeScale = "recipe-scale"
+    case sourceRag = "source RAG"
 
-    /// Jobs that write trees watch also owns (`dist/`, `.boris`, proof, packages).
+    /// Jobs that write trees watch also owns (`dist/`, `.boris`, proof, packages)
+    /// or generate artifacts in the workspace (source RAG pack).
     var writesTree: Bool {
         switch self {
-        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite, .publishNostr, .package:
+        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite, .publishNostr, .package, .sourceRag:
             true
         case .plan, .validate, .check, .impact, .standardSiteVerify, .standardSiteRecords, .standardSiteSessions, .standardSiteLogout, .standardSiteSmoke, .recipeScale:
             false

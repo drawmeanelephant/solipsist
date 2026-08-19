@@ -161,6 +161,11 @@ struct SolipsistCommands: Commands {
             }
             .disabled(!hasSource || !runtime.coordinator.canRunVerb)
 
+            Button("Export Source RAG…") {
+                runtime.coordinator.run(.sourceRag, store: store, runtime: runtime)
+            }
+            .disabled(!hasSource || !runtime.coordinator.canRunVerb)
+
             Divider()
 
             Button("Stop") {

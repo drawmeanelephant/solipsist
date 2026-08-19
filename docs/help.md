@@ -48,6 +48,7 @@ Every menu verb and keyboard shortcut:
 | Logout Standard.site | — | End the Standard.site session. |
 | Publish to Nostr… | — | Prompt for nsec/hex (stdin), then `nostr plan` → `sign --key-stdin` → `publish`. Optional Keychain remember. |
 | Package Archive | — | Build a `boris package` archive (`packages/`, checksums, machine-readable version). |
+| Export Source RAG… | — | Run `boris-source-rag` to pack project source files for LLM upload into `source-rag/`, then reveal it in Finder. |
 | Stop | `⌘.` | Cancel the running job (SIGTERM, then SIGKILL after 2s). With no job, stops preview watch. Tree-writing jobs freeze watch until they finish. |
 
 ### View

@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 
@@ -218,6 +219,9 @@ final class Coordinator {
                 engine: engine,
                 secret: secret
             )
+            if verb == .sourceRag, result.exit == 0, let reveal = result.revealURL {
+                NSWorkspace.shared.activateFileViewerSelecting([reveal])
+            }
             let elapsed = startTime.duration(to: .now)
             let (secs, attos) = elapsed.components
             let elapsedNs = Int(secs * 1_000_000_000) + Int(attos / 1_000_000_000)
@@ -371,6 +375,8 @@ final class Coordinator {
         var checkReport: AnalysisReport? = nil
         var timings: TimingsReport? = nil
         var totalDurationNs: Int? = nil
+        /// Set when a job produced a tree the app should surface (Finder reveal).
+        var revealURL: URL? = nil
     }
 
     private static func takeOrPromptSecret(
@@ -721,6 +727,36 @@ final class Coordinator {
                     exit: result.exitCode,
                     summary: result.exitCode == 0 ? "Package archive ok" : "Package exit \(result.exitCode)",
                     problems: items
+                )
+
+            case .sourceRag:
+                guard let tool = SourceRagBinary.locate(borisBinary: engine.binaryURL) else {
+                    return JobResult(
+                        exit: 3,
+                        summary: "source RAG: boris-source-rag not found",
+                        problems: CoordinatorProblems.fromFailure(
+                            code: "source-rag",
+                            message: "boris-source-rag binary not found (set SOLIPSIST_SOURCE_RAG_BIN)"
+                        )
+                    )
+                }
+                let workspaceRoot = try source.workspaceRoot()
+                let outDir = workspaceRoot.appendingPathComponent("source-rag")
+                let result = try await engine.runTool(
+                    binary: tool,
+                    arguments: ["--root", workspaceRoot.path, "--out", outDir.path, "--quiet"],
+                    workingDirectory: workspaceRoot
+                )
+                let items = CoordinatorProblems.fromCommand(
+                    code: "source-rag",
+                    exitCode: result.exitCode,
+                    stderr: result.stderr
+                )
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: result.exitCode == 0 ? "Source RAG ok" : "Source RAG exit \(result.exitCode)",
+                    problems: items,
+                    revealURL: result.exitCode == 0 ? outDir : nil
                 )
             }
         } catch {
