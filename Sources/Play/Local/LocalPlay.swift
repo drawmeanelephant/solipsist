@@ -56,6 +56,14 @@ struct LocalPlay: PlaySurface {
                     // sources. Honest fallback rather than a crash.
                     trunkMailbox
                 }
+            case WorkspaceMailbox.pulls:
+                if let github = source as? GithubSource {
+                    PullRequestsMailboxView(source: github)
+                } else {
+                    // Unreachable: the Pull Requests row only exists for
+                    // github sources. Honest fallback rather than a crash.
+                    trunkMailbox
+                }
             default:
                 // Unknown mailbox is a trunk id (M13): Pages means all;
                 // a trunk id means that folder and its descendants.

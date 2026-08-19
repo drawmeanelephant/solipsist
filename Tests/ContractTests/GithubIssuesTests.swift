@@ -122,9 +122,14 @@ final class GithubIssuesTests: XCTestCase {
         let githubRows = WorkspaceMailbox.all(for: SourceItem.github(source))
         XCTAssertTrue(githubRows.contains(WorkspaceMailbox.remote))
         XCTAssertTrue(githubRows.contains(WorkspaceMailbox.issues))
+        XCTAssertTrue(githubRows.contains(WorkspaceMailbox.pulls), "M17: Pull Requests row is github-only too")
 
         // Every known token is in the github row set, in the canonical order.
         XCTAssertEqual(Array(githubRows.prefix(WorkspaceMailbox.all.count)), WorkspaceMailbox.all)
+        XCTAssertEqual(
+            githubRows.suffix(3),
+            [WorkspaceMailbox.remote, WorkspaceMailbox.issues, WorkspaceMailbox.pulls]
+        )
 
         // Local sources never see the github-only rows.
         let local = SourceItem.local(LocalSource(
@@ -137,6 +142,7 @@ final class GithubIssuesTests: XCTestCase {
         let localRows = WorkspaceMailbox.all(for: local)
         XCTAssertFalse(localRows.contains(WorkspaceMailbox.remote))
         XCTAssertFalse(localRows.contains(WorkspaceMailbox.issues))
+        XCTAssertFalse(localRows.contains(WorkspaceMailbox.pulls))
         XCTAssertEqual(localRows, WorkspaceMailbox.all)
     }
 
