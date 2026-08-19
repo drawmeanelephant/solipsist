@@ -1,6 +1,7 @@
 # M17 — Pull Requests mailbox (the deferred "Later" item)
 
-**Status:** design gate for
+**Status:** landed — all three slices shipped (PRs #194 PR list ·
+#195 mailbox surface · #196 authoring entry) against
 [#192](https://github.com/drawmeanelephant/solipsist/issues/192) (cards
 `cards/M17-pr-list.md` · `M17-pr-mailbox.md` · `M17-pr-authoring.md`).
 Drafted by the dispatcher after M16 fully shipped (PRs #187–#190). The
