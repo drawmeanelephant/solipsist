@@ -121,6 +121,112 @@ final class GithubAPIClientTests: XCTestCase {
         let call = try XCTUnwrap(recorded.first)
         XCTAssertEqual(call.url, GithubAPIClient.userURL)
         XCTAssertNil(call.form)
+        XCTAssertNil(call.json)
         XCTAssertEqual(call.bearerBytes, Array("gho_secret".utf8))
+    }
+
+    // MARK: - PR creation (M16-3)
+
+    func testCreatePullRequestDecode() async throws {
+        let transport = StubTransport()
+        await transport.enqueue(
+            json(["number": 42, "html_url": "https://github.com/acme/blog/pull/42"]),
+            for: GithubAPIClient.pullsURL(owner: "acme", repository: "blog")
+        )
+
+        let created = try await GithubAPIClient.createPullRequest(
+            owner: "acme",
+            repository: "blog",
+            title: "Add a page",
+            body: "Body",
+            head: "feature/x",
+            base: "main",
+            bearer: SecureBuffer(utf8String: "gho_secret"),
+            transport: transport
+        )
+
+        XCTAssertEqual(created.number, 42)
+        XCTAssertEqual(created.htmlURL, "https://github.com/acme/blog/pull/42")
+    }
+
+    func testCreatePullRequestJsonAndBearerRideThePost() async throws {
+        let transport = StubTransport()
+        await transport.enqueue(
+            json(["number": 7, "html_url": "https://github.com/acme/blog/pull/7"]),
+            for: GithubAPIClient.pullsURL(owner: "acme", repository: "blog")
+        )
+
+        _ = try await GithubAPIClient.createPullRequest(
+            owner: "acme",
+            repository: "blog",
+            title: "T",
+            body: "B",
+            head: "h",
+            base: "b",
+            bearer: SecureBuffer(utf8String: "gho_secret"),
+            transport: transport
+        )
+
+        let recorded = await transport.recorded
+        let call = try XCTUnwrap(recorded.first)
+        XCTAssertEqual(call.url, GithubAPIClient.pullsURL(owner: "acme", repository: "blog"))
+        XCTAssertNil(call.form)
+        XCTAssertEqual(call.bearerBytes, Array("gho_secret".utf8))
+        let json = try XCTUnwrap(call.json)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: json) as? [String: String])
+        XCTAssertEqual(object["title"], "T")
+        XCTAssertEqual(object["body"], "B")
+        XCTAssertEqual(object["head"], "h")
+        XCTAssertEqual(object["base"], "b")
+    }
+
+    func testCreatePullRequestErrorSurfacesMessage() async {
+        let transport = StubTransport()
+        await transport.enqueue(
+            error: GithubOAuthError.httpStatus(422, message: "Validation Failed"),
+            for: GithubAPIClient.pullsURL(owner: "acme", repository: "blog")
+        )
+
+        do {
+            _ = try await GithubAPIClient.createPullRequest(
+                owner: "acme",
+                repository: "blog",
+                title: "T",
+                body: "B",
+                head: "h",
+                base: "b",
+                bearer: SecureBuffer(utf8String: "gho_secret"),
+                transport: transport
+            )
+            XCTFail("expected httpStatus")
+        } catch let GithubOAuthError.httpStatus(status, message) {
+            XCTAssertEqual(status, 422)
+            XCTAssertEqual(message, "Validation Failed")
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
+    func testCreatePullRequestMalformedBodyIsInvalidResponse() async {
+        let transport = StubTransport()
+        await transport.enqueue(json(["unexpected": true]), for: GithubAPIClient.pullsURL(owner: "acme", repository: "blog"))
+
+        do {
+            _ = try await GithubAPIClient.createPullRequest(
+                owner: "acme",
+                repository: "blog",
+                title: "T",
+                body: "B",
+                head: "h",
+                base: "b",
+                bearer: SecureBuffer(utf8String: "gho_secret"),
+                transport: transport
+            )
+            XCTFail("expected invalidResponse")
+        } catch GithubOAuthError.invalidResponse {
+            // expected
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
     }
 }

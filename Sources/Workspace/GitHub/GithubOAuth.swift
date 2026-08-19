@@ -43,12 +43,17 @@ enum GithubOAuth {
         case failed(code: String, message: String)
     }
 
-    /// Form-encoded POST + bearer GET transport. Tests inject a stub;
-    /// CI never touches GitHub. The bearer token stays in a
-    /// `SecureBuffer` — the transport builds the header from its bytes.
+    /// Form-encoded POST + bearer GET + bearer JSON POST transport.
+    /// Tests inject a stub; CI never touches GitHub. The bearer token
+    /// stays in a `SecureBuffer` — the transport builds the header from
+    /// its bytes and never logs it.
     protocol HTTPTransport: Sendable {
         func post(_ url: URL, form: [String: String]) async throws -> Data
         func get(_ url: URL, bearer: SecureBuffer) async throws -> Data
+        /// JSON body + bearer Authorization (M16-3 / #185): PR and
+        /// issue creation. Same error contract as `get` — non-2xx
+        /// surfaces `httpStatus(status, message)`, never swallowed.
+        func post(_ url: URL, json: Data, bearer: SecureBuffer) async throws -> Data
     }
 
     /// Clock seam: the poller sleeps and computes expiry through this,
@@ -225,6 +230,21 @@ struct URLSessionGithubTransport: GithubOAuth.HTTPTransport {
         var request = URLRequest(url: url)
         request.setValue(Self.bearerHeader(bearer), forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw GithubOAuthError.httpStatus(status, message: Self.errorMessage(from: data))
+        }
+        return data
+    }
+
+    func post(_ url: URL, json: Data, bearer: SecureBuffer) async throws -> Data {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(Self.bearerHeader(bearer), forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = json
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
