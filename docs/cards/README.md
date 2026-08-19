@@ -147,11 +147,24 @@ Landed — PRs #187 (commit) · #188 (push) · #189 (PR authoring) ·
 | [M16-3 PR](M16-pr.md) | #185 | ✅ |
 | [M16-4 Issues](M16-issues.md) | #185 | ✅ |
 
+## M17 — Pull Requests mailbox (pickable)
+
+The ROADMAP §3 "Later" remainder of the GitHub-source deferral — a
+dedicated PR mailbox (the issues mailbox filters PRs out of the REST
+list; this mailbox uses `/pulls`, the proper source, and is the read
+sibling of M16-4). Design gate:
+[`docs/M17-PR-MAILBOX-DESIGN.md`](../M17-PR-MAILBOX-DESIGN.md).
+One slice per worktree/PR.
+
+| Card | Issue | Lane | Parallel with | Gate |
+|------|-------|------|----------------|------|
+| [M17-1 PR list](M17-pr-list.md) | [#192](https://github.com/drawmeanelephant/solipsist/issues/192) | workspace | — | `GithubPullRequest` model + `listPullRequests` over the bearer-`get` seam; `state=open` default |
+| [M17-2 PR mailbox](M17-pr-mailbox.md) | #192 | workspace / play | after M17-1 | `pulls` github-only token + rows → browser, draft badge, empty state |
+| [M17-3 Authoring entry](M17-pr-authoring.md) | #192 | play | after M17-2 | extract the M16-3 sheet; toolbar entry on the mailbox; Remote flow unchanged |
+
 ## Do not start yet
 
-Wasm in the app. The fart app. A Pull Requests mailbox (REST mixes PRs
-into issues; the issues mailbox filters them — a PR mailbox stays
-later).
+Wasm in the app. The fart app.
 
 ## Shared noun kinds (play writes, inspector reads)
 
