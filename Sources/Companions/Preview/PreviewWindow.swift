@@ -71,6 +71,10 @@ struct PreviewWindow: View {
                 engine: runtime.engine,
                 coordinator: runtime.coordinator
             )
+        case .github(let github):
+            // M15 seam: the working-copy slice resolves the bookmark and
+            // previews the GitHub source's working copy like a Local one.
+            session.fail("Preview for \(github.owner)/\(github.repository) lands with the working-copy slice.")
         }
     }
 

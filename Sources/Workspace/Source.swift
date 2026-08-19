@@ -42,22 +42,26 @@ protocol PublicationSource: Identifiable, Sendable {
 /// type lands; the sidebar still only reads `id` / `title` / `kind`.
 enum SourceItem: Identifiable, Hashable, Sendable {
     case local(LocalSource)
+    case github(GithubSource)
 
     var id: SourceID {
         switch self {
         case .local(let source): return source.id
+        case .github(let source): return source.id
         }
     }
 
     var title: String {
         switch self {
         case .local(let source): return source.title
+        case .github(let source): return source.title
         }
     }
 
     var kind: SourceKind {
         switch self {
         case .local: return .local
+        case .github: return .github
         }
     }
 
@@ -66,12 +70,14 @@ enum SourceItem: Identifiable, Hashable, Sendable {
     var isAvailable: Bool {
         switch self {
         case .local(let source): return source.isAvailable
+        case .github(let source): return source.isAvailable
         }
     }
 
     var detailLine: String? {
         switch self {
         case .local(let source): return source.displayPath
+        case .github(let source): return source.displayPath
         }
     }
 
@@ -79,6 +85,7 @@ enum SourceItem: Identifiable, Hashable, Sendable {
     var branch: String? {
         switch self {
         case .local(let source): return source.branch
+        case .github(let source): return source.branch
         }
     }
 }
