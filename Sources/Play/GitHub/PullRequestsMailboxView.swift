@@ -15,6 +15,7 @@ struct PullRequestsMailboxView: View {
     @State private var pulls: [GithubPullRequest] = []
     @State private var isLoading = false
     @State private var errorText: String?
+    @State private var showPRSheet = false
 
     var body: some View {
         Group {
@@ -47,6 +48,26 @@ struct PullRequestsMailboxView: View {
             }
         }
         .navigationTitle(source.title)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showPRSheet = true
+                } label: {
+                    Label("New Pull Request…", systemImage: "arrow.triangle.branch")
+                }
+                .help("Create a pull request on \(source.owner)/\(source.repository)")
+                .disabled(isLoading)
+            }
+        }
+        .sheet(isPresented: $showPRSheet) {
+            // The shared M16-3 sheet (M17-3): same flow as the Remote
+            // mailbox — push-first when no upstream, POST, open in
+            // browser. On success the mailbox refreshes so the new PR
+            // appears.
+            PullRequestSheet(source: source) {
+                Task { await load() }
+            }
+        }
         .task(id: source.id) {
             await load()
         }
