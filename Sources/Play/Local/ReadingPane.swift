@@ -38,6 +38,13 @@ struct ReadingPane: View {
         .task(id: completionIdentity) {
             relations = Self.loadRelations(source: source, pageID: page?.id)
         }
+        .task(id: reloadChannelIdentity) {
+            if let url = reloadEventsURL {
+                model.connectReload(to: url)
+            } else {
+                model.disconnectReload()
+            }
+        }
     }
 
     // MARK: - Letter
@@ -278,6 +285,27 @@ struct ReadingPane: View {
             phaseKey = "failed"
         }
         return "\(loadGeneration)|\(page?.id ?? "")|\(phaseKey)|\(isBoundToThisSource)"
+    }
+
+    /// The SSE channel this letter listens on, or nil when it must not
+    /// auto-reload: watch down, a bound-root mismatch (foreign helper), or
+    /// no served page showing (M14-2).
+    private var reloadEventsURL: URL? {
+        let helper: URL?
+        if case .serving(let url) = session.phase {
+            helper = url
+        } else {
+            helper = nil
+        }
+        return LetterReloadPolicy.eventsURL(
+            helper: helper,
+            bound: isBoundToThisSource,
+            showingPage: page != nil && model.outcome == .loaded
+        )
+    }
+
+    private var reloadChannelIdentity: String {
+        reloadEventsURL?.absoluteString ?? "off"
     }
 
     private var completionIdentity: String {

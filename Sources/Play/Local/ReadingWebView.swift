@@ -19,11 +19,30 @@ final class ReadingWebModel: NSObject {
     let webView: WKWebView
     private(set) var outcome: ReadingLoadOutcome = .idle
 
+    /// SSE listener on the existing watch helper's `/__boris/events`.
+    /// One session — the letter never spawns a second watch.
+    private let reloadClient = LetterSSEClient()
+
     override init() {
         webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
         super.init()
         webView.navigationDelegate = self
         webView.allowsMagnification = true
+    }
+
+    /// Start listening for rebuild reloads on the served helper's SSE
+    /// channel. The pane calls this only when the helper is bound to this
+    /// source and a page is showing.
+    func connectReload(to eventsURL: URL) {
+        reloadClient.onReload = { [weak self] in
+            self?.reloadServedPage()
+        }
+        reloadClient.connect(to: eventsURL)
+    }
+
+    /// Stop listening (watch down, source switched, or row changed).
+    func disconnectReload() {
+        reloadClient.disconnect()
     }
 
     func load(url: URL) {
@@ -47,6 +66,18 @@ final class ReadingWebModel: NSObject {
 
     func fail(_ message: String) {
         outcome = .failed(message)
+    }
+
+    /// Reload the served page in place after a rebuild (M14-2). Only fires
+    /// while the page is actually showing; the SSE client only connects in
+    /// the `.loaded`/`.loading` states anyway.
+    private func reloadServedPage() {
+        switch outcome {
+        case .loaded, .loading:
+            webView.reload()
+        case .idle, .unavailable, .failed:
+            break
+        }
     }
 
     private func handleHTTPFailure(_ status: Int) {
