@@ -33,4 +33,13 @@ public enum PreviewURL {
         guard !trimmed.isEmpty else { return nil }
         return URL(string: trimmed + ".html", relativeTo: origin)?.absoluteURL
     }
+
+    /// `GET /__boris/events` on the same server — the SSE reload channel
+    /// the helper page already subscribes to (M14-2). Loopback-gated like
+    /// every other derived URL; the letter must not listen to a foreign or
+    /// non-loopback helper.
+    public static func eventsURL(fromHelper helper: URL) -> URL? {
+        guard isLoopback(helper) else { return nil }
+        return helper.appendingPathComponent("events")
+    }
 }
