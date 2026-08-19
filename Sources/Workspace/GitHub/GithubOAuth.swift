@@ -43,10 +43,12 @@ enum GithubOAuth {
         case failed(code: String, message: String)
     }
 
-    /// Form-encoded POST transport. Tests inject a stub; CI never
-    /// touches GitHub.
+    /// Form-encoded POST + bearer GET transport. Tests inject a stub;
+    /// CI never touches GitHub. The bearer token stays in a
+    /// `SecureBuffer` — the transport builds the header from its bytes.
     protocol HTTPTransport: Sendable {
         func post(_ url: URL, form: [String: String]) async throws -> Data
+        func get(_ url: URL, bearer: SecureBuffer) async throws -> Data
     }
 
     /// Clock seam: the poller sleeps and computes expiry through this,
@@ -196,11 +198,14 @@ enum GithubOAuth {
 enum GithubOAuthError: Error, Equatable, Sendable {
     case deviceCodeFailed(code: String, message: String)
     case invalidResponse
-    case httpStatus(Int)
+    /// Non-2xx from GitHub. `message` is the response body (truncated),
+    /// surfaced verbatim — never swallowed (D11).
+    case httpStatus(Int, message: String)
 }
 
-/// Production transport: form-encoded POST over URLSession. Non-2xx
-/// responses throw `GithubOAuthError.httpStatus` — never swallowed.
+/// Production transport: form-encoded POST + bearer GET over
+/// URLSession. Non-2xx responses throw `GithubOAuthError.httpStatus`
+/// with the body message — never swallowed.
 struct URLSessionGithubTransport: GithubOAuth.HTTPTransport {
     func post(_ url: URL, form: [String: String]) async throws -> Data {
         var request = URLRequest(url: url)
@@ -211,9 +216,35 @@ struct URLSessionGithubTransport: GithubOAuth.HTTPTransport {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-            throw GithubOAuthError.httpStatus(status)
+            throw GithubOAuthError.httpStatus(status, message: Self.errorMessage(from: data))
         }
         return data
+    }
+
+    func get(_ url: URL, bearer: SecureBuffer) async throws -> Data {
+        var request = URLRequest(url: url)
+        request.setValue(Self.bearerHeader(bearer), forHTTPHeaderField: "Authorization")
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            throw GithubOAuthError.httpStatus(status, message: Self.errorMessage(from: data))
+        }
+        return data
+    }
+
+    /// The token's only stop outside the buffer: the Authorization
+    /// header value, transient inside the request, released by ARC.
+    private static func bearerHeader(_ buffer: SecureBuffer) -> String {
+        guard !buffer.isEmpty else { return "" }
+        let bytes = buffer.copyBytes()
+        return "Bearer " + (String(decoding: bytes, as: UTF8.self))
+    }
+
+    private static func errorMessage(from data: Data) -> String {
+        let text = String(decoding: data, as: UTF8.self)
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return String(trimmed.prefix(300))
     }
 
     private static func formBody(_ fields: [String: String]) -> Data {

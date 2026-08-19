@@ -57,4 +57,43 @@ struct GithubSource: PublicationSource, Hashable, Sendable, Codable {
     func workspaceRoot() throws -> URL {
         try resolve().url.standardizedFileURL
     }
+
+    /// Bookmark a freshly cloned working copy with the remote identity.
+    static func make(
+        workingCopy url: URL,
+        owner: String,
+        repository: String,
+        defaultBranch: String,
+        grantedScopes: [String]
+    ) throws -> GithubSource {
+        let data = try url.bookmarkData(
+            options: [.withSecurityScope],
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        )
+        return GithubSource(
+            id: SourceID(),
+            title: "\(owner)/\(repository)",
+            owner: owner,
+            repository: repository,
+            defaultBranch: defaultBranch,
+            bookmarkData: data,
+            displayPath: url.standardizedFileURL.path,
+            grantedScopes: grantedScopes
+        )
+    }
+
+    /// Re-bookmark the same working copy after a stale-bookmark reload.
+    func refreshedBookmark() throws -> GithubSource {
+        let resolved = try resolve()
+        var next = try Self.make(
+            workingCopy: resolved.url,
+            owner: owner,
+            repository: repository,
+            defaultBranch: defaultBranch,
+            grantedScopes: grantedScopes
+        )
+        next.id = id
+        return next
+    }
 }

@@ -28,9 +28,9 @@ final class GithubOAuthTests: XCTestCase {
         let recorded = await transport.recorded
         let call = try XCTUnwrap(recorded.first)
         XCTAssertEqual(call.url, GithubOAuth.deviceCodeURL)
-        XCTAssertEqual(call.form["client_id"], "client-1")
-        XCTAssertEqual(call.form["scope"], "repo")
-        XCTAssertEqual(call.form.count, 2, "only client_id + scope, never more")
+        XCTAssertEqual(call.form?["client_id"], "client-1")
+        XCTAssertEqual(call.form?["scope"], "repo")
+        XCTAssertEqual(call.form?.count, 2, "only client_id + scope, never more")
     }
 
     func testRequestDeviceCodeSurfacesErrors() async {
@@ -130,9 +130,9 @@ final class GithubOAuthTests: XCTestCase {
         let recorded = await transport.recorded
         let call = try XCTUnwrap(recorded.first)
         XCTAssertEqual(call.url, GithubOAuth.accessTokenURL)
-        XCTAssertEqual(call.form["grant_type"], "urn:ietf:params:oauth:grant-type:device_code")
-        XCTAssertEqual(call.form["device_code"], "dc-123")
-        XCTAssertEqual(call.form["client_id"], "client-1")
+        XCTAssertEqual(call.form?["grant_type"], "urn:ietf:params:oauth:grant-type:device_code")
+        XCTAssertEqual(call.form?["device_code"], "dc-123")
+        XCTAssertEqual(call.form?["client_id"], "client-1")
     }
 
     // MARK: - Poll loop
@@ -287,10 +287,6 @@ final class GithubOAuthTests: XCTestCase {
     }
 }
 
-private func json(_ object: [String: Any]) -> Data {
-    (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
-}
-
 private func makeSession(interval: TimeInterval) -> GithubOAuth.DeviceCodeSession {
     GithubOAuth.DeviceCodeSession(
         deviceCode: "dc-123",
@@ -312,61 +308,4 @@ private func makeSource() -> GithubSource {
         displayPath: "/tmp/blog",
         grantedScopes: ["repo"]
     )
-}
-
-/// Records calls and returns queued responses per URL. An actor: the
-/// poll loop and the test both touch it across await points.
-private actor StubTransport: GithubOAuth.HTTPTransport {
-    struct RecordedCall: Equatable, Sendable {
-        let url: URL
-        let form: [String: String]
-    }
-
-    private var queues: [URL: [Result<Data, Error>]] = [:]
-    private(set) var calls: [RecordedCall] = []
-
-    /// When true, an exhausted queue answers `authorization_pending`
-    /// instead of throwing — for cancellation tests that must spin.
-    private let defaultToPending: Bool
-
-    init(defaultToPending: Bool = false) {
-        self.defaultToPending = defaultToPending
-    }
-
-    var recorded: [RecordedCall] {
-        calls
-    }
-
-    func enqueue(_ data: Data, for url: URL) {
-        queues[url, default: []].append(.success(data))
-    }
-
-    func post(_ url: URL, form: [String: String]) async throws -> Data {
-        calls.append(RecordedCall(url: url, form: form))
-        var queue = queues[url] ?? []
-        let next = queue.isEmpty ? nil : queue.removeFirst()
-        queues[url] = queue
-        guard let next else {
-            if defaultToPending {
-                return Self.pendingJSON
-            }
-            throw GithubOAuthError.invalidResponse
-        }
-        return try next.get()
-    }
-
-    private static let pendingJSON = (try? JSONSerialization.data(
-        withJSONObject: ["error": "authorization_pending"]
-    )) ?? Data()
-}
-
-/// Fast-forward clock: sleeps return immediately and record their
-/// requested durations so the poll loop is testable without real waits.
-private actor StubClock: GithubOAuth.Clock {
-    let now = Date(timeIntervalSince1970: 1_700_000_000)
-    private(set) var sleptNanoseconds: [UInt64] = []
-
-    func sleep(nanoseconds: UInt64) async throws {
-        sleptNanoseconds.append(nanoseconds)
-    }
 }

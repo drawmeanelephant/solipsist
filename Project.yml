@@ -21,6 +21,7 @@ settings:
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "-"
     ENABLE_HARDENED_RUNTIME: YES
+    GITHUB_OAUTH_CLIENT_ID: ""
     ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 targets:
@@ -48,6 +49,10 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Solipsist
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        # GitHub device-flow OAuth client id (M15). Public by design;
+        # an operator registers the OAuth App and injects the id here.
+        # Empty = the sheet offers the token (PAT) path only.
+        INFOPLIST_KEY_GithubOAuthClientID: "$(GITHUB_OAUTH_CLIENT_ID)"
         INFOPLIST_KEY_NSHumanReadableCopyright: "© 2026 draw me an elephant"
         INFOPLIST_KEY_NSPrincipalClass: NSApplication
     entitlements:
