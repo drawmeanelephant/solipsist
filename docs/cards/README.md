@@ -135,20 +135,17 @@ helper) · #183 (Remote mailbox) · #184 (sign-out). Do not pick.
 |------|-------|------|
 | [GitHub source](GITHUB-OAUTH.md) | [#179](https://github.com/drawmeanelephant/solipsist/issues/179) | ✅ |
 
-## M16 — Write the remote (pickable)
+## M16 — Write the remote ✅
 
-The ROADMAP §3 "Later" remainder of the GitHub-source deferral —
-commit / push / PR authoring / issues mailbox (fetch + `pull --ff-only`
-moved up with M15). Design gate:
-[`docs/M16-WRITE-REMOTE-DESIGN.md`](../M16-WRITE-REMOTE-DESIGN.md).
-One slice per worktree/PR.
+Landed — PRs #187 (commit) · #188 (push) · #189 (PR authoring) ·
+#190 (issues mailbox). Do not pick.
 
-| Card | Issue | Lane | Parallel with | Gate |
-|------|-------|------|----------------|------|
-| [M16-1 Commit](M16-commit.md) | [#185](https://github.com/drawmeanelephant/solipsist/issues/185) | workspace / play / settings | M16-4 | changed-files picker → `git add <picked>` + commit; identity never invented |
-| [M16-2 Push](M16-push.md) | #185 | workspace / play | after M16-1 | `git push -u` through the helper; ahead → 0 |
-| [M16-3 PR](M16-pr.md) | #185 | workspace / play | after M16-2 | push branch → `POST /pulls` → PR in browser |
-| [M16-4 Issues](M16-issues.md) | #185 | workspace / play | M16-1 | issues mailbox; create sheet; PRs filtered out |
+| Card | Issue | Fate |
+|------|-------|------|
+| [M16-1 Commit](M16-commit.md) | [#185](https://github.com/drawmeanelephant/solipsist/issues/185) | ✅ |
+| [M16-2 Push](M16-push.md) | #185 | ✅ |
+| [M16-3 PR](M16-pr.md) | #185 | ✅ |
+| [M16-4 Issues](M16-issues.md) | #185 | ✅ |
 
 ## Do not start yet
 
