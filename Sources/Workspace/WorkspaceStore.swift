@@ -240,6 +240,62 @@ final class WorkspaceStore {
         activeSyncSessions[id]?.terminate()
     }
 
+    // MARK: - GitHub commit (M16-1)
+
+    /// In-flight commits by source id (same one-shot shape as sync).
+    private var activeCommitSessions: [SourceID: SyncSession] = [:]
+
+    /// Commit verb (M16-1): stage exactly the picked paths + commit, off
+    /// the main actor, one-shots sharing a `SyncSession`. Watch is NOT
+    /// suspended — commit touches only `.git`/the index, never the
+    /// content tree watch serves (design §2). On success the branch
+    /// refreshes (ahead grows by 1). Git's exit + stderr surface
+    /// verbatim on failure (D11) — including the missing-identity error,
+    /// which is never papered over.
+    func commitGithub(
+        _ id: SourceID,
+        paths: [String],
+        message: String
+    ) async -> GithubCommit.CommitResult {
+        guard let index = sources.firstIndex(where: { $0.id == id }),
+              case .github(let github) = sources[index],
+              github.isAvailable,
+              let url = try? github.workspaceRoot()
+        else {
+            return GithubCommit.CommitResult(exitCode: 1, stderr: "Working copy is unavailable.")
+        }
+
+        let session = SyncSession()
+        activeCommitSessions[id] = session
+        defer { activeCommitSessions[id] = nil }
+
+        let result = await Task.detached {
+            GithubCommit.commit(
+                paths: paths,
+                message: message,
+                workingCopy: url,
+                session: session
+            )
+        }.value
+
+        // Refresh the branch regardless of outcome — a failed commit can
+        // still leave the index moved; the picker re-reads status anyway.
+        if let index = sources.firstIndex(where: { $0.id == id }),
+           case .github(let current) = sources[index]
+        {
+            var updated = current
+            updated.branch = GitClone.branchStatus(at: url).branch
+            sources[index] = .github(updated)
+        }
+        return result
+    }
+
+    /// SIGTERM the in-flight commit for a source. The index is left as
+    /// the interrupted `git` left it; the next picker run re-reads it.
+    func cancelCommitGithub(_ id: SourceID) {
+        activeCommitSessions[id]?.terminate()
+    }
+
     // MARK: - GitHub sign-out (M15)
 
     /// Sign out of a GitHub source (design §4): delete the Keychain
