@@ -3,7 +3,7 @@ import SwiftUI
 /// Read-only document view for a decoded PublicationPlan (M8 / #89).
 /// Shows declared targets, projections, inputs, site metadata, and editions.
 struct PlanPane: View {
-    let source: LocalSource
+    let source: any PlayFolderSource
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime

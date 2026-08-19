@@ -5,7 +5,7 @@ import SwiftUI
 /// evidence chain (`_boris/proof/`), Proof Pack claims & checks, Nostr relay verdicts,
 /// package checksums, and publish actions.
 struct PublishPane: View {
-    let source: LocalSource
+    let source: any PlayFolderSource
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime

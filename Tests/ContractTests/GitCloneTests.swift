@@ -63,6 +63,13 @@ final class GitCloneTests: XCTestCase {
         XCTAssertNil(GitClone.parseBranch(from: "##"))
     }
 
+    func testBranchStatusParsesAheadBehind() {
+        let status = GitClone.branchStatus(at: URL(fileURLWithPath: "/nonexistent/repo"))
+        XCTAssertNil(status.branch)
+        XCTAssertEqual(status.ahead, 0)
+        XCTAssertEqual(status.behind, 0)
+    }
+
     // MARK: - Live branch read (local repo only, no network)
 
     func testCurrentBranchReadsLocalCheckout() throws {

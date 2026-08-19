@@ -8,7 +8,7 @@ import Foundation
 /// The token is never here. It lives in the Keychain (host-keyed
 /// account `github` — see `GithubTokenStore`); only display-only
 /// granted scopes are carried.
-struct GithubSource: PublicationSource, Hashable, Sendable, Codable {
+struct GithubSource: PublicationSource, PlayFolderSource, Hashable, Sendable, Codable {
     var id: SourceID
     /// "owner/repo" — the account header title.
     var title: String
@@ -26,6 +26,8 @@ struct GithubSource: PublicationSource, Hashable, Sendable, Codable {
     var branch: String? = nil
     var isSyncing: Bool = false
     var lastSyncError: String? = nil
+    /// Set when the last Sync succeeded; shown in the Remote mailbox.
+    var lastSyncedAt: Date? = nil
 
     var kind: SourceKind { .github }
 

@@ -82,7 +82,7 @@ private struct SourceSection: View {
 
     var body: some View {
         Section(isExpanded: $isExpanded) {
-            ForEach(WorkspaceMailbox.all, id: \.self) { box in
+            ForEach(WorkspaceMailbox.all(for: item), id: \.self) { box in
                 if box == WorkspaceMailbox.pages {
                     // Pages grows trunk-folder children from the decoded
                     // graph (M13-1). No graph yet → no children, not an

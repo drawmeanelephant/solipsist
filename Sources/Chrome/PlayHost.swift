@@ -17,7 +17,9 @@ struct PlayHost: View {
                 case .local(let source):
                     LocalPlay(source: source)
                 case .github(let source):
-                    GithubPlayPlaceholder(source: source)
+                    // The working copy IS the tree: the same folder
+                    // surfaces as Local, plus the Remote mailbox.
+                    LocalPlay(source: source)
                 }
             } else if store.sources.isEmpty {
                 EmptyStateView(
@@ -43,11 +45,15 @@ struct PlayHost: View {
 
     private func syncPreviewSession() {
         let session = runtime.previewSession
-        guard
-            case .local(let local) = store.selectedSource,
-            local.isAvailable,
-            let content = try? local.contentRoot(),
-            let project = try? local.workspaceRoot()
+        let folder: (any PlayFolderSource)?
+        switch store.selectedSource {
+        case .local(let local): folder = local
+        case .github(let github): folder = github
+        case nil: folder = nil
+        }
+        guard let folder, folder.isAvailable,
+              let content = try? folder.contentRoot(),
+              let project = try? folder.workspaceRoot()
         else {
             if session.phase != .idle { session.stop() }
             return
@@ -68,16 +74,3 @@ struct PlayHost: View {
     }
 }
 
-/// M15 seam: the GitHub play surface (Pages/Outputs/Publish/Plan/
-/// Activity over the working copy) lands with the working-copy slice.
-private struct GithubPlayPlaceholder: View {
-    let source: GithubSource
-
-    var body: some View {
-        EmptyStateView(
-            title: source.title,
-            systemImage: "chevron.left.forwardslash.chevron.right",
-            message: "\(source.owner)/\(source.repository) is authenticated. The play surface lands with the working-copy slice."
-        )
-    }
-}

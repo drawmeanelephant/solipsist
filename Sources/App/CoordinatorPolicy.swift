@@ -86,7 +86,7 @@ enum CoordinatorPolicy {
 /// over the source, and `--out` must be a real path, which `~/Library/Caches`
 /// is and `/tmp` is not on macOS).
 enum ContentAuditOutput {
-    static func directory(for source: LocalSource) -> URL {
+    static func directory(for source: any PlayFolderSource) -> URL {
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
         return caches

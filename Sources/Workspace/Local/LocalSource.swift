@@ -3,7 +3,7 @@ import Foundation
 /// A folder on disk, remembered via an app-scoped security-scoped bookmark.
 /// Local play owns the work surface for this source; this type is only the
 /// sidebar identity plus the bookmark that keeps sandbox access alive.
-struct LocalSource: PublicationSource, Hashable, Sendable, Codable {
+struct LocalSource: PublicationSource, PlayFolderSource, Hashable, Sendable, Codable {
     var id: SourceID
     var title: String
     var bookmarkData: Data

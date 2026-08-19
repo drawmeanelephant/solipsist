@@ -1,15 +1,18 @@
 import AppKit
 import SwiftUI
 
-/// Play surface for a local folder: mailbox contents plus, for Pages, a
-/// reading pane for the selected letter.
+/// Play surface for a folder-backed source (Local, or a GitHub working
+/// copy — M15): mailbox contents plus, for Pages, a reading pane for the
+/// selected letter. The surfaces are identical for both kinds; the GitHub
+/// source resolves to its working copy and additionally offers the
+/// Remote mailbox (branch, ahead/behind, Sync).
 ///
 /// Reads `<source>/.boris/graph.json` when present; otherwise asks
 /// `BorisEngine.buildIR` to produce it. Selection is written to
 /// `WorkspaceStore` as `noun.kind == "page"` with `sourcePath` — the
 /// drawer and companions only read it.
 struct LocalPlay: PlaySurface {
-    let source: LocalSource
+    let source: any PlayFolderSource
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
@@ -37,6 +40,14 @@ struct LocalPlay: PlaySurface {
                 ActivityPane()
             case WorkspaceMailbox.contentAudit:
                 ContentAuditPane(source: source)
+            case WorkspaceMailbox.remote:
+                if let github = source as? GithubSource {
+                    RemoteMailboxView(source: github)
+                } else {
+                    // Unreachable: the Remote row only exists for github
+                    // sources. Honest fallback rather than a crash.
+                    trunkMailbox
+                }
             default:
                 // Unknown mailbox is a trunk id (M13): Pages means all;
                 // a trunk id means that folder and its descendants.

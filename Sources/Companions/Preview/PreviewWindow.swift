@@ -56,26 +56,24 @@ struct PreviewWindow: View {
     /// Starts (or reuses) the watch server for the selected source's content
     /// root. Ran per source id; switching sources restarts the server.
     private func startPreview(for source: SourceItem) {
+        let folder: (any PlayFolderSource)?
         switch source {
-        case .local(let local):
-            guard
-                let projectRoot = try? local.workspaceRoot(),
-                let contentRoot = try? local.contentRoot()
-            else {
-                session.fail("could not resolve the project folder for '\(source.title)'")
-                return
-            }
-            session.start(
-                contentRoot: contentRoot,
-                projectRoot: projectRoot,
-                engine: runtime.engine,
-                coordinator: runtime.coordinator
-            )
-        case .github(let github):
-            // M15 seam: the working-copy slice resolves the bookmark and
-            // previews the GitHub source's working copy like a Local one.
-            session.fail("Preview for \(github.owner)/\(github.repository) lands with the working-copy slice.")
+        case .local(let local): folder = local
+        case .github(let github): folder = github
         }
+        guard let folder,
+              let projectRoot = try? folder.workspaceRoot(),
+              let contentRoot = try? folder.contentRoot()
+        else {
+            session.fail("could not resolve the project folder for '\(source.title)'")
+            return
+        }
+        session.start(
+            contentRoot: contentRoot,
+            projectRoot: projectRoot,
+            engine: runtime.engine,
+            coordinator: runtime.coordinator
+        )
     }
 
     /// Single entry point the grind lane uses to point the web view at a

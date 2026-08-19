@@ -8,7 +8,7 @@ enum ProblemResolution: Equatable, Sendable {
 enum ProblemResolver {
     static func resolve(
         path: String,
-        source: LocalSource?,
+        source: (any PlayFolderSource)?,
         graph: Graph?
     ) -> ProblemResolution? {
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -44,7 +44,7 @@ enum ProblemResolver {
         }
     }
 
-    static func resolveFileURL(path: String, source: LocalSource?) -> URL? {
+    static func resolveFileURL(path: String, source: (any PlayFolderSource)?) -> URL? {
         if path.hasPrefix("/") {
             return URL(fileURLWithPath: path)
         }
