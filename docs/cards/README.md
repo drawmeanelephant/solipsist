@@ -126,21 +126,35 @@ The two tool cards run through the coordinator's single `Process?` slot;
 | [3.4 Cooklang autocomplete](LATER-compose-cooklang.md) | #167 | compose | after 3.3 | `@` suggests corpus ingredients from completion.json |
 | [3.5 Bundle oliver](LATER-compose-bundle-oliver.md) | #167 | ship | parallel | Resources/oliver next to boris; preview without env override |
 
-## M15 — GitHub source (pickable)
+## M15 — GitHub source ✅
 
-The deferred ROADMAP §3 "Later" item — GitHub as its own
-`SourceKind` (OAuth device flow + PAT fallback, not just a clone).
-Design gate: [`docs/GITHUB-OAUTH-DESIGN.md`](../GITHUB-OAUTH-DESIGN.md).
+Landed — PRs #180 (seam) · #181 (settings sheet) · #182 (credential
+helper) · #183 (Remote mailbox) · #184 (sign-out). Do not pick.
+
+| Card | Issue | Fate |
+|------|-------|------|
+| [GitHub source](GITHUB-OAUTH.md) | [#179](https://github.com/drawmeanelephant/solipsist/issues/179) | ✅ |
+
+## M16 — Write the remote (pickable)
+
+The ROADMAP §3 "Later" remainder of the GitHub-source deferral —
+commit / push / PR authoring / issues mailbox (fetch + `pull --ff-only`
+moved up with M15). Design gate:
+[`docs/M16-WRITE-REMOTE-DESIGN.md`](../M16-WRITE-REMOTE-DESIGN.md).
+One slice per worktree/PR.
 
 | Card | Issue | Lane | Parallel with | Gate |
 |------|-------|------|----------------|------|
-| [GitHub source](GITHUB-OAUTH.md) | [#179](https://github.com/drawmeanelephant/solipsist/issues/179) | workspace / settings / play | — | device flow → Keychain → working copy; Remote mailbox Sync; restart keeps the source |
+| [M16-1 Commit](M16-commit.md) | [#185](https://github.com/drawmeanelephant/solipsist/issues/185) | workspace / play / settings | M16-4 | changed-files picker → `git add <picked>` + commit; identity never invented |
+| [M16-2 Push](M16-push.md) | #185 | workspace / play | after M16-1 | `git push -u` through the helper; ahead → 0 |
+| [M16-3 PR](M16-pr.md) | #185 | workspace / play | after M16-2 | push branch → `POST /pulls` → PR in browser |
+| [M16-4 Issues](M16-issues.md) | #185 | workspace / play | M16-1 | issues mailbox; create sheet; PRs filtered out |
 
 ## Do not start yet
 
-Wasm in the app. The fart app. Commit / push / PR authoring / issues
-mailboxes (fetch + `pull --ff-only` moved up with the GitHub source;
-remote *writes* stay later).
+Wasm in the app. The fart app. A Pull Requests mailbox (REST mixes PRs
+into issues; the issues mailbox filters them — a PR mailbox stays
+later).
 
 ## Shared noun kinds (play writes, inspector reads)
 
