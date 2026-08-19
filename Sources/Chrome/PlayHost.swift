@@ -16,6 +16,8 @@ struct PlayHost: View {
                 switch item {
                 case .local(let source):
                     LocalPlay(source: source)
+                case .github(let source):
+                    GithubPlayPlaceholder(source: source)
                 }
             } else if store.sources.isEmpty {
                 EmptyStateView(
@@ -63,5 +65,19 @@ struct PlayHost: View {
                 )
             }
         }
+    }
+}
+
+/// M15 seam: the GitHub play surface (Pages/Outputs/Publish/Plan/
+/// Activity over the working copy) lands with the working-copy slice.
+private struct GithubPlayPlaceholder: View {
+    let source: GithubSource
+
+    var body: some View {
+        EmptyStateView(
+            title: source.title,
+            systemImage: "chevron.left.forwardslash.chevron.right",
+            message: "\(source.owner)/\(source.repository) is authenticated. The play surface lands with the working-copy slice."
+        )
     }
 }

@@ -71,6 +71,8 @@ struct EditorWindow: View {
                 projectRoot: projectRoot,
                 engine: runtime.engine
             )
+        case .github(let github):
+            session.fail("The editor for \(github.owner)/\(github.repository) lands with the working-copy slice.")
         }
     }
 
