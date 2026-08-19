@@ -296,6 +296,64 @@ final class WorkspaceStore {
         activeCommitSessions[id]?.terminate()
     }
 
+    // MARK: - GitHub push (M16-2)
+
+    /// In-flight pushes by source id (one-shot shape, engine slot untouched).
+    private var activePushSessions: [SourceID: SyncSession] = [:]
+
+    /// Push verb (M16-2): `git push -u origin <branch>` through the
+    /// credential helper, off the main actor. Watch is NOT suspended
+    /// (push touches only the remote + tracking refs, never the content
+    /// tree watch serves — design §2). On success: ahead → 0 (branch
+    /// refresh) and `lastPushedAt` set. Git's exit + stderr surface
+    /// verbatim — 401/403 is the M15 §10 `needsAuth` posture,
+    /// non-blocking, re-auth via the existing settings flow.
+    func pushGithub(_ id: SourceID) async -> GithubCommit.CommitResult {
+        guard let index = sources.firstIndex(where: { $0.id == id }),
+              case .github(let github) = sources[index],
+              github.isAvailable,
+              let url = try? github.workspaceRoot()
+        else {
+            return GithubCommit.CommitResult(exitCode: 1, stderr: "Working copy is unavailable.")
+        }
+        let branch = GitClone.branchStatus(at: url).branch ?? github.branch ?? github.defaultBranch
+        guard !branch.isEmpty else {
+            return GithubCommit.CommitResult(exitCode: 1, stderr: "No branch to push.")
+        }
+
+        let session = SyncSession()
+        activePushSessions[id] = session
+        defer { activePushSessions[id] = nil }
+
+        let helperApp = Bundle.main.executableURL
+        let result = await Task.detached {
+            GithubCommit.push(
+                branch: branch,
+                workingCopy: url,
+                credentialHelperApp: helperApp,
+                session: session
+            )
+        }.value
+
+        // Refresh branch (ahead → 0 on success) and record lastPushedAt.
+        if let index = sources.firstIndex(where: { $0.id == id }),
+           case .github(let current) = sources[index]
+        {
+            var updated = current
+            updated.branch = GitClone.branchStatus(at: url).branch
+            if result.isSuccess {
+                updated.lastPushedAt = Date()
+            }
+            sources[index] = .github(updated)
+        }
+        return result
+    }
+
+    /// SIGTERM the in-flight push for a source.
+    func cancelPushGithub(_ id: SourceID) {
+        activePushSessions[id]?.terminate()
+    }
+
     // MARK: - GitHub sign-out (M15)
 
     /// Sign out of a GitHub source (design §4): delete the Keychain

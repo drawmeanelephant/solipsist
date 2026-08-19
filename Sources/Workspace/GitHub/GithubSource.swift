@@ -28,6 +28,8 @@ struct GithubSource: PublicationSource, PlayFolderSource, Hashable, Sendable, Co
     var lastSyncError: String? = nil
     /// Set when the last Sync succeeded; shown in the Remote mailbox.
     var lastSyncedAt: Date? = nil
+    /// Set when the last Push succeeded (M16-2); shown in the mailbox.
+    var lastPushedAt: Date? = nil
 
     var kind: SourceKind { .github }
 

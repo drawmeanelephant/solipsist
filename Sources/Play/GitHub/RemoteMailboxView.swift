@@ -16,11 +16,13 @@ struct RemoteMailboxView: View {
     @State private var status: GitClone.GitBranchStatus?
     @State private var statusError: String?
     @State private var showCommitSheet = false
+    @State private var isPushing = false
 
     var body: some View {
         List {
             syncSection
             commitSection
+            pushSection
             statusSection
             if let error = live.lastSyncError {
                 Section {
@@ -65,6 +67,28 @@ struct RemoteMailboxView: View {
                     showCommitSheet = true
                 }
                 .disabled(!live.isAvailable || live.isSyncing)
+            }
+        }
+    }
+
+    private var pushSection: some View {
+        Section {
+            HStack {
+                if isPushing {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Pushing…")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Cancel") { store.cancelPushGithub(source.id) }
+                } else {
+                    Label("Push", systemImage: "paperplane")
+                    Spacer()
+                    Button("Push") {
+                        push()
+                    }
+                    .disabled(!live.isAvailable || live.isSyncing || (status?.ahead ?? 0) == 0)
+                }
             }
         }
     }
@@ -121,6 +145,11 @@ struct RemoteMailboxView: View {
                     Text(lastSyncedAt, style: .relative)
                 }
             }
+            if let lastPushedAt = live.lastPushedAt {
+                LabeledContent("Last Pushed") {
+                    Text(lastPushedAt, style: .relative)
+                }
+            }
             if let statusError {
                 Text(statusError)
                     .font(.callout)
@@ -138,6 +167,31 @@ struct RemoteMailboxView: View {
             defer { runtime.coordinator.endTreeWrite() }
             await store.syncGithub(source.id)
         }
+    }
+
+    private func push() {
+        guard !isPushing else { return }
+        isPushing = true
+        Task {
+            // Push touches only the remote + tracking refs, never the
+            // content tree — watch keeps running (design §2).
+            let result = await store.pushGithub(source.id)
+            isPushing = false
+            if !result.isSuccess {
+                statusError = Self.describePush(result)
+            }
+            await refreshStatus()
+        }
+    }
+
+    /// Git's exit + stderr verbatim; a needsAuth hint on 401-class
+    /// failures (M15 §10 posture — re-auth via the settings flow).
+    static func describePush(_ result: GithubCommit.CommitResult) -> String {
+        var text = "git push failed (exit \(result.exitCode)): \(result.stderr)"
+        if result.stderr.contains("401") || result.stderr.contains("403") || result.stderr.contains("Authentication failed") {
+            text += "\n\nThe token may be revoked or lack `repo` scope. Re-authenticate from Settings → Sources."
+        }
+        return text
     }
 
     private func openOnGitHub() {
