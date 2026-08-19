@@ -55,6 +55,8 @@ Status legend: **open** · **in flight** (PR open) · **done** (merged — do no
 | Q23 | [site-content-expansion](site-content-expansion.md) | `site/` only | done (#49) |
 | Q24 | [stunt-textile-corpus](stunt-textile-corpus.md) | `Stunts/` + `Tests/Fixtures/` | done (#50) |
 | Q25 | [help-doc-coverage](help-doc-coverage.md) | `docs/help.md` only | done (#48) |
+| Q26 | [gate-plan-activity-content](gate-plan-activity-content.md) | verification only (no source) | done (#134/#135) |
+| Q27 | [close-102-verification](close-102-verification.md) | verification only (no source) | done (#118) |
 
 ### Retired
 
@@ -67,10 +69,11 @@ lives in the issue tracker (#58–#61; briefs in
 `docs/cards/B3-*.md`) — those own grind-lane paths, so they are not
 queue cards.
 
-The depth batch (#88–#91) landed. M9 (#78), M10 (#98), and M11
-(#123) landed. Remaining ship is Apple-account only (#110 / #111)
-— not this queue. Next product cut is
-[#131](https://github.com/drawmeanelephant/solipsist/issues/131)
-(M12 clone) plus the M13 / M14 grind cards; those own Settings /
-Workspace / Play / Engine, so they are not queue cards. The queue
-stays empty unless someone cuts a docs-only or `Tests/`-only slice.
+The depth batch (#88–#91) landed. M9 (#78), M10 (#98), M11
+(#123), M12 (#131), M13 (#142), and M14 (#143) all landed and
+closed. Remaining ship is Apple-account only (#110 / #111) — not
+this queue. Two low-priority pin-follow trackers are filed for the
+named-but-untracked follow-ups: [#160](https://github.com/drawmeanelephant/solipsist/issues/160)
+(A15 `open=`, boris#649) and [#161](https://github.com/drawmeanelephant/solipsist/issues/161)
+(A5 `validate --watch`, boris#647). The queue stays empty unless
+someone cuts a docs-only or `Tests/`-only slice.
