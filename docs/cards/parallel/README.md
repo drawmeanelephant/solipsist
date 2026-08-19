@@ -73,10 +73,11 @@ the agent-pack, `plan --out`.
 | 9 | [issue-templates](issue-templates.md) | done (#22) |
 
 New work lives in the [delegation queue](../queue/README.md) — batch 2
-is landed. The queue is empty. Next pickable product card is
-[#131](https://github.com/drawmeanelephant/solipsist/issues/131) (M12
-clone — Settings / workspace, not this lane). Apple-account ship
-(#110 / #111) is operator, not this lane.
+is landed and the queue is empty. M12 clone (#131), M13 graph folders
+(#142), and M14 watch contract (#143) all landed and closed. Apple-
+account ship (#110 / #111) is operator, not this lane. Two low-priority
+pin-follow trackers are filed for the named follow-ups: #160 (A15
+`open=`, boris#649) and #161 (A5 `validate --watch`, boris#647).
 
 Skip: fart app (`make fart` must keep failing). Skip GitHub-as-source.
 Skip publication flows. Skip Wasm in the app.
