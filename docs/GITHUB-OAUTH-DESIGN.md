@@ -272,7 +272,9 @@ Automated (unit, injected transport + clock, no network):
 - **Two GitHub sources, same repo:** allowed (two working copies,
   distinct `SourceID`s); both share the single host-keyed `github`
   Keychain item — which is correct, the token is user-scoped.
-  Removing one source does not touch the token (sign-out is the only
-  deletion path, a later slice).
+  Removing one source does not touch the token — **Sign Out**
+  (context menu / Settings row) is the only deletion path: it removes
+  the Keychain item, drops the source, and only with an explicit
+  choice moves the user-owned working copy to the Trash.
 - **Client id missing (dev build):** sheet explains the operator step,
   then falls back to the PAT path — the flow is never dead.

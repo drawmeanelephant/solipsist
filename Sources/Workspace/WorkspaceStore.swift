@@ -240,6 +240,37 @@ final class WorkspaceStore {
         activeSyncSessions[id]?.terminate()
     }
 
+    // MARK: - GitHub sign-out (M15)
+
+    /// Sign out of a GitHub source (design §4): delete the Keychain
+    /// token — the only deletion path for it, plain `remove` never
+    /// touches the token — then drop the source from the sidebar.
+    /// `deleteWorkingCopy` additionally moves the user-owned working
+    /// copy folder to the Trash; it is never deleted without the
+    /// caller's explicit choice. A token-delete failure aborts the
+    /// sign-out (the source stays); a Trash failure surfaces on
+    /// `lastError` after the sign-out completes.
+    func signOutGithub(_ id: SourceID, deleteWorkingCopy: Bool) {
+        lastError = nil
+        guard let index = sources.firstIndex(where: { $0.id == id }),
+              case .github = sources[index]
+        else { return }
+        do {
+            try GithubTokenStore().delete()
+        } catch {
+            lastError = "Sign out failed — the GitHub token could not be removed: \(String(describing: error))"
+            return
+        }
+        if deleteWorkingCopy, let url = scopedURLs[id] {
+            do {
+                try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+            } catch {
+                lastError = "Signed out, but the working copy could not be moved to the Trash: \(String(describing: error))"
+            }
+        }
+        remove(id)
+    }
+
     // MARK: - Graph mirror (M13-1)
 
     /// Sidebar read path for trunk folders. Cached value wins; otherwise
