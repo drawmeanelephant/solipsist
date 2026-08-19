@@ -155,7 +155,7 @@ public enum GitClone {
     /// status with a nil branch — never an error.
     public static func branchStatus(at root: URL) -> GitBranchStatus {
         guard FileManager.default.fileExists(atPath: root.appendingPathComponent(".git").path) else {
-            return GitBranchStatus(branch: nil, ahead: 0, behind: 0)
+            return GitBranchStatus(branch: nil, upstream: nil, ahead: 0, behind: 0)
         }
         let process = Process()
         process.executableURL = gitExecutableURL()
@@ -167,14 +167,15 @@ public enum GitClone {
             try process.run()
             process.waitUntilExit()
         } catch {
-            return GitBranchStatus(branch: nil, ahead: 0, behind: 0)
+            return GitBranchStatus(branch: nil, upstream: nil, ahead: 0, behind: 0)
         }
         guard process.terminationStatus == 0 else {
-            return GitBranchStatus(branch: nil, ahead: 0, behind: 0)
+            return GitBranchStatus(branch: nil, upstream: nil, ahead: 0, behind: 0)
         }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let text = String(decoding: data, as: UTF8.self)
         var branch: String?
+        var upstream: String?
         var ahead = 0
         var behind = 0
         for line in text.split(separator: "\n") {
@@ -182,17 +183,33 @@ public enum GitClone {
             if let parsed = parseBranch(from: line) {
                 branch = parsed
             }
+            if let up = parseUpstream(from: line) {
+                upstream = up
+            }
             if let ab = parseAheadBehind(from: line) {
                 ahead = ab.ahead
                 behind = ab.behind
             }
         }
-        return GitBranchStatus(branch: branch, ahead: ahead, behind: behind)
+        return GitBranchStatus(branch: branch, upstream: upstream, ahead: ahead, behind: behind)
+    }
+
+    /// Parse the upstream out of one porcelain v2 line: `# branch.upstream
+    /// origin/main` → `origin/main`. Anything else returns nil.
+    public static func parseUpstream(from line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("# branch.upstream ") else { return nil }
+        let name = trimmed.dropFirst("# branch.upstream ".count)
+        return name.isEmpty ? nil : String(name)
     }
 
     /// Branch + ahead/behind parsed from `status --porcelain=v2 --branch`.
+    /// `upstream` is `origin/<branch>` when tracking is set (from
+    /// `# branch.upstream`), nil otherwise — the PR sheet (M16-3) uses
+    /// its absence to know a `-u` push is required first.
     public struct GitBranchStatus: Sendable, Equatable {
         public let branch: String?
+        public let upstream: String?
         public let ahead: Int
         public let behind: Int
     }

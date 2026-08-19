@@ -12,9 +12,11 @@ func json(_ object: [String: Any]) -> Data {
 actor StubTransport: GithubOAuth.HTTPTransport {
     struct RecordedCall: Equatable, Sendable {
         let url: URL
-        /// Form body for POSTs; nil for GETs.
+        /// Form body for form-POSTs; nil for GETs / JSON POSTs.
         let form: [String: String]?
-        /// Bearer token bytes for GETs; nil for POSTs.
+        /// JSON body for JSON POSTs; nil otherwise.
+        let json: Data?
+        /// Bearer token bytes for authenticated calls; nil for form-POSTs.
         let bearerBytes: [UInt8]?
     }
 
@@ -42,19 +44,24 @@ actor StubTransport: GithubOAuth.HTTPTransport {
     }
 
     func post(_ url: URL, form: [String: String]) async throws -> Data {
-        try await respond(to: url, form: form, bearerBytes: nil)
+        try await respond(to: url, form: form, json: nil, bearerBytes: nil)
     }
 
     func get(_ url: URL, bearer: SecureBuffer) async throws -> Data {
-        try await respond(to: url, form: nil, bearerBytes: bearer.copyBytes())
+        try await respond(to: url, form: nil, json: nil, bearerBytes: bearer.copyBytes())
+    }
+
+    func post(_ url: URL, json: Data, bearer: SecureBuffer) async throws -> Data {
+        try await respond(to: url, form: nil, json: json, bearerBytes: bearer.copyBytes())
     }
 
     private func respond(
         to url: URL,
         form: [String: String]?,
+        json: Data?,
         bearerBytes: [UInt8]?
     ) async throws -> Data {
-        calls.append(RecordedCall(url: url, form: form, bearerBytes: bearerBytes))
+        calls.append(RecordedCall(url: url, form: form, json: json, bearerBytes: bearerBytes))
         var queue = queues[url] ?? []
         let next = queue.isEmpty ? nil : queue.removeFirst()
         queues[url] = queue

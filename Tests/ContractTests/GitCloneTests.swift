@@ -66,8 +66,43 @@ final class GitCloneTests: XCTestCase {
     func testBranchStatusParsesAheadBehind() {
         let status = GitClone.branchStatus(at: URL(fileURLWithPath: "/nonexistent/repo"))
         XCTAssertNil(status.branch)
+        XCTAssertNil(status.upstream)
         XCTAssertEqual(status.ahead, 0)
         XCTAssertEqual(status.behind, 0)
+    }
+
+    func testParseUpstreamPorcelainV2() {
+        XCTAssertEqual(GitClone.parseUpstream(from: "# branch.upstream origin/main"), "origin/main")
+        XCTAssertEqual(GitClone.parseUpstream(from: "# branch.upstream origin/feature/x"), "origin/feature/x")
+        XCTAssertNil(GitClone.parseUpstream(from: "# branch.head main"))
+        XCTAssertNil(GitClone.parseUpstream(from: "# branch.ab +0 -0"))
+        XCTAssertNil(GitClone.parseUpstream(from: "1 .M N..."))
+    }
+
+    func testBranchStatusUpstreamNilWithoutTracking() throws {
+        guard FileManager.default.isExecutableFile(atPath: "/usr/bin/git") else {
+            throw XCTSkip("git not available")
+        }
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("gitclone-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try runGit(["init", "-b", "main"], in: dir)
+        try "hello".write(to: dir.appendingPathComponent("readme.md"), atomically: true, encoding: .utf8)
+        try runGit(["add", "."], in: dir)
+        try runGit([
+            "-c", "user.email=t@example.com",
+            "-c", "user.name=t",
+            "commit", "-m", "init",
+        ], in: dir)
+        // No remote → no upstream.
+        XCTAssertNil(GitClone.branchStatus(at: dir).upstream)
+        // After -u push to a local bare remote, upstream is set.
+        let bare = dir.appendingPathComponent("origin.git", isDirectory: true)
+        try runGit(["init", "--bare", "-b", "main", bare.path], in: dir)
+        try runGit(["remote", "add", "origin", bare.path], in: dir)
+        try runGit(["push", "-u", "origin", "main"], in: dir)
+        XCTAssertEqual(GitClone.branchStatus(at: dir).upstream, "origin/main")
     }
 
     // MARK: - Live branch read (local repo only, no network)
