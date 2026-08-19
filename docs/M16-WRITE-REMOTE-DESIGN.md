@@ -65,9 +65,19 @@ explicit decision, not an accident: the only tree-writing git verb is
   `user.name`/`user.email` fails with git's own error — surfaced
   **verbatim** (D11), with a hint pointing at the repo config or a
   Settings identity row. The app never writes global config and never
-  synthesizes an identity. M16-1 may add a Settings row that writes
-  **repo-local** `user.name`/`user.email` only on the user's explicit
-  save (the working copy's `.git/config`, never `--global`).
+  synthesizes an identity (no `-c user.name` / `user.email` flags,
+  ever). M16-1 may add a Settings row that writes **repo-local**
+  `user.name`/`user.email` only on the user's explicit save (the
+  working copy's `.git/config`, never `--global`).
+  **Probed fact (recorded for the lane):** git auto-derives an
+  identity from username@hostname when none is configured, so a bare
+  `git commit` on a fresh clone **succeeds** silently unless the user
+  has set `user.useConfigOnly=true` (git's documented opt-out). The
+  app surfaces whatever git does — the verbatim-error path is what a
+  user with `useConfigOnly` (or a hardened setup) sees, and the
+  auto-derived-identity case is git's own behavior, not the app
+  inventing one. The test exercises the true error path via
+  `useConfigOnly` + isolated config.
 - **One-shots.** `GithubCommit`-style enum (or extend `GithubSync`)
   with the same `Session` cancel path as `SyncSession`. Watch keeps
   running (decision above); after the commit, `branchStatus` refreshes

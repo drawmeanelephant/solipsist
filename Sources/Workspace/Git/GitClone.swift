@@ -197,6 +197,97 @@ public enum GitClone {
         public let behind: Int
     }
 
+    /// One changed file from `status --porcelain=v1 -z` (M16-1).
+    /// `path` is the working-copy-relative path `git add -- <path>`
+    /// accepts — for renames that is the **destination** (git -z emits
+    /// `XY <to>\0<from>`; staging the destination stages the rename).
+    public struct GitStatusEntry: Sendable, Equatable {
+        public let path: String
+        /// The porcelain XY pair, e.g. `" M"`, `"??"`, `"R "`.
+        public let status: String
+        /// Rename/copy source path (display only); nil otherwise.
+        public let sourcePath: String?
+
+        /// Human label for the picker row.
+        public var statusLabel: String {
+            switch status {
+            case "??": return "untracked"
+            case "M ", " M": return "modified"
+            case "A ", " A": return "added"
+            case "D ", " D": return "deleted"
+            case "R ", " R": return "renamed"
+            case "C ", " C": return "copied"
+            case "MM", "AM", "MD", "AD", "RM", "RD": return status
+            default:
+                let trimmed = status.trimmingCharacters(in: .whitespaces)
+                return trimmed.isEmpty ? status : trimmed
+            }
+        }
+    }
+
+    /// Changed files of the checkout at `root` (Commit picker, M16-1):
+    /// `git status --porcelain=v1 -z`, same runner shape as
+    /// `branchStatus`. Missing git / not-a-repo → empty, never an error.
+    public static func statusEntries(at root: URL) -> [GitStatusEntry] {
+        guard FileManager.default.fileExists(atPath: root.appendingPathComponent(".git").path) else {
+            return []
+        }
+        let process = Process()
+        process.executableURL = gitExecutableURL()
+        process.arguments = ["-C", root.path, "status", "--porcelain=v1", "-z"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return []
+        }
+        guard process.terminationStatus == 0 else { return [] }
+        return parseStatusEntries(pipe.fileHandleForReading.readDataToEndOfFile())
+    }
+
+    /// Parse `--porcelain=v1 -z` bytes. Each NUL record is `XY <path>`;
+    /// rename/copy entries emit a second bare record with the source
+    /// path (`XY <to>\0<from>`), consumed here. Pure — tests feed bytes.
+    public static func parseStatusEntries(_ data: Data) -> [GitStatusEntry] {
+        let records = data.split(separator: 0)
+        var entries: [GitStatusEntry] = []
+        var index = 0
+        while index < records.count {
+            let record = records[index]
+            guard let text = String(data: record, encoding: .utf8), text.count >= 3 else {
+                index += 1
+                continue
+            }
+            // Records are `XY <path>`; the second character must be the
+            // status, the third a space. A bare record (no `XY ` prefix)
+            // is a rename/copy source — it belongs to the prior entry,
+            // which is handled below, so skip it here.
+            guard text[text.index(text.startIndex, offsetBy: 2)] == " " else {
+                index += 1
+                continue
+            }
+            let status = String(text.prefix(2))
+            let path = String(text.dropFirst(3))
+            var entry = GitStatusEntry(path: path, status: status, sourcePath: nil)
+            if status.contains("R") || status.contains("C") {
+                if index + 1 < records.count,
+                   let source = String(data: records[index + 1], encoding: .utf8),
+                   !source.isEmpty
+                {
+                    entry = GitStatusEntry(path: path, status: status, sourcePath: source)
+                }
+                index += 2
+            } else {
+                index += 1
+            }
+            entries.append(entry)
+        }
+        return entries
+    }
+
     /// Parse the ahead/behind counts out of one porcelain v2 line:
     /// `# branch.ab +1 -2` → (1, 2). Anything else returns nil.
     public static func parseAheadBehind(from line: String) -> (ahead: Int, behind: Int)? {
