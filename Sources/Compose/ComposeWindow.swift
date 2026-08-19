@@ -22,6 +22,10 @@ struct ComposeWindow: View {
     @State private var pendingSwitch: WorkspaceNoun?
     @State private var loadError: String?
     @State private var saveStatus: String?
+    /// Cooklang completion vocabulary (LATER-3.4): re-decoded from the
+    /// source's `.boris/` artifacts whenever a page is loaded, so a fresh
+    /// build reaches the popup without restarting the window.
+    @State private var cookCompletion = ComposeCookCompletion.empty
 
     var body: some View {
         Group {
@@ -29,6 +33,7 @@ struct ComposeWindow: View {
                 ComposeEditorView(
                     document: document,
                     renderService: OliverRenderService(),
+                    cookCompletion: cookCompletion,
                     onSave: save
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -106,6 +111,7 @@ struct ComposeWindow: View {
             }
             let url = ComposePageResolver.fileURL(contentRoot: contentRoot, sourcePath: node.sourcePath)
             try document.load(from: url)
+            cookCompletion = ComposeCookCompletion.load(workspaceRoot: workspaceRoot)
             loadError = nil
             saveStatus = nil
         } catch {
