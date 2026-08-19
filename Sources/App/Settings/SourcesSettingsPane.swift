@@ -6,6 +6,8 @@ struct SourcesSettingsPane: View {
     @Environment(WorkspaceStore.self) private var store
     @State private var confirmRemove = false
     @State private var showAddGithub = false
+    /// The github source awaiting a sign-out confirmation, when any.
+    @State private var signOutItem: SourceItem?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -36,6 +38,25 @@ struct SourcesSettingsPane: View {
         } message: {
             Text("The folder on disk is not deleted.")
         }
+        .confirmationDialog(
+            signOutPrompt,
+            isPresented: Binding(
+                get: { signOutItem != nil },
+                set: { if !$0 { signOutItem = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: signOutItem
+        ) { item in
+            Button("Sign Out") {
+                store.signOutGithub(item.id, deleteWorkingCopy: false)
+            }
+            Button("Sign Out & Move Working Copy to Trash", role: .destructive) {
+                store.signOutGithub(item.id, deleteWorkingCopy: true)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { item in
+            Text("The GitHub token will be removed from the Keychain. The working copy stays on disk unless you move it to the Trash.")
+        }
         .sheet(isPresented: $showAddGithub) {
             AddGithubAccountSheet()
         }
@@ -46,6 +67,13 @@ struct SourcesSettingsPane: View {
             ForEach(store.sources) { item in
                 SourceAccountRow(item: item)
                     .tag(item.id)
+                    .contextMenu {
+                        if case .github = item {
+                            Button("Sign Out…", role: .destructive) {
+                                signOutItem = item
+                            }
+                        }
+                    }
             }
         }
         .listStyle(.inset)
@@ -125,6 +153,11 @@ struct SourcesSettingsPane: View {
     private var removePrompt: String {
         let name = store.selectedSource?.title ?? "this source"
         return "Remove “\(name)” from Solipsist?"
+    }
+
+    private var signOutPrompt: String {
+        let name = signOutItem?.title ?? "this GitHub account"
+        return "Sign Out of “\(name)”?"
     }
 }
 
