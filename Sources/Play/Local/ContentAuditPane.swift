@@ -6,7 +6,7 @@ import SwiftUI
 /// single process slot (`runTool`). Report lands in the app container
 /// (`ContentAuditOutput`), never the user's content tree.
 struct ContentAuditPane: View {
-    let source: LocalSource
+    let source: any PlayFolderSource
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime

@@ -5,7 +5,7 @@ import SwiftUI
 /// "Build this". Selection is written to `WorkspaceStore` as `noun.kind == "target"`
 /// or `noun.kind == "edition"`.
 struct OutputsPane: View {
-    let source: LocalSource
+    let source: any PlayFolderSource
 
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime

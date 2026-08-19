@@ -146,8 +146,16 @@ public enum GitClone {
     /// Branch of the checkout at `root`, or nil when it is not a repo or
     /// git is unavailable. Missing git / not-a-repo is not an error.
     public static func currentBranch(at root: URL) -> String? {
+        branchStatus(at: root).branch
+    }
+
+    /// Branch + ahead/behind of the checkout at `root` (Remote mailbox,
+    /// M15). `ahead`/`behind` count commits against the upstream
+    /// (`origin/<branch>`). Missing git / not-a-repo yields an empty
+    /// status with a nil branch — never an error.
+    public static func branchStatus(at root: URL) -> GitBranchStatus {
         guard FileManager.default.fileExists(atPath: root.appendingPathComponent(".git").path) else {
-            return nil
+            return GitBranchStatus(branch: nil, ahead: 0, behind: 0)
         }
         let process = Process()
         process.executableURL = gitExecutableURL()
@@ -159,17 +167,48 @@ public enum GitClone {
             try process.run()
             process.waitUntilExit()
         } catch {
-            return nil
+            return GitBranchStatus(branch: nil, ahead: 0, behind: 0)
         }
-        guard process.terminationStatus == 0 else { return nil }
+        guard process.terminationStatus == 0 else {
+            return GitBranchStatus(branch: nil, ahead: 0, behind: 0)
+        }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let text = String(decoding: data, as: UTF8.self)
+        var branch: String?
+        var ahead = 0
+        var behind = 0
         for line in text.split(separator: "\n") {
-            if let branch = parseBranch(from: String(line)) {
-                return branch
+            let line = String(line)
+            if let parsed = parseBranch(from: line) {
+                branch = parsed
+            }
+            if let ab = parseAheadBehind(from: line) {
+                ahead = ab.ahead
+                behind = ab.behind
             }
         }
-        return nil
+        return GitBranchStatus(branch: branch, ahead: ahead, behind: behind)
+    }
+
+    /// Branch + ahead/behind parsed from `status --porcelain=v2 --branch`.
+    public struct GitBranchStatus: Sendable, Equatable {
+        public let branch: String?
+        public let ahead: Int
+        public let behind: Int
+    }
+
+    /// Parse the ahead/behind counts out of one porcelain v2 line:
+    /// `# branch.ab +1 -2` → (1, 2). Anything else returns nil.
+    public static func parseAheadBehind(from line: String) -> (ahead: Int, behind: Int)? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix("# branch.ab ") else { return nil }
+        let rest = trimmed.dropFirst("# branch.ab ".count)
+        let parts = rest.split(separator: " ")
+        guard parts.count == 2 else { return nil }
+        let aheadPart = parts[0].hasPrefix("+") ? parts[0].dropFirst() : parts[0]
+        let behindPart = parts[1].hasPrefix("-") ? parts[1].dropFirst() : parts[1]
+        guard let ahead = Int(aheadPart), let behind = Int(behindPart) else { return nil }
+        return (ahead, behind)
     }
 
     /// Parse the branch out of one porcelain line:

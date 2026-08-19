@@ -187,6 +187,59 @@ final class WorkspaceStore {
         activeCloneSession?.terminate()
     }
 
+    // MARK: - GitHub sync (M15 Remote mailbox)
+
+    /// In-flight syncs by source id (one per source; the engine slot is
+    /// untouched — git is a settings-adjacent one-shot like clone).
+    private var activeSyncSessions: [SourceID: SyncSession] = [:]
+
+    /// Remote mailbox Sync verb: `fetch` + `pull --ff-only` through the
+    /// credential helper, off the main actor. Marks the source syncing,
+    /// updates branch / lastSyncError / lastSyncedAt on completion. The
+    /// caller (RemoteMailboxView) suspends watch around the call — the
+    /// working copy is the tree watch serves.
+    func syncGithub(_ id: SourceID) async {
+        guard let index = sources.firstIndex(where: { $0.id == id }),
+              case .github(let github) = sources[index],
+              github.isAvailable,
+              let url = try? github.workspaceRoot()
+        else { return }
+
+        var syncing = github
+        syncing.isSyncing = true
+        syncing.lastSyncError = nil
+        sources[index] = .github(syncing)
+
+        let helperApp = Bundle.main.executableURL
+        let session = SyncSession()
+        activeSyncSessions[id] = session
+        defer { activeSyncSessions[id] = nil }
+
+        let result = await Task.detached {
+            GithubSync.sync(workingCopy: url, credentialHelperApp: helperApp, session: session)
+        }.value
+
+        guard let index = sources.firstIndex(where: { $0.id == id }),
+              case .github(let current) = sources[index]
+        else { return }
+        var updated = current
+        updated.isSyncing = false
+        if result.isSuccess {
+            updated.lastSyncError = nil
+            updated.lastSyncedAt = Date()
+        } else {
+            updated.lastSyncError = "git sync failed (exit \(result.exitCode)): \(result.stderr)"
+        }
+        updated.branch = GitClone.branchStatus(at: url).branch
+        sources[index] = .github(updated)
+    }
+
+    /// SIGTERM the in-flight sync for a source. The working copy is left
+    /// in place mid-pull; the next Sync retries.
+    func cancelSyncGithub(_ id: SourceID) {
+        activeSyncSessions[id]?.terminate()
+    }
+
     // MARK: - Graph mirror (M13-1)
 
     /// Sidebar read path for trunk folders. Cached value wins; otherwise

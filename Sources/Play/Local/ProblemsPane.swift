@@ -53,15 +53,15 @@ struct ProblemsPane: View {
                     let item = runtime.coordinator.problems.first(where: { $0.id == id }),
                     let path = item.path
                 else { return }
-                let localSource: LocalSource?
-                if case .local(let src) = store.selectedSource {
-                    localSource = src
-                } else {
-                    localSource = nil
+                let folderSource: (any PlayFolderSource)?
+                switch store.selectedSource {
+                case .local(let src): folderSource = src
+                case .github(let src): folderSource = src
+                case nil: folderSource = nil
                 }
 
                 var graph: Graph?
-                if let localSource, let root = try? localSource.resolve().url {
+                if let folderSource, let root = try? folderSource.resolve().url {
                     let graphURL = root
                         .appendingPathComponent(".boris", isDirectory: true)
                         .appendingPathComponent("graph.json")
@@ -70,7 +70,7 @@ struct ProblemsPane: View {
                     }
                 }
 
-                guard let resolution = ProblemResolver.resolve(path: path, source: localSource, graph: graph) else {
+                guard let resolution = ProblemResolver.resolve(path: path, source: folderSource, graph: graph) else {
                     return
                 }
 

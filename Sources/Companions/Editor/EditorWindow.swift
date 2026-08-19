@@ -57,23 +57,23 @@ struct EditorWindow: View {
     }
 
     private func startEditor(for source: SourceItem) {
+        let folder: (any PlayFolderSource)?
         switch source {
-        case .local(let local):
-            guard
-                let projectRoot = try? local.workspaceRoot(),
-                let contentRoot = try? local.contentRoot()
-            else {
-                session.fail("Could not resolve project folder for '\(source.title)'")
-                return
-            }
-            session.start(
-                contentRoot: contentRoot,
-                projectRoot: projectRoot,
-                engine: runtime.engine
-            )
-        case .github(let github):
-            session.fail("The editor for \(github.owner)/\(github.repository) lands with the working-copy slice.")
+        case .local(let local): folder = local
+        case .github(let github): folder = github
         }
+        guard let folder,
+              let projectRoot = try? folder.workspaceRoot(),
+              let contentRoot = try? folder.contentRoot()
+        else {
+            session.fail("Could not resolve project folder for '\(source.title)'")
+            return
+        }
+        session.start(
+            contentRoot: contentRoot,
+            projectRoot: projectRoot,
+            engine: runtime.engine
+        )
     }
 
     /// Single entry point for pointing the web view at an editor URL.

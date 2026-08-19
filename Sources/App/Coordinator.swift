@@ -93,16 +93,22 @@ final class Coordinator {
     func syncSaveWatch(store: WorkspaceStore, runtime: AppRuntime) {
         boundStore = store
         boundRuntime = runtime
-        guard case .local(let source) = store.selectedSource, source.isAvailable,
-              let root = try? source.contentRoot(),
+        let folder: (any PlayFolderSource)?
+        switch store.selectedSource {
+        case .local(let source): folder = source
+        case .github(let source): folder = source
+        case nil: folder = nil
+        }
+        guard let folder, folder.isAvailable,
+              let root = try? folder.contentRoot(),
               FileManager.default.fileExists(atPath: root.path)
         else {
             saveWatcher.stop()
             watchingSourceID = nil
             return
         }
-        guard watchingSourceID != source.id else { return }
-        watchingSourceID = source.id
+        guard watchingSourceID != folder.id else { return }
+        watchingSourceID = folder.id
         saveWatcher.handler = { [weak self] in
             Task { @MainActor in
                 self?.noteSave()

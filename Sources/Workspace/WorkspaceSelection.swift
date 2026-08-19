@@ -44,6 +44,9 @@ enum WorkspaceMailbox {
     static let plan = "plan"
     static let activity = "activity"
     static let contentAudit = "content-audit"
+    /// GitHub-source-only mailbox (M15): branch, ahead/behind, Sync.
+    /// Deliberately not in `all` — Local sources never see a Remote row.
+    static let remote = "remote"
 
     static let all: [String] = [pages, outputs, publish, plan, activity, contentAudit]
     static let defaultMailbox = pages
@@ -70,6 +73,7 @@ enum WorkspaceMailbox {
         case plan: return "Plan"
         case activity: return "Activity"
         case contentAudit: return "Content Audit"
+        case remote: return "Remote"
         default: return raw
         }
     }
@@ -82,7 +86,17 @@ enum WorkspaceMailbox {
         case plan: return "doc.plaintext"
         case activity: return "clock"
         case contentAudit: return "checkmark.shield"
+        case remote: return "arrow.triangle.2.circlepath"
         default: return "folder"
+        }
+    }
+
+    /// Sidebar row list for one source. Local sources get the M10 set;
+    /// GitHub sources additionally get the Remote mailbox.
+    static func all(for item: SourceItem) -> [String] {
+        switch item.kind {
+        case .github: return all + [remote]
+        case .local: return all
         }
     }
 }

@@ -6,7 +6,7 @@ import SwiftUI
 /// contract-backed summary. Never `file://`, never a Markdown renderer.
 struct ReadingPane: View {
     let page: PlayPage?
-    let source: LocalSource
+    let source: any PlayFolderSource
     let loadGeneration: Int
 
     @Environment(AppRuntime.self) private var runtime
@@ -359,7 +359,7 @@ struct ReadingPane: View {
 
     /// Decode `.boris/completion.json` the same way Play reads `graph.json`.
     /// Failure omits relations (D8). Does not import Inspector.
-    private static func loadRelations(source: LocalSource, pageID: String?) -> [CompletionRelation] {
+    private static func loadRelations(source: any PlayFolderSource, pageID: String?) -> [CompletionRelation] {
         guard
             let pageID,
             source.isAvailable,
