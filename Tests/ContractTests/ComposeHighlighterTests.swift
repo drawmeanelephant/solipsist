@@ -154,10 +154,90 @@ final class ComposeHighlighterTests: XCTestCase {
         XCTAssertEqual(color(at: 8, in: attributed), NSColor.secondaryLabelColor)
     }
 
+    // MARK: - Incremental repaint (LATER-3.2)
+
+    func testChangedRangeInsertion() {
+        let range = ComposeHighlighter.changedRange(old: "hello world", new: "hello big world")
+        XCTAssertEqual(range.location, 6)
+        XCTAssertEqual(range.length, 4) // "big "
+    }
+
+    func testChangedRangeDeletion() {
+        let range = ComposeHighlighter.changedRange(old: "hello big world", new: "hello world")
+        XCTAssertEqual(range.location, 6)
+        XCTAssertEqual(range.length, 0)
+    }
+
+    func testChangedRangeReplacement() {
+        let range = ComposeHighlighter.changedRange(old: "abc", new: "axc")
+        XCTAssertEqual(range.location, 1)
+        XCTAssertEqual(range.length, 1)
+    }
+
+    func testChangedRangeNoChange() {
+        let range = ComposeHighlighter.changedRange(old: "same", new: "same")
+        XCTAssertEqual(range.location, 4)
+        XCTAssertEqual(range.length, 0)
+    }
+
+    func testRepaintLineMatchesFullPaint() throws {
+        let text = "# Title\n\nSome **bold** and `code`.\n\n# Later\n"
+        let full = ComposeHighlighter.highlight(text, language: .markdown)
+        let storage = baseStorage(text)
+        // Repaint only the bold/code line.
+        let line = try XCTUnwrap(text.range(of: "Some **bold** and `code`."))
+        let location = text.utf16.distance(from: text.startIndex, to: line.lowerBound)
+        let length = text.utf16.distance(from: line.lowerBound, to: line.upperBound)
+        let target = NSRange(location: location, length: length)
+        ComposeHighlighter.repaint(text, language: .markdown, in: target, storage: storage)
+        for offset in 0..<length {
+            XCTAssertEqual(
+                color(at: target.location + offset, in: storage),
+                color(at: target.location + offset, in: full),
+                "offset \(offset)"
+            )
+        }
+        // Bold painted by the incremental path too.
+        let boldStart = try XCTUnwrap(text.range(of: "**bold**"))
+        let boldOffset = text.utf16.distance(from: text.startIndex, to: boldStart.lowerBound) + 2
+        XCTAssertEqual(color(at: boldOffset, in: storage), NSColor.systemRed)
+    }
+
+    func testRepaintLeavesOutsideRangeUntouched() throws {
+        let text = "# Title\n\nSome **bold**.\n"
+        let storage = baseStorage(text)
+        let target = (text as NSString).lineRange(for: NSRange(location: 0, length: 1))
+        ComposeHighlighter.repaint(text, language: .markdown, in: target, storage: storage)
+        // The bold line was never repainted: still plain base color.
+        let boldStart = try XCTUnwrap(text.range(of: "**bold**"))
+        let boldOffset = text.utf16.distance(from: text.startIndex, to: boldStart.lowerBound) + 2
+        XCTAssertEqual(color(at: boldOffset, in: storage), NSColor.labelColor)
+    }
+
+    func testRepaintFrontmatterLineMatchesFullPaint() {
+        let text = "---\ntitle: x\n---\n\n# Body\n"
+        let full = ComposeHighlighter.highlight(text, language: .markdown)
+        let storage = baseStorage(text)
+        let target = (text as NSString).lineRange(for: NSRange(location: 0, length: 1))
+        ComposeHighlighter.repaint(text, language: .markdown, in: target, storage: storage)
+        XCTAssertEqual(color(at: 1, in: storage), color(at: 1, in: full))
+        XCTAssertEqual(color(at: 1, in: storage), NSColor.systemGray)
+    }
+
     // MARK: - Helpers
 
     private func color(at location: Int, in attributed: NSAttributedString) -> NSColor? {
         guard location < attributed.length else { return nil }
         return attributed.attribute(.foregroundColor, at: location, effectiveRange: nil) as? NSColor
+    }
+
+    private func baseStorage(_ text: String) -> NSMutableAttributedString {
+        NSMutableAttributedString(
+            string: text,
+            attributes: [
+                .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular),
+                .foregroundColor: NSColor.labelColor,
+            ]
+        )
     }
 }

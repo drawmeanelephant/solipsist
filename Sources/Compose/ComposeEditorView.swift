@@ -274,8 +274,42 @@ private struct ComposeTextView: NSViewRepresentable {
             isApplying = true
             defer { isApplying = false }
 
-            document.text = textView.string
-            applyHighlight(textView, text: textView.string, language: document.language)
+            let oldText = document.text
+            let newText = textView.string
+            document.text = newText
+            repaintChanged(oldText: oldText, newText: newText, textView: textView, language: document.language)
+        }
+
+        /// Incremental repaint (LATER-3.2): restyle only the changed line(s)
+        /// in place instead of replacing the whole storage, so a keystroke in
+        /// a large buffer no longer repaints (and re-lays-out) off-screen
+        /// text. Full paint still runs on load / language change / program-
+        /// matic sync (`applyHighlight`).
+        private func repaintChanged(
+            oldText: String,
+            newText: String,
+            textView: NSTextView,
+            language: ComposeLanguage
+        ) {
+            let change = ComposeHighlighter.changedRange(old: oldText, new: newText)
+            let nsNew = newText as NSString
+            let clampedLocation = min(max(change.location, 0), nsNew.length)
+            let clampedLength = min(max(change.length, 1), nsNew.length - clampedLocation)
+            // Expand to the full containing line(s) so `^`-anchored rules and
+            // delimiters on the edited line restyle together.
+            let target = nsNew.lineRange(
+                for: NSRange(location: clampedLocation, length: clampedLength)
+            )
+            guard target.length > 0, let storage = textView.textStorage as? NSMutableAttributedString else {
+                lastHighlightedText = newText
+                lastHighlightedLanguage = language
+                return
+            }
+            storage.beginEditing()
+            ComposeHighlighter.repaint(newText, language: language, in: target, storage: storage)
+            storage.endEditing()
+            lastHighlightedText = newText
+            lastHighlightedLanguage = language
         }
 
         func applyHighlight(_ textView: NSTextView, text: String, language: ComposeLanguage, force: Bool = false) {

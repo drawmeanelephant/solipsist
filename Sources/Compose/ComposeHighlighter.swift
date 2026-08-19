@@ -71,6 +71,81 @@ enum ComposeHighlighter {
         }
     }
 
+    // MARK: - Incremental repaint (LATER-3.2)
+
+    /// The minimal changed range between two buffer versions (common prefix
+    /// + common suffix diff). `location`/`length` are UTF-16 offsets in
+    /// `new`. Pure and deterministic for tests.
+    static func changedRange(old: String, new: String) -> NSRange {
+        let nsOld = old as NSString
+        let nsNew = new as NSString
+        let maxPrefix = min(nsOld.length, nsNew.length)
+        var prefix = 0
+        while prefix < maxPrefix, nsOld.character(at: prefix) == nsNew.character(at: prefix) {
+            prefix += 1
+        }
+        let maxSuffix = min(nsOld.length - prefix, nsNew.length - prefix)
+        var suffix = 0
+        while suffix < maxSuffix {
+            let oldIndex = nsOld.length - 1 - suffix
+            let newIndex = nsNew.length - 1 - suffix
+            guard nsOld.character(at: oldIndex) == nsNew.character(at: newIndex) else { break }
+            suffix += 1
+        }
+        return NSRange(location: prefix, length: nsNew.length - prefix - suffix)
+    }
+
+    /// Restyles only `range` against the existing full-buffer paint. Rules
+    /// are matched over the **whole** buffer (anchors and multi-line regions
+    /// need context) but only the intersection with `range` is painted, so a
+    /// keystroke in a large buffer no longer restyles (and re-lays-out) text
+    /// off-screen. Callers wrap the storage edits in begin/endEditing and
+    /// pass the buffer the storage currently holds.
+    static func repaint(
+        _ text: String,
+        language: ComposeLanguage,
+        in range: NSRange,
+        storage: NSMutableAttributedString
+    ) {
+        guard range.location != NSNotFound, range.length > 0,
+              range.upperBound <= (text as NSString).length
+        else { return }
+
+        storage.addAttributes(
+            [.font: baseFont, .foregroundColor: NSColor.labelColor],
+            range: range
+        )
+
+        let full = NSRange(location: 0, length: (text as NSString).length)
+        for rule in rules(for: language) {
+            guard let regex = try? NSRegularExpression(pattern: rule.pattern, options: rule.options) else {
+                continue
+            }
+            regex.enumerateMatches(in: text, range: full) { match, _, _ in
+                guard let match else { return }
+                let hit = NSIntersectionRange(match.range, range)
+                guard hit.length > 0 else { return }
+                paint(rule.style, over: hit, in: storage)
+            }
+        }
+
+        // Front matter is data, not content: paint it last (same rule as
+        // the full paint) when the repaint range touches it.
+        if let frontmatter = ComposeDocument.Frontmatter.parse(in: text) {
+            let lower = text.utf16.distance(from: text.utf16.startIndex, to: frontmatter.range.lowerBound)
+            let upper = text.utf16.distance(from: text.utf16.startIndex, to: frontmatter.range.upperBound)
+            let fmRange = NSRange(location: lower, length: upper - lower)
+            let hit = NSIntersectionRange(fmRange, range)
+            if hit.length > 0 {
+                paint(
+                    ComposeHighlightStyle(color: .systemGray, italic: true),
+                    over: hit,
+                    in: storage
+                )
+            }
+        }
+    }
+
     // MARK: - Palette
 
     private static let heading = ComposeHighlightStyle(color: .systemPurple, bold: true)
