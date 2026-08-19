@@ -84,15 +84,24 @@ public enum GitClone {
     /// inherited environment — the default disables git's interactive
     /// terminal prompts so a private repo without credentials fails
     /// fast with git's error instead of hanging on a hidden prompt.
+    /// `credentialHelperApp` (when set) configures git to ask this app
+    /// binary for GitHub credentials via `credential.helper=` — the
+    /// helper mode reads the Keychain and prints the token on stdout;
+    /// the token never appears in argv, env, or on disk.
     public static func clone(
         url: String,
         to dest: URL,
         session: CloneSession,
-        environment: [String: String] = [:]
+        environment: [String: String] = [:],
+        credentialHelperApp: URL? = nil
     ) throws -> CloneResult {
         let process = Process()
         process.executableURL = gitExecutableURL()
-        process.arguments = ["clone", "--", url, dest.path]
+        var arguments = ["clone", "--", url, dest.path]
+        if let credentialHelperApp {
+            arguments.insert(contentsOf: credentialHelperArguments(appURL: credentialHelperApp), at: 0)
+        }
+        process.arguments = arguments
         var env = ProcessInfo.processInfo.environment
         env["GIT_TERMINAL_PROMPT"] = "0"
         env.merge(environment) { _, new in new }
@@ -114,6 +123,24 @@ public enum GitClone {
             exitCode: process.terminationStatus,
             stderr: String(decoding: errData, as: UTF8.self)
         )
+    }
+
+    /// `-c credential.helper=…` argument pair pointing git at this app
+    /// binary in helper mode. The `!` shell form quotes the path so
+    /// app locations with spaces work; git appends the operation
+    /// (`get`) as the last argument.
+    public static func credentialHelperArguments(appURL: URL) -> [String] {
+        let quoted = shellQuote(appURL.path)
+        return ["-c", "credential.helper=!\(quoted) \(GitCredentialHelper.flag)"]
+    }
+
+    private static func shellQuote(_ value: String) -> String {
+        let escaped = value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "$", with: "\\$")
+            .replacingOccurrences(of: "`", with: "\\`")
+        return "\"\(escaped)\""
     }
 
     /// Branch of the checkout at `root`, or nil when it is not a repo or

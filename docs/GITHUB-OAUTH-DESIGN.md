@@ -117,11 +117,18 @@ only persistence. CREDENTIAL-LIFECYCLE.md invariants hold verbatim:
 never argv, never env, never logs, never plaintext files.
 
 - **Keychain:** `kSecClassGenericPassword`, service
-  `dev.drawmeanelephant.solipsist`, account `github:<owner>/<repo>`.
-  `GithubTokenStore` (new, `Sources/Security/`) wraps `KeychainStore`
-  + `SecureBuffer`; the source payload stores only the account name,
-  never the token. Restart → source persists and the token is still
+  `dev.drawmeanelephant.solipsist`, **account `github` — host-keyed,
+  not per-repo**. Probed against CLT/Xcode git: the credential-helper
+  input carries only `protocol` / `host` / `username` — git omits the
+  repo `path` — so a `github:<owner>/<repo>` account could never be
+  looked up by the helper. This also matches the OAuth reality: one
+  device-flow token per GitHub user per client, used for every repo
+  that user can reach. `GithubTokenStore` (new, `Sources/Security/`)
+  wraps `KeychainStore` + `SecureBuffer`; the source payload never
+  carries the token. Restart → source persists and the token is still
   there (B3-2-style gate: no re-auth on relaunch).
+  **Limitation:** one GitHub account per install — multiple accounts
+  stay later (the helper cannot distinguish them by host alone).
 - **Ephemeral vs remembered:** unlike publish secrets, a *source*
   token must survive relaunch — the source IS the account. So the
   default is Keychain persistence with the existing opt-out pattern;
@@ -263,7 +270,9 @@ Automated (unit, injected transport + clock, no network):
   (§5) — the frozen-window guarantee from COORDINATOR.md §3 holds; a
   subsequent SSE reload reflects the new tree.
 - **Two GitHub sources, same repo:** allowed (two working copies,
-  distinct `SourceID`s); token accounts collide only if owner/repo
-  match — the second add reuses the existing Keychain item.
+  distinct `SourceID`s); both share the single host-keyed `github`
+  Keychain item — which is correct, the token is user-scoped.
+  Removing one source does not touch the token (sign-out is the only
+  deletion path, a later slice).
 - **Client id missing (dev build):** sheet explains the operator step,
   then falls back to the PAT path — the flow is never dead.

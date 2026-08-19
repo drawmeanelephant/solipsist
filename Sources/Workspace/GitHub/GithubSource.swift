@@ -5,8 +5,9 @@ import Foundation
 /// copy. Boris is a subprocess over a filesystem tree — every surface
 /// operates on the working copy exactly as it does for a Local source.
 ///
-/// The token is never here. It lives in the Keychain under
-/// `tokenAccount`; only display-only granted scopes are carried.
+/// The token is never here. It lives in the Keychain (host-keyed
+/// account `github` — see `GithubTokenStore`); only display-only
+/// granted scopes are carried.
 struct GithubSource: PublicationSource, Hashable, Sendable, Codable {
     var id: SourceID
     /// "owner/repo" — the account header title.
@@ -30,11 +31,6 @@ struct GithubSource: PublicationSource, Hashable, Sendable, Codable {
 
     enum CodingKeys: String, CodingKey {
         case id, title, owner, repository, defaultBranch, bookmarkData, displayPath, grantedScopes
-    }
-
-    /// Keychain account for this source's token: `github:<owner>/<repo>`.
-    var tokenAccount: String {
-        "github:\(owner)/\(repository)"
     }
 
     /// Repo page for "Open on GitHub".

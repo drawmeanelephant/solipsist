@@ -42,6 +42,20 @@ struct SolipsistApp: App {
     @State private var runtime = AppRuntime()
     @State private var inspectorPresented = true
 
+    /// Git's credential helper runs this same binary with
+    /// `--git-credential-helper` as the marker. Exit before AppKit
+    /// starts (no window server, no scenes) — like `xcodebuild
+    /// -runFirstLaunch`.
+    init() {
+        if CommandLine.arguments.contains(GitCredentialHelper.flag) {
+            GitCredentialHelper.runAndExit()
+        }
+        _appDelegate = NSApplicationDelegateAdaptor(AppDelegate.self)
+        _store = State(initialValue: WorkspaceStore())
+        _runtime = State(initialValue: AppRuntime())
+        _inspectorPresented = State(initialValue: true)
+    }
+
     var body: some Scene {
         WindowGroup {
             MainWindow(inspectorPresented: $inspectorPresented)
