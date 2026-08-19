@@ -21,12 +21,13 @@ enum CoordinatorVerb: String, Sendable {
     case package
     case recipeScale = "recipe-scale"
     case sourceRag = "source RAG"
+    case contentAudit = "content audit"
 
     /// Jobs that write trees watch also owns (`dist/`, `.boris`, proof, packages)
-    /// or generate artifacts in the workspace (source RAG pack).
+    /// or generate artifacts in the workspace (source RAG pack, content audit).
     var writesTree: Bool {
         switch self {
-        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite, .publishNostr, .package, .sourceRag:
+        case .buildIR, .buildHTML, .buildThis, .buildAll, .publishStandardSite, .publishNostr, .package, .sourceRag, .contentAudit:
             true
         case .plan, .validate, .check, .impact, .standardSiteVerify, .standardSiteRecords, .standardSiteSessions, .standardSiteLogout, .standardSiteSmoke, .recipeScale:
             false
@@ -77,5 +78,19 @@ enum CoordinatorPolicy {
     private static func milliseconds(_ key: String, default value: Int) -> Duration {
         let stored = UserDefaults.standard.object(forKey: key) as? Int
         return .milliseconds(stored ?? value)
+    }
+}
+
+/// Where content-audit reports land: the app container (caches), keyed per
+/// source — never the user's content tree (ENGINE-CONTRACTS §8: read-only
+/// over the source, and `--out` must be a real path, which `~/Library/Caches`
+/// is and `/tmp` is not on macOS).
+enum ContentAuditOutput {
+    static func directory(for source: LocalSource) -> URL {
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return caches
+            .appendingPathComponent("content-audit", isDirectory: true)
+            .appendingPathComponent(source.id.raw.uuidString, isDirectory: true)
     }
 }

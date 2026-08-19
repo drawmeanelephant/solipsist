@@ -39,6 +39,7 @@ final class WorkspaceSelectionTests: XCTestCase {
             WorkspaceMailbox.publish,
             WorkspaceMailbox.plan,
             WorkspaceMailbox.activity,
+            WorkspaceMailbox.contentAudit,
         ])
     }
 

@@ -758,6 +758,49 @@ final class Coordinator {
                     problems: items,
                     revealURL: result.exitCode == 0 ? outDir : nil
                 )
+
+            case .contentAudit:
+                guard let tool = ContentAuditBinary.locate(borisBinary: engine.binaryURL) else {
+                    return JobResult(
+                        exit: 3,
+                        summary: "content audit: boris-content-audit not found",
+                        problems: CoordinatorProblems.fromFailure(
+                            code: "content-audit",
+                            message: "boris-content-audit binary not found (set SOLIPSIST_CONTENT_AUDIT_BIN)"
+                        )
+                    )
+                }
+                let workspaceRoot = try source.workspaceRoot()
+                let contentRoot = try source.contentRoot()
+                let outDir = ContentAuditOutput.directory(for: source)
+                try FileManager.default.createDirectory(
+                    at: outDir, withIntermediateDirectories: true
+                )
+                let contentRel = contentRoot.path == workspaceRoot.path
+                    ? "."
+                    : String(contentRoot.path.dropFirst(workspaceRoot.path.count + 1))
+                let result = try await engine.runTool(
+                    binary: tool,
+                    arguments: [
+                        "--mode=poetry",
+                        "--root=\(workspaceRoot.path)",
+                        "--content-root=\(contentRel)",
+                        "--out=\(outDir.path)",
+                        "--format=json",
+                        "--quiet",
+                    ],
+                    workingDirectory: workspaceRoot
+                )
+                let items = CoordinatorProblems.fromCommand(
+                    code: "content-audit",
+                    exitCode: result.exitCode,
+                    stderr: result.stderr
+                )
+                return JobResult(
+                    exit: result.exitCode,
+                    summary: result.exitCode == 0 ? "Content audit ok" : "Content audit exit \(result.exitCode)",
+                    problems: items
+                )
             }
         } catch {
             let message = String(describing: error)
