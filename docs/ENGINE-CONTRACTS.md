@@ -20,16 +20,20 @@ don't hand-roll.
 ### Invocation & discovery
 
 ```
-boris watch --serve [--port N] --input <content-root>
+boris watch --serve --watch-json [--port N] --input <content-root>
 ```
 
 - Default port **8090**; `--port 0` = ephemeral.
-- **Port discovery:** stderr prints one parseable line on startup:
+- **Port discovery (A1, M14):** with `--watch-json` stderr is exclusively
+  NDJSON; the app learns the port from the `serve-started` event, not a
+  prose regex:
   ```
-  preview: http://127.0.0.1:18090/  (auto-reload helper: http://127.0.0.1:18090/__boris/)
+  {"event":"hello","watch_events_schema":1,"compiler":"boris/0.8.1"}
+  {"event":"serve-started","url":"http://127.0.0.1:18090/","helper":"http://127.0.0.1:18090/__boris/","port":18090}
   ```
-  For `--port 0`, parse this line (regex `127\.0\.0\.1:[0-9]+`) to find the
-  ephemeral port. This is the only stderr line the app needs to parse.
+  The app fires `onServe` with the `helper` URL after a `hello` handshake
+  at `watch_events_schema: 1` (unknown versions degrade — D8). `build-failed`
+  / `watch-error` / `watch-stopped` are surfaced, never swallowed.
 - Run with `cwd = project folder` (containment: `--input` may be absolute,
   but outputs — including `dist/` — are workspace-relative; see
   A7).
