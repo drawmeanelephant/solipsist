@@ -140,7 +140,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M6** Author | ✅ gate — `boris-editor` host + link-out (#75, #81) |
 | **M7** Outputs | ✅ gate — Build this / Build all fan-out (#76, #81) |
 | **M8** Publish | ✅ gate — stdin secrets, Standard.site / Nostr buttons (#77, #82/#84) |
-| **M9** Ship | ✅ release pipeline, clean-Mac proof, testdata, pin bump (#78) |
+| **M9** Ship | ✅ release pipeline, testdata, pin bump (#78); notarized `v*` + clean-Mac proof are #110/#111 (Apple-account only) |
 | **M10** Mail body | ✅ Settings, mailboxes, reading pane, hosted Edit, native Compose ([#98](https://github.com/drawmeanelephant/solipsist/issues/98); children #99–#102, #106) |
 | **M11** Prove the Mail body | ✅ Help audit + test pass ([#123](https://github.com/drawmeanelephant/solipsist/issues/123); #124/#125 → PRs #126/#127/#128) |
 | **M12** Clone | ✅ Add Git Repository… → Local source ([#131](https://github.com/drawmeanelephant/solipsist/issues/131); PRs #152/#153) |
