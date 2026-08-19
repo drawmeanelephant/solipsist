@@ -86,8 +86,10 @@ enum ComposeHighlighter {
         }
         let maxSuffix = min(nsOld.length - prefix, nsNew.length - prefix)
         var suffix = 0
-        while suffix < maxSuffix,
-              nsOld.character(at: nsOld.length - 1 - suffix) == nsNew.character(at: nsNew.length - 1 - suffix) {
+        while suffix < maxSuffix {
+            let oldIndex = nsOld.length - 1 - suffix
+            let newIndex = nsNew.length - 1 - suffix
+            guard nsOld.character(at: oldIndex) == nsNew.character(at: newIndex) else { break }
             suffix += 1
         }
         return NSRange(location: prefix, length: nsNew.length - prefix - suffix)

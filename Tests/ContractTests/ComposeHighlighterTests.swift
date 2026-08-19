@@ -214,7 +214,7 @@ final class ComposeHighlighterTests: XCTestCase {
         XCTAssertEqual(color(at: boldOffset, in: storage), NSColor.labelColor)
     }
 
-    func testRepaintFrontmatterLineMatchesFullPaint() throws {
+    func testRepaintFrontmatterLineMatchesFullPaint() {
         let text = "---\ntitle: x\n---\n\n# Body\n"
         let full = ComposeHighlighter.highlight(text, language: .markdown)
         let storage = baseStorage(text)
