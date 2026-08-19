@@ -105,11 +105,25 @@ letter-URL contract tests pin the recut. Do not pick.
 | [M14-1 A1 consume](M14-a1-consume.md) | [#147](https://github.com/drawmeanelephant/solipsist/issues/147) | Engine + Preview | M13 | `--watch-json` / `serve-started` is how we learn the port |
 | [M14-2 Letter SSE](M14-letter-sse.md) | [#148](https://github.com/drawmeanelephant/solipsist/issues/148) | Reading | after #147 | letter reloads on `event: reload`; no second watch |
 
+## Post-ship — Later promotions (pickable)
+
+Promoted from ROADMAP §3 "Later" — unblocked because the agent kit ships
+the binaries. Probed contracts are recorded in `docs/ENGINE-CONTRACTS.md`
+§8–§9 (PR #168); the short versions are posted on the issues
+([#165](https://github.com/drawmeanelephant/solipsist/issues/165#issuecomment-5341401505),
+[#166](https://github.com/drawmeanelephant/solipsist/issues/166#issuecomment-5341401629)).
+All three run through the coordinator's single `Process?` slot.
+
+| Card | Issue | Lane | Parallel with | Gate |
+|------|-------|------|----------------|------|
+| [Content-audit mailbox](LATER-content-audit.md) | [#165](https://github.com/drawmeanelephant/solipsist/issues/165) | workspace / mailbox | #166 | findings render; exit codes surfaced |
+| [Source-RAG export](LATER-source-rag.md) | [#166](https://github.com/drawmeanelephant/solipsist/issues/166) | export / menu | #165 | menu verb → pack revealed in Finder |
+| Compose depth (tracker — issue only) | [#167](https://github.com/drawmeanelephant/solipsist/issues/167) | compose | after #165/#166 | one slice per PR; Oliver span diagnostics first |
+
 ## Do not start yet
 
 GitHub OAuth / `SourceKind.github` payload. Wasm in the app. The
-fart app. Compose **depth**. Fetch / pull / commit / push.
-#136 splitter crash (macOS 27 beta).
+fart app. Fetch / pull / commit / push.
 
 ## Shared noun kinds (play writes, inspector reads)
 
