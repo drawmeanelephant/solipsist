@@ -856,6 +856,25 @@ public actor BorisEngine {
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
+    // MARK: Kit tools
+
+    /// Runs a standalone kit-tool binary (e.g. `boris-source-rag`) through
+    /// the engine's single process slot, so Stop / cancel reaches the tool
+    /// too. Output is captured exactly like engine runs; no decoding.
+    public func runTool(
+        binary: URL,
+        arguments: [String],
+        workingDirectory: URL? = nil
+    ) async throws -> BorisPublishResult {
+        let out = try await BorisRunner.run(
+            binary: binary,
+            arguments: arguments,
+            workingDirectory: workingDirectory,
+            handle: runHandle
+        )
+        return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
+    }
+
     // MARK: Recipe Scale
 
     /// Runs `boris recipe-scale` (or evaluates scaled Cooklang recipe).
