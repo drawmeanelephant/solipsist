@@ -85,7 +85,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | Proof Pack visible | `boris-package` evidence, read-only |
 | Clone a remote publication into a Local source | Settings is the account book. A URL is how people who do not live in this repo get a folder. Same store as Open…. |
 | Pages folders from the graph | Trunks as mailbox folders. From `graph.parent` only — never a disk walk. Dogfood gate is 7 trunks. |
-| Watch events from the A1 contract | Pin `6b930b7` already contains `--watch-json` / `serve-started`. Preview still sniffs a port line. |
+| Watch events from the A1 contract | Pin `6b930b7` contains `--watch-json` / `serve-started`. Preview and the letter take port / ready from the contract + SSE — no port regex. |
 | Sandboxed, bundled, pinned | D6, D7. Unknown `schemaVersion` degrades (D8). Pipeline ✅ (#78). |
 | Notarized DMG a stranger can download | Operator. First `v*` release + clean-Mac proof (#110 / #111). |
 
@@ -110,10 +110,10 @@ No scraped prose. No homegrown graph. No third settings store.
   `oliver` next to `boris`. The M10 gate is the window + save +
   preview seam (#106 / #108), not those.
 - **GitHub as its own `SourceKind`** (OAuth / app password, not
-  just a clone). First git slice is pickable:
+  just a clone). The clone slice landed as M12:
   [#131](https://github.com/drawmeanelephant/solipsist/issues/131)
-  (clone URL → folder → Local source). Pages as a *target* does
-  not require either.
+  → PRs #152/#153 (URL → folder → Local source). OAuth / app
+  password remains. Pages as a *target* does not require either.
 - Content-audit mailbox (`boris-content-audit`)
 - Source-RAG export for AI assist
 - `validate --watch` once A5 exists (replaces save-triggered one-shots)
@@ -143,22 +143,20 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M9** Ship | ✅ release pipeline, clean-Mac proof, testdata, pin bump (#78) |
 | **M10** Mail body | ✅ Settings, mailboxes, reading pane, hosted Edit, native Compose ([#98](https://github.com/drawmeanelephant/solipsist/issues/98); children #99–#102, #106) |
 | **M11** Prove the Mail body | ✅ Help audit + test pass ([#123](https://github.com/drawmeanelephant/solipsist/issues/123); #124/#125 → PRs #126/#127/#128) |
-| **M12** Clone | 📋 Add Git Repository… → Local source ([#131](https://github.com/drawmeanelephant/solipsist/issues/131)) |
-| **M13** Graph folders | 📋 trunk mailboxes from `graph.parent` ([#142](https://github.com/drawmeanelephant/solipsist/issues/142); #144–#146) |
-| **M14** Watch contract | 📋 A1 `--watch-json` + letter SSE ([#143](https://github.com/drawmeanelephant/solipsist/issues/143); #147/#148) |
+| **M12** Clone | ✅ Add Git Repository… → Local source ([#131](https://github.com/drawmeanelephant/solipsist/issues/131); PRs #152/#153) |
+| **M13** Graph folders | ✅ trunk mailboxes from `graph.parent` ([#142](https://github.com/drawmeanelephant/solipsist/issues/142); #144–#146 → PRs #154/#155/#156) |
+| **M14** Watch contract | ✅ A1 `--watch-json` + letter SSE ([#143](https://github.com/drawmeanelephant/solipsist/issues/143); #147/#148 → PRs #157/#158) |
 
 **Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
 batch then landed: first-run and problem→page (#88/#94), graph filter /
 activity / plan document (#89/#96), profile 1:1 + execution knobs +
 `recipe-scale` (#90/#95), Standard.site family + package + readable
 proof (#91/#93). Then **M9 ship** (#78), the **M10 Mail-body cut**
-(#98 + #99–#102, #106), and **M11 prove** (#123) all landed and
-closed. Remaining ship is Apple-account only (#110 notarized `v*`
-DMG, #111 clean-Mac proof) — operator, blocked on a paid team ID.
-Next product slice: **M12** git clone as a Local source (#131).
-**M13** graph folders and **M14** watch contract are filed and
-pickable in their own lanes after (or beside) M12. Do not grow
-`MainWindow`.
+(#98 + #99–#102, #106), **M11 prove** (#123), **M12 clone**
+(#131), **M13 graph folders** (#142), and **M14 watch contract**
+(#143) all landed and closed. Remaining ship is Apple-account only
+(#110 notarized `v*` DMG, #111 clean-Mac proof) — operator,
+blocked on a paid team ID. Do not grow `MainWindow`.
 
 ---
 
@@ -441,7 +439,7 @@ completed.
 tests 0 failures · `make lint` 0 violations · CI `app` / `fixtures`
 / `lint` / `spike` all pass.
 
-### M12 — Clone 📋
+### M12 — Clone ✅
 
 **Goal.** A remote publication becomes a Local source the way a
 folder does. Settings → **Add Git Repository…** clones a URL into
@@ -468,7 +466,12 @@ Parallel with #110. Do not share files with M13 or M14.
 **Not this milestone.** Commit / push / pull / fetch UI. GitHub
 app password or OAuth. Fake **Add GitHub…**. Expanding #110 / #111.
 
-### M13 — Graph folders 📋
+Landed 2026-08-18 (#131 → PRs #152/#153). The live gate also
+caught and fixed the sandboxed-git trap: `/usr/bin/git` is an
+`xcrun` shim that refuses to run inside the App Sandbox, so
+`GitClone` resolves the real Command Line Tools binary.
+
+### M13 — Graph folders ✅
 
 **Goal.** Pages folders come from the graph. Dogfood shows **7
 trunk folders** under Pages. Selecting a trunk filters the letter
@@ -498,18 +501,22 @@ children #144 / #145 / #146. Cards in [`cards/`](cards/README.md).
 **Not this milestone.** Walking `content/` as Finder. Status / tag
 folders. Persist outline expansion. Engine. GitHub source.
 
-### M14 — Watch contract 📋
+Landed 2026-08-18 (#142; #144 → PR #154, #145 → PR #155, #146 →
+PR #156). Live gate on `Stunts/dogfood`: 7 trunk folders, trunk
+click writes the id, Pages restores all 45, stale id shows empty.
+
+### M14 — Watch contract ✅
 
 **Goal.** Preview and the letter take port / ready from A1
 `--watch-json` / `serve-started`, not a port regex. The reading
 pane reloads on the existing SSE `event: reload` without a second
 `Process`.
 
-The pin already contains A1 (boris#648). Watch still parses:
-
-```
-preview: http://127.0.0.1:PORT/  (auto-reload helper: http://127.0.0.1:PORT/__boris/)
-```
+The pin contains A1 (boris#648): `--watch-json` emits NDJSON
+(`hello` schema 1 → `build-*` → `serve-started` with url / helper
+/ port → `watch-stopped` on SIGTERM). The prose port regex is
+gone; `build-failed` / `watch-error` / unexpected `watch-stopped`
+are surfaced, never swallowed.
 
 | Boris surface | Where |
 |---------------|--------|
@@ -529,6 +536,11 @@ children #147 / #148. Cards in [`cards/`](cards/README.md).
 **Not this milestone.** A5 `validate --watch`. A15 `open=` (app
 already appends it; pin-follow). A second `Process`. Growing
 `WatchServer` argv on the letter card.
+
+Landed 2026-08-18 (#143; #147 → PR #157, #148 → PR #158). Live
+gate: Preview starts with `--watch-json`, the helper URL comes
+from `serve-started`, and a saved page reloads the letter via SSE
+within a second, no re-select.
 
 ---
 
