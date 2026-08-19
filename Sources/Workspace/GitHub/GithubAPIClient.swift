@@ -34,6 +34,34 @@ struct GithubPullRequestCreated: Decodable, Equatable, Sendable {
     }
 }
 
+/// One row of the Pull Requests mailbox (M17 / #192). Full `/pulls`
+/// list objects — unlike the shallow issue-mix refs, these carry the
+/// draft state and the head/base refs a PR mailbox renders. `head`
+/// and `base` use GitHub's own labels: `owner:branch` for head (fork
+/// PRs show the fork owner, never a guessed one), plain branch for
+/// base.
+struct GithubPullRequest: Decodable, Equatable, Sendable {
+    struct Ref: Decodable, Equatable, Sendable {
+        /// `owner:branch` for head (fork PRs), `branch` for base.
+        let label: String
+        let ref: String
+    }
+
+    let number: Int
+    let title: String
+    let htmlURL: String
+    /// Open draft PRs are included by `state=open`; the mailbox badges them.
+    let draft: Bool
+    let state: String
+    let head: Ref
+    let base: Ref
+
+    enum CodingKeys: String, CodingKey {
+        case number, title, draft, state, head, base
+        case htmlURL = "html_url"
+    }
+}
+
 /// One row of the issues mailbox (M16-4 / #185). REST returns pull
 /// requests mixed into the issues list — `pullRequest` is present
 /// exactly for those, so the mailbox filters `== nil` and PRs never
@@ -81,6 +109,12 @@ enum GithubAPIClient {
 
     static func pullsURL(owner: String, repository: String) -> URL {
         URL(string: "https://api.github.com/repos/\(owner)/\(repository)/pulls")!
+    }
+
+    /// `GET /repos/{owner}/{repo}/pulls?state=…` — the PR mailbox
+    /// list endpoint (M17-1). The POST target stays plain `pullsURL`.
+    static func listPullsURL(owner: String, repository: String, state: String) -> URL {
+        URL(string: "https://api.github.com/repos/\(owner)/\(repository)/pulls?state=\(state)")!
     }
 
     /// `GET /repos/{owner}/{repo}/issues?state=open` — REST returns PRs
@@ -151,6 +185,26 @@ enum GithubAPIClient {
         )
         let issues = try decode([GithubIssue].self, from: data)
         return issues.filter { !$0.isPullRequest }
+    }
+
+    /// Open pull requests for the repo (M17-1 / #192): `GET
+    /// …/pulls?state=open` over the bearer-`get` seam. Uses the proper
+    /// `/pulls` endpoint — not the issues-list `pull_request` filter —
+    /// so rows carry draft + head/base. `state` defaults to `open` (the
+    /// mailbox's honest default, mirroring the issues mailbox); the
+    /// param exists for tests and a future closed/all toggle.
+    static func listPullRequests(
+        owner: String,
+        repository: String,
+        state: String = "open",
+        bearer: SecureBuffer,
+        transport: GithubOAuth.HTTPTransport
+    ) async throws -> [GithubPullRequest] {
+        let data = try await transport.get(
+            listPullsURL(owner: owner, repository: repository, state: state),
+            bearer: bearer
+        )
+        return try decode([GithubPullRequest].self, from: data)
     }
 
     /// Create an issue (M16-4): `POST …/issues` with title + body over
