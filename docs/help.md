@@ -7,7 +7,7 @@ Solipsist is a native macOS workstation for [Boris](https://github.com/drawmeane
 Accounts live in Settings. The main window is mailboxes, a reading place, and a drawer. Companion windows host surfaces Solipsist does not rewrite.
 
 - **Settings → Sources**: The account book. Add, relocate, and remove local folders (`Solipsist → Settings…`). A source is a folder of Boris content, not a file tree. `File → Open…` (`⌘O`) and Open Recent write the same store. Try `Stunts/happy` first.
-- **Mailboxes (Left)**: Each source is an account header. Under it: Pages, Outputs, Publish, Plan, and Activity. Selecting a header opens that source's Pages mailbox.
+- **Mailboxes (Left)**: Each source is an account header. Under it: Pages, Outputs, Publish, Plan, Activity, and Content Audit. Selecting a header opens that source's Pages mailbox.
 - **Reading (Center)**: The message list of the selected mailbox, plus a reading pane for the selected message. On Pages, pick a page to read it as a letter (the served page when Preview is up; a contract summary when it is not). The problems list under the reading place is where every coordinator job reports its exit and diagnostics.
 - **Inspector Drawer (Right)**: Options, profile keys, page fields, and execution knobs of the current selection.
 

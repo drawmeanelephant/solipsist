@@ -35,6 +35,8 @@ struct LocalPlay: PlaySurface {
                 PlanPane(source: source)
             case WorkspaceMailbox.activity:
                 ActivityPane()
+            case WorkspaceMailbox.contentAudit:
+                ContentAuditPane(source: source)
             default:
                 // Unknown mailbox is a trunk id (M13): Pages means all;
                 // a trunk id means that folder and its descendants.

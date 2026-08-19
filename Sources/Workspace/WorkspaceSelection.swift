@@ -43,8 +43,9 @@ enum WorkspaceMailbox {
     static let publish = "publish"
     static let plan = "plan"
     static let activity = "activity"
+    static let contentAudit = "content-audit"
 
-    static let all: [String] = [pages, outputs, publish, plan, activity]
+    static let all: [String] = [pages, outputs, publish, plan, activity, contentAudit]
     static let defaultMailbox = pages
 
     static func isKnown(_ raw: String?) -> Bool {
@@ -52,7 +53,7 @@ enum WorkspaceMailbox {
         return all.contains(raw)
     }
 
-    /// Center-switch token. Known five pass through; nil (no mailbox
+    /// Center-switch token. Known mailboxes pass through; nil (no mailbox
     /// chosen yet) is the default Pages surface; unknown (including a
     /// future trunk id) stays itself — it is **not** Pages. Does not
     /// write back, and the switch never treats unknown as Pages.
@@ -68,6 +69,7 @@ enum WorkspaceMailbox {
         case publish: return "Publish"
         case plan: return "Plan"
         case activity: return "Activity"
+        case contentAudit: return "Content Audit"
         default: return raw
         }
     }
@@ -79,6 +81,7 @@ enum WorkspaceMailbox {
         case publish: return "paperplane"
         case plan: return "doc.plaintext"
         case activity: return "clock"
+        case contentAudit: return "checkmark.shield"
         default: return "folder"
         }
     }
