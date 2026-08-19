@@ -7,6 +7,11 @@ func json(_ object: [String: Any]) -> Data {
     (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
 }
 
+/// Array-bodied JSON (e.g. `GET …/issues` returns `[...]`).
+func jsonArray(_ array: [Any]) -> Data {
+    (try? JSONSerialization.data(withJSONObject: array)) ?? Data()
+}
+
 /// Records calls and returns queued responses per URL. An actor: the
 /// poll loop and the test both touch it across await points.
 actor StubTransport: GithubOAuth.HTTPTransport {
