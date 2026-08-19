@@ -83,7 +83,7 @@ flowchart LR
 
 ### CI implementation (landed 2026-08-17, #78 gaps 1–3)
 
-The workflow now: checks out the pinned boris (`6b930b7`) and cross-builds
+The workflow now: checks out the pinned boris (`bf464a0`) and cross-builds
 both macOS slices with Zig (`-Dtarget=aarch64-macos` / `x86_64-macos`),
 feeds the discrete binaries to `scripts/embed-boris.sh` via
 `SOLIPSIST_BORIS_ARM64_BIN` / `SOLIPSIST_BORIS_X86_64_BIN` so the embed

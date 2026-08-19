@@ -79,8 +79,8 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
   ([#131](https://github.com/drawmeanelephant/solipsist/issues/131)).
   Then M13 graph folders and M14 watch contract. Sequence:
   [ROADMAP.md](ROADMAP.md) §8.
-- **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `6b930b7`
-  (contains A1/A14/A7 + A3/A4/A13).
+- **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `bf464a0`
+  (contains A1/A14/A7 + A3/A4/A13 + A15 `open=` + A5 `validate --watch`).
 - Roadmap **P** is withdrawn — the public site ships via Cloudflare
   Pages (`site/`).
 

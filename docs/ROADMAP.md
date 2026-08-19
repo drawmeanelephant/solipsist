@@ -33,10 +33,11 @@ Compose window we author: native buffer (`⌘⇧C`) + Oliver preview (#106)
 M2–M8 shipped a flatter cut (source list + tabbed play). M10 is the
 recut to the diagram above. Spatial detail: [`HARNESS.md`](HARNESS.md).
 
-**Engine baseline:** afterparty `boris/0.8.1`. **Pinned kit:** `6b930b7`
-(`6b930b7bd35a1803b365a073c226df22631dc3f7`). Contains A1/A14/A7 +
-A3/A4/A13 (boris#648 / #643 / #642 / #641). Remaining access issue:
-A5 as a discussion (`docs/issues/README.md`).
+**Engine baseline:** afterparty `boris/0.8.1`. **Pinned kit:** `bf464a0`
+(`bf464a02883d1dce1d9f990739183c248e68c5c3`). Contains A1/A14/A7 +
+A3/A4/A13 (boris#648 / #643 / #642 / #641) **plus A15 `open=`
+(boris#649) and A5 `validate --watch` (boris#647)** — #160/#161 are
+now pin-carrying, not upstream-blocked.
 
 ---
 

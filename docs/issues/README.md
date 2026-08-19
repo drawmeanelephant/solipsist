@@ -3,7 +3,7 @@
 Ready-to-paste drafts. File on `drawmeanelephant/boris`. Never open a
 PR against boris from this repo.
 
-**Already merged on afterparty** (in the `6b930b7` kit pin):
+**Already merged on afterparty** (in the `bf464a0` kit pin):
 
 - A3 [boris#638](https://github.com/drawmeanelephant/boris/issues/638) → [#643](https://github.com/drawmeanelephant/boris/pull/643)
 - A4 [boris#639](https://github.com/drawmeanelephant/boris/issues/639) → [#642](https://github.com/drawmeanelephant/boris/pull/642)
@@ -11,14 +11,10 @@ PR against boris from this repo.
 - A1 [boris#644](https://github.com/drawmeanelephant/boris/issues/644) → [#648](https://github.com/drawmeanelephant/boris/pull/648)
 - A14 [boris#645](https://github.com/drawmeanelephant/boris/issues/645) → [#648](https://github.com/drawmeanelephant/boris/pull/648)
 - A7 [boris#646](https://github.com/drawmeanelephant/boris/issues/646) → [#648](https://github.com/drawmeanelephant/boris/pull/648)
-
-**Filed (2026-08-17):**
-
-- A5 [boris#647](https://github.com/drawmeanelephant/boris/issues/647) — RFC, filed as an issue (Discussions disabled on the repo). Still open; no fixing PR yet.
+- A15 [boris#649](https://github.com/drawmeanelephant/boris/issues/649) → [#650](https://github.com/drawmeanelephant/boris/pull/650) — optional `#token=…&open=<project-relative path>` fragment; the shell opens that author-owned file on launch (UI-only; the host still prints the token-only launch line). Solipsist's `EditorURL.opening` already appends `open=` from `sourcePath` — #160 is verify-only.
+- A5 [boris#647](https://github.com/drawmeanelephant/boris/issues/647) → [#651](https://github.com/drawmeanelephant/boris/pull/651) — zero-write validation daemon under `validate --watch` (the RFC merged). Consumption design: [`docs/ENGINE-CONTRACTS.md`](../ENGINE-CONTRACTS.md) §1 (unprobed — re-probe before trusting).
 
 **Filed (2026-08-18):**
-
-- A15 [boris#649](https://github.com/drawmeanelephant/boris/issues/649) — optional `#token=…&open=<project-relative path>` fragment. Afterparty's Svelte shell still reads only `token` (`URLSearchParams` on the hash) and opens files via `POST /api/files/open`. Extra fragment keys are ignored today. Solipsist appends `open=` from the selected page's `sourcePath` (mapped `index.md` → `content/index.md`, same rules as `file_api.validatePath`) so Edit Page lands on the file when A15 ships. Do not invent a different query/fragment.
 
 **File next:** none.
 
