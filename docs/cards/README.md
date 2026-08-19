@@ -107,18 +107,24 @@ letter-URL contract tests pin the recut. Do not pick.
 
 ## Post-ship — Later promotions (pickable)
 
-Promoted from ROADMAP §3 "Later" — unblocked because the agent kit ships
-the binaries. Probed contracts are recorded in `docs/ENGINE-CONTRACTS.md`
-§8–§9 (PR #168); the short versions are posted on the issues
-([#165](https://github.com/drawmeanelephant/solipsist/issues/165#issuecomment-5341401505),
+Promoted from ROADMAP §3 "Later" — #165/#166 unblocked because the agent
+kit ships the binaries; probed contracts are recorded in
+`docs/ENGINE-CONTRACTS.md` §8–§9 (PR #168; short versions on the issues,
+[#165](https://github.com/drawmeanelephant/solipsist/issues/165#issuecomment-5341401505),
 [#166](https://github.com/drawmeanelephant/solipsist/issues/166#issuecomment-5341401629)).
-All three run through the coordinator's single `Process?` slot.
+The two tool cards run through the coordinator's single `Process?` slot;
+#167 compose depth is the M10 depth slice, one slice per worktree/PR.
 
 | Card | Issue | Lane | Parallel with | Gate |
 |------|-------|------|----------------|------|
 | [Content-audit mailbox](LATER-content-audit.md) | [#165](https://github.com/drawmeanelephant/solipsist/issues/165) | workspace / mailbox | #166 | findings render; exit codes surfaced |
 | [Source-RAG export](LATER-source-rag.md) | [#166](https://github.com/drawmeanelephant/solipsist/issues/166) | export / menu | #165 | menu verb → pack revealed in Finder |
-| Compose depth (tracker — issue only) | [#167](https://github.com/drawmeanelephant/solipsist/issues/167) | compose | after #165/#166 | one slice per PR; Oliver span diagnostics first |
+| Compose depth (tracker) | [#167](https://github.com/drawmeanelephant/solipsist/issues/167) | compose / ship | after #165/#166 | five slices below — one worktree, one PR each |
+| [3.1 Span diagnostics](LATER-compose-diagnostics.md) | #167 | compose | **first** | Oliver spans land in the problems seam; click-to-line |
+| [3.2 Incremental highlight](LATER-compose-highlight.md) | #167 | compose | after 3.1 | visible-range repaint only |
+| [3.3 Front-matter form](LATER-compose-frontmatter.md) | #167 | compose | after 3.2 | 8-key form over the closed grammar; unknown keys survive |
+| [3.4 Cooklang autocomplete](LATER-compose-cooklang.md) | #167 | compose | after 3.3 | `@` suggests corpus ingredients from completion.json |
+| [3.5 Bundle oliver](LATER-compose-bundle-oliver.md) | #167 | ship | parallel | Resources/oliver next to boris; preview without env override |
 
 ## M15 — GitHub source (pickable)
 
