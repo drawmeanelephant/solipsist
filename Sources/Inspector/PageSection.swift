@@ -28,6 +28,9 @@ struct PageSection: View {
 
             LabeledContent("Title", value: displayTitle)
             LabeledContent("ID", value: noun.id)
+            if let path = noun.sourcePath, !path.isEmpty {
+                LabeledContent("Source Path", value: path)
+            }
             LabeledContent("Role", value: display(entity?.role))
             LabeledContent("Parent", value: display(entity?.parent))
             LabeledContent("Status", value: display(entity?.status))

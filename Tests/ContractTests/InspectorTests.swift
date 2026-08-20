@@ -209,3 +209,118 @@ final class InspectorExecutionAndRecipeTests: XCTestCase {
         XCTAssertEqual(scaled.ingredients[0].quantity.amount, "6")
     }
 }
+
+final class InspectorSnapshotTests: XCTestCase {
+    func testNilSourceKindProducesEmptySections() {
+        let snapshot = InspectorSnapshot(sourceKind: nil, nounKind: "page", mailbox: "pages")
+        XCTAssertTrue(snapshot.inspectorSections.isEmpty)
+    }
+
+    func testPagesWithPageNounShowsPageAndExecution() {
+        let snapshot = InspectorSnapshot(
+            sourceKind: .local,
+            nounKind: "page",
+            mailbox: "pages"
+        )
+        let ids = snapshot.inspectorSections.map(\.id)
+        XCTAssertEqual(ids, [InspectorSectionID.page, InspectorSectionID.execution])
+    }
+
+    func testPagesWithoutNounShowsProfileAndExecutionForLocal() {
+        let snapshot = InspectorSnapshot(
+            sourceKind: .local,
+            nounKind: nil,
+            mailbox: "pages"
+        )
+        let ids = snapshot.inspectorSections.map(\.id)
+        XCTAssertEqual(ids, [InspectorSectionID.profile, InspectorSectionID.execution])
+    }
+
+    func testTrunkMailboxShowsPageWhenPageSelected() {
+        let snapshot = InspectorSnapshot(
+            sourceKind: .local,
+            nounKind: "page",
+            mailbox: "trunk:guides"
+        )
+        let ids = snapshot.inspectorSections.map(\.id)
+        XCTAssertEqual(ids, [InspectorSectionID.page, InspectorSectionID.execution])
+    }
+
+    func testTrunkMailboxShowsTrunkFilterAndProfileWithoutNoun() {
+        let snapshot = InspectorSnapshot(
+            sourceKind: .local,
+            nounKind: nil,
+            mailbox: "trunk:guides"
+        )
+        let sections = snapshot.inspectorSections
+        XCTAssertEqual(sections.map(\.id), [InspectorSectionID.profile, InspectorSectionID.execution])
+        XCTAssertEqual(sections.first?.title, "Trunk Filter & Profile")
+    }
+
+    func testOutputsWithTargetNounShowsTargetProfileExecution() {
+        let snapshot = InspectorSnapshot(
+            sourceKind: .local,
+            nounKind: "target",
+            mailbox: "outputs"
+        )
+        let ids = snapshot.inspectorSections.map(\.id)
+        XCTAssertEqual(ids, [InspectorSectionID.target, InspectorSectionID.profile, InspectorSectionID.execution])
+    }
+
+    func testOutputsWithoutNounShowsProfileAndExecution() {
+        let snapshot = InspectorSnapshot(
+            sourceKind: .local,
+            nounKind: nil,
+            mailbox: "outputs"
+        )
+        let ids = snapshot.inspectorSections.map(\.id)
+        XCTAssertEqual(ids, [InspectorSectionID.profile, InspectorSectionID.execution])
+    }
+
+    func testPublishMailboxShowsPublicationTargetAndExecution() {
+        let snapshot = InspectorSnapshot(
+            sourceKind: .local,
+            nounKind: nil,
+            mailbox: "publish"
+        )
+        let ids = snapshot.inspectorSections.map(\.id)
+        XCTAssertEqual(ids, [InspectorSectionID.profile, InspectorSectionID.execution])
+        XCTAssertEqual(snapshot.inspectorSections.first?.title, "Publication Target")
+    }
+
+    func testPlanActivityContentAuditShowExecutionAndProfile() {
+        for box in ["plan", "activity", "content-audit"] {
+            let snapshot = InspectorSnapshot(
+                sourceKind: .local,
+                nounKind: nil,
+                mailbox: box
+            )
+            let ids = snapshot.inspectorSections.map(\.id)
+            XCTAssertEqual(ids, [InspectorSectionID.execution, InspectorSectionID.profile])
+        }
+    }
+
+    func testGithubRemoteMailboxShowsRemoteSyncExecution() {
+        let snapshot = InspectorSnapshot(
+            sourceKind: .github,
+            nounKind: nil,
+            mailbox: "remote"
+        )
+        let ids = snapshot.inspectorSections.map(\.id)
+        XCTAssertEqual(ids, [InspectorSectionID.execution])
+        XCTAssertEqual(snapshot.inspectorSections.first?.title, "Remote Sync & Execution")
+    }
+
+    func testGithubIssuesAndPullsShowGithubExecution() {
+        for box in ["issues", "pulls"] {
+            let snapshot = InspectorSnapshot(
+                sourceKind: .github,
+                nounKind: nil,
+                mailbox: box
+            )
+            let ids = snapshot.inspectorSections.map(\.id)
+            XCTAssertEqual(ids, [InspectorSectionID.execution])
+            XCTAssertEqual(snapshot.inspectorSections.first?.title, "GitHub & Execution")
+        }
+    }
+}
