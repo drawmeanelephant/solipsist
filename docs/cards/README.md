@@ -105,26 +105,24 @@ letter-URL contract tests pin the recut. Do not pick.
 | [M14-1 A1 consume](M14-a1-consume.md) | [#147](https://github.com/drawmeanelephant/solipsist/issues/147) | Engine + Preview | M13 | `--watch-json` / `serve-started` is how we learn the port |
 | [M14-2 Letter SSE](M14-letter-sse.md) | [#148](https://github.com/drawmeanelephant/solipsist/issues/148) | Reading | after #147 | letter reloads on `event: reload`; no second watch |
 
-## Post-ship — Later promotions (pickable)
+## Post-ship — Later promotions ✅
 
-Promoted from ROADMAP §3 "Later" — #165/#166 unblocked because the agent
-kit ships the binaries; probed contracts are recorded in
-`docs/ENGINE-CONTRACTS.md` §8–§9 (PR #168; short versions on the issues,
-[#165](https://github.com/drawmeanelephant/solipsist/issues/165#issuecomment-5341401505),
-[#166](https://github.com/drawmeanelephant/solipsist/issues/166#issuecomment-5341401629)).
-The two tool cards run through the coordinator's single `Process?` slot;
-#167 compose depth is the M10 depth slice, one slice per worktree/PR.
+Promoted from ROADMAP §3 "Later" — all landed. #165/#166 were unblocked
+because the agent kit ships the binaries; probed contracts are recorded
+in `docs/ENGINE-CONTRACTS.md` §8–§9 (PR #168). The two tool cards ran
+through the coordinator's single `Process?` slot; #167 compose depth
+landed as five slices, one worktree/PR each. Do not pick.
 
-| Card | Issue | Lane | Parallel with | Gate |
-|------|-------|------|----------------|------|
-| [Content-audit mailbox](LATER-content-audit.md) | [#165](https://github.com/drawmeanelephant/solipsist/issues/165) | workspace / mailbox | #166 | findings render; exit codes surfaced |
-| [Source-RAG export](LATER-source-rag.md) | [#166](https://github.com/drawmeanelephant/solipsist/issues/166) | export / menu | #165 | menu verb → pack revealed in Finder |
-| Compose depth (tracker) | [#167](https://github.com/drawmeanelephant/solipsist/issues/167) | compose / ship | after #165/#166 | five slices below — one worktree, one PR each |
-| [3.1 Span diagnostics](LATER-compose-diagnostics.md) | #167 | compose | **first** | Oliver spans land in the problems seam; click-to-line |
-| [3.2 Incremental highlight](LATER-compose-highlight.md) | #167 | compose | after 3.1 | visible-range repaint only |
-| [3.3 Front-matter form](LATER-compose-frontmatter.md) | #167 | compose | after 3.2 | 8-key form over the closed grammar; unknown keys survive |
-| [3.4 Cooklang autocomplete](LATER-compose-cooklang.md) | #167 | compose | after 3.3 | `@` suggests corpus ingredients from completion.json |
-| [3.5 Bundle oliver](LATER-compose-bundle-oliver.md) | #167 | ship | parallel | Resources/oliver next to boris; preview without env override |
+| Card | Issue | Fate |
+|------|-------|------|
+| [Content-audit mailbox](LATER-content-audit.md) | [#165](https://github.com/drawmeanelephant/solipsist/issues/165) | ✅ PR [#171](https://github.com/drawmeanelephant/solipsist/pull/171) |
+| [Source-RAG export](LATER-source-rag.md) | [#166](https://github.com/drawmeanelephant/solipsist/issues/166) | ✅ PR [#170](https://github.com/drawmeanelephant/solipsist/pull/170) |
+| Compose depth (tracker) | [#167](https://github.com/drawmeanelephant/solipsist/issues/167) | ✅ PRs [#173](https://github.com/drawmeanelephant/solipsist/pull/173)–[#177](https://github.com/drawmeanelephant/solipsist/pull/177) |
+| [3.1 Span diagnostics](LATER-compose-diagnostics.md) | #167 | ✅ PR [#173](https://github.com/drawmeanelephant/solipsist/pull/173) |
+| [3.2 Incremental highlight](LATER-compose-highlight.md) | #167 | ✅ PR [#174](https://github.com/drawmeanelephant/solipsist/pull/174) |
+| [3.3 Front-matter form](LATER-compose-frontmatter.md) | #167 | ✅ PR [#175](https://github.com/drawmeanelephant/solipsist/pull/175) |
+| [3.4 Cooklang autocomplete](LATER-compose-cooklang.md) | #167 | ✅ PR [#176](https://github.com/drawmeanelephant/solipsist/pull/176) |
+| [3.5 Bundle oliver](LATER-compose-bundle-oliver.md) | #167 | ✅ PR [#177](https://github.com/drawmeanelephant/solipsist/pull/177) |
 
 ## M15 — GitHub source ✅
 

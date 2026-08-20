@@ -109,8 +109,7 @@ No scraped prose. No homegrown graph. No third settings store.
 
 - Compose **depth**: span diagnostics from Oliver, incremental
   highlight, front-matter form, Cooklang autocomplete, bundling
-  `oliver` next to `boris`. The M10 gate is the window + save +
-  preview seam (#106 / #108), not those.
+  `oliver` next to `boris` — landed as #167 (PRs #173–#177).
 - **GitHub as its own `SourceKind`** (OAuth / app password, not
   just a clone). The clone slice landed as M12:
   [#131](https://github.com/drawmeanelephant/solipsist/issues/131)
@@ -126,8 +125,9 @@ No scraped prose. No homegrown graph. No third settings store.
   landed as **M17** (PRs #194–#196;
   [`M17-PR-MAILBOX-DESIGN.md`](M17-PR-MAILBOX-DESIGN.md),
   [#192](https://github.com/drawmeanelephant/solipsist/issues/192)).
-- Content-audit mailbox (`boris-content-audit`)
-- Source-RAG export for AI assist
+- Content-audit mailbox (`boris-content-audit`) — landed as #165
+  (PR #171).
+- Source-RAG export for AI assist — landed as #166 (PR #170).
 - `validate --watch` (A5) — landed as #161 (PR #199): the live
   problems daemon replaces save-triggered one-shots.
 - Cooklang recipe-scale as a first-class mailbox (v1: available from
@@ -654,8 +654,8 @@ the live problems daemon landed (#161, PR #199).
 GitHub source is M15 (landed); its remote *write* verbs are M16
 (landed — commit / push / PR authoring / issues mailbox, PRs
 #187–#190). A Pull Requests mailbox is M17 (landed, PRs #194–#196).
-Compose **depth** (diagnostics, bundle `oliver`) stays Later; the
-M10 compose window is #106 / #108.
+Compose **depth** (diagnostics, bundle `oliver`) landed as #167
+(PRs #173–#177); the M10 compose window is #106 / #108.
 
 #30 is a pr-cop dump, not a card.
 
