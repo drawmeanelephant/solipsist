@@ -266,6 +266,16 @@ struct LocalPlay: PlaySurface {
                             selectPage(page)
                             openWindow(id: CompanionID.compose)
                         })
+                        .contextMenu {
+                            Button("Compose (Native)") {
+                                selectPage(page)
+                                openWindow(id: CompanionID.compose)
+                            }
+                            Button("Edit Page in Boris Editor") {
+                                selectPage(page)
+                                openWindow(id: CompanionID.editor)
+                            }
+                        }
                 }
                 .listStyle(.inset)
                 .safeAreaPadding(.top, toolbarBand)
