@@ -36,8 +36,9 @@ recut to the diagram above. Spatial detail: [`HARNESS.md`](HARNESS.md).
 **Engine baseline:** afterparty `boris/0.8.1`. **Pinned kit:** `bf464a0`
 (`bf464a02883d1dce1d9f990739183c248e68c5c3`). Contains A1/A14/A7 +
 A3/A4/A13 (boris#648 / #643 / #642 / #641) **plus A15 `open=`
-(boris#649) and A5 `validate --watch` (boris#647)** — #160/#161 are
-now pin-carrying, not upstream-blocked.
+(boris#649) and A5 `validate --watch` (boris#647)** — both consumed:
+#160 (A15 `open=`) and #161 (A5 live problems daemon) shipped
+(PRs #198/#199).
 
 ---
 
@@ -127,7 +128,8 @@ No scraped prose. No homegrown graph. No third settings store.
   [#192](https://github.com/drawmeanelephant/solipsist/issues/192)).
 - Content-audit mailbox (`boris-content-audit`)
 - Source-RAG export for AI assist
-- `validate --watch` once A5 exists (replaces save-triggered one-shots)
+- `validate --watch` (A5) — landed as #161 (PR #199): the live
+  problems daemon replaces save-triggered one-shots.
 - Cooklang recipe-scale as a first-class mailbox (v1: available from
   the page inspector when the corpus has recipes)
 - Width-adaptive list-left-of-letter split (M10 default is stacked)
@@ -545,9 +547,10 @@ SSE). Tracker
 [#143](https://github.com/drawmeanelephant/solipsist/issues/143);
 children #147 / #148. Cards in [`cards/`](cards/README.md).
 
-**Not this milestone.** A5 `validate --watch`. A15 `open=` (app
-already appends it; pin-follow). A second `Process`. Growing
-`WatchServer` argv on the letter card.
+**Not this milestone.** A5 `validate --watch` (landed later: #161 →
+PR #199). A15 `open=` (app already appends it; landed with the pin —
+#160 → PR #198). A second `Process`. Growing `WatchServer` argv on
+the letter card.
 
 Landed 2026-08-18 (#143; #147 → PR #157, #148 → PR #158). Live
 gate: Preview starts with `--watch-json`, the helper URL comes
@@ -567,7 +570,7 @@ here, it is not a v1 promise.
 | Closed frontmatter | M3, M6 | Inspector from `completion.json`; editor owns the buffer |
 | Trunk/Satellite graph, wiki-links, includes, relations | M3, M13 | Play list from `graph.json`; M13 trunks as Pages folders |
 | HTML + layouts + theme catalog | M4, M7 | Build target; theme picker |
-| `validate` | M4 | Save-triggered problems; A5 later |
+| `validate` | M4 | Save-triggered problems; A5 live daemon landed (#161, PR #199) |
 | `watch --serve` + SSE | M5, M10, M14 | Preview companion; M10 reading pane reuses the same session; M14 letter listens to SSE |
 | `--watch-json` (A1) | M14 | Replaces port regex + watch prose. Pin already contains it. |
 | `plan --profile` | M4, M8 | Settings lint; publish prelude |
@@ -645,8 +648,9 @@ Named in this file and **not** a product surface yet: browser OAuth,
 `github-pages-audit`, A1 `--watch-json` (M14), trunk mailbox
 folders (M13).
 
-Out of v1 (unchanged): migration labs, Wasm in the app,
-`validate --watch` until A5 + pin. Clone-as-local is M12 / #131.
+Out of v1 (unchanged): migration labs, Wasm in the app.
+Clone-as-local is M12 / #131. `validate --watch` (A5) is in v1 now —
+the live problems daemon landed (#161, PR #199).
 GitHub source is M15 (landed); its remote *write* verbs are M16
 (landed — commit / push / PR authoring / issues mailbox, PRs
 #187–#190). A Pull Requests mailbox is M17 (landed, PRs #194–#196).

@@ -28,7 +28,7 @@ Engine is single-owner. M14-2 starts after M14-1.
 
 ## Not this tracker
 
-- A5 `validate --watch` (boris#647, still open)
+- A5 `validate --watch` (boris#647 → shipped as #161 / PR #199)
 - A15 `open=` (app already appends it; pin-follow)
 - A second `Process` or a second watch session
 - M13 trunk folders
