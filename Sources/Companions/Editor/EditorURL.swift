@@ -93,6 +93,31 @@ public enum EditorURL {
         return isAuthorOwned(project) ? project : nil
     }
 
+    /// Returns a display string for an editor URL with the security token masked.
+    public static func maskedDisplayString(for url: URL) -> String {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return url.absoluteString
+        }
+        let items = fragmentItems(components.fragment)
+        guard !items.isEmpty else { return url.absoluteString }
+
+        let maskedPairs = items.map { item -> String in
+            if item.name == "token" {
+                return "token=••••••••"
+            } else if let val = item.value {
+                return "\(item.name)=\(val)"
+            } else {
+                return item.name
+            }
+        }
+        let fragmentStr = maskedPairs.joined(separator: "&")
+
+        var base = components
+        base.fragment = nil
+        let baseStr = base.url?.absoluteString ?? url.absoluteString
+        return "\(baseStr)#\(fragmentStr)"
+    }
+
     // MARK: - Fragment (URLSearchParams)
 
     private static func fragmentItems(_ fragment: String?) -> [URLQueryItem] {

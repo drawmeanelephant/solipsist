@@ -47,7 +47,7 @@ struct EditorWindow: View {
         .onChange(of: session.editorURL) { _, newURL in
             if let newURL {
                 let targeted = EditorURL.opening(newURL, sourcePath: pageSourcePath)
-                urlText = targeted.absoluteString
+                urlText = EditorURL.maskedDisplayString(for: targeted)
                 model.load(url: targeted)
             }
         }
@@ -85,7 +85,7 @@ struct EditorWindow: View {
         ContentUnavailableView {
             Label("Editor", systemImage: "square.and.pencil")
         } description: {
-            Text("Select a source in the main window, then open the editor.")
+            Text("Select a page in the main window, then choose File → Edit Page (⌘⇧E) to open the editor.")
         }
     }
 
@@ -95,15 +95,25 @@ struct EditorWindow: View {
         } description: {
             Text(
                 session.statusText.isEmpty
-                    ? "The Boris editor will connect when the host process is running. Paste a BORIS_EDITOR_URL= line above to connect manually."
+                    ? "The Boris editor connects when the host process is running. "
+                    + "File → Edit Page opens the editor; paste a BORIS_EDITOR_URL= line above to connect manually."
                     : session.statusText
             )
         } actions: {
+            Button("Restart Host") {
+                session.restart()
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .disabled(!session.canRestart)
+
             Button("Open in Browser") {
                 if let url = session.editorURL ?? model.currentURL {
                     NSWorkspace.shared.open(url)
                 }
             }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
             .disabled(session.editorURL == nil && model.currentURL == nil)
         }
     }
@@ -156,14 +166,14 @@ struct EditorWindow: View {
     private var toolbar: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                navButtons
+                EditorNavButtons(model: model)
 
                 if model.isLoading {
                     ProgressView()
                         .controlSize(.small)
                 }
 
-                phaseIndicator
+                EditorPhaseIndicator(phase: session.phase, isFailure: session.isFailure)
 
                 Spacer()
 
@@ -201,7 +211,28 @@ struct EditorWindow: View {
         .padding(8)
     }
 
-    private var navButtons: some View {
+    private func submit() {
+        if urlText.contains("••••"), let current = session.editorURL ?? model.currentURL {
+            let targeted = EditorURL.opening(current, sourcePath: pageSourcePath)
+            model.load(url: targeted)
+            return
+        }
+        do {
+            let url = try EditorURL.parse(urlText)
+            model.load(url: url)
+            urlText = EditorURL.maskedDisplayString(for: url)
+        } catch let err as EditorURL.ParseError {
+            model.reject(err.localizedDescription)
+        } catch {
+            model.reject(error.localizedDescription)
+        }
+    }
+}
+
+private struct EditorNavButtons: View {
+    let model: EditorWebModel
+
+    var body: some View {
         HStack(spacing: 2) {
             Button {
                 model.goBack()
@@ -229,13 +260,18 @@ struct EditorWindow: View {
         }
         .buttonStyle(.borderless)
     }
+}
 
-    private var phaseIndicator: some View {
+private struct EditorPhaseIndicator: View {
+    let phase: EditorSession.Phase
+    let isFailure: Bool
+
+    var body: some View {
         HStack(spacing: 5) {
             phaseIcon
             Text(phaseLabel)
                 .font(.caption)
-                .foregroundStyle(phaseColor)
+                .foregroundStyle(isFailure ? Color.red : Color.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
@@ -243,7 +279,7 @@ struct EditorWindow: View {
 
     @ViewBuilder
     private var phaseIcon: some View {
-        switch session.phase {
+        switch phase {
         case .idle:
             Image(systemName: "circle.dotted")
         case .starting:
@@ -259,7 +295,7 @@ struct EditorWindow: View {
     }
 
     private var phaseLabel: String {
-        switch session.phase {
+        switch phase {
         case .idle:
             return "Not connected"
         case .starting:
@@ -269,132 +305,5 @@ struct EditorWindow: View {
         case .failed(let message):
             return message
         }
-    }
-
-    private var phaseColor: Color {
-        session.isFailure ? .red : .secondary
-    }
-
-    private func submit() {
-        do {
-            let url = try EditorURL.parse(urlText)
-            model.load(url: url)
-        } catch let err as EditorURL.ParseError {
-            model.reject(err.localizedDescription)
-        } catch {
-            model.reject(error.localizedDescription)
-        }
-    }
-}
-
-/// Owns the `WKWebView` and navigation state for the Editor companion.
-@MainActor
-@Observable
-final class EditorWebModel: NSObject {
-    let webView: WKWebView
-
-    private(set) var currentURL: URL?
-    private(set) var rejection: String?
-    private(set) var isLoading = false
-    private(set) var canGoBack = false
-    private(set) var canGoForward = false
-
-    @ObservationIgnored
-    private var observations: [NSKeyValueObservation] = []
-
-    override init() {
-        webView = WKWebView()
-        super.init()
-        observeNavigation()
-    }
-
-    var canReload: Bool {
-        currentURL != nil || webView.url != nil
-    }
-
-    var canOpenInBrowser: Bool {
-        guard let url = currentURL else { return false }
-        return Self.isLoopback(url)
-    }
-
-    func load(url: URL) {
-        do {
-            let parsed = try EditorURL.parse(url.absoluteString)
-            rejection = nil
-            currentURL = parsed
-            webView.load(URLRequest(url: parsed))
-        } catch {
-            rejection = error.localizedDescription
-        }
-    }
-
-    func reject(_ message: String) {
-        rejection = message
-    }
-
-    func reload() {
-        if webView.url != nil {
-            webView.reload()
-        } else if let url = currentURL {
-            webView.load(URLRequest(url: url))
-        }
-    }
-
-    func goBack() {
-        if webView.canGoBack {
-            webView.goBack()
-        }
-    }
-
-    func goForward() {
-        if webView.canGoForward {
-            webView.goForward()
-        }
-    }
-
-    func openInBrowser() {
-        guard let url = currentURL, Self.isLoopback(url) else { return }
-        NSWorkspace.shared.open(url)
-    }
-
-    /// WKWebView properties are main-thread only, so KVO fires on the main
-    /// actor; mirror the ones the toolbar gates on into observable state.
-    private func observeNavigation() {
-        observations = [
-            webView.observe(\.isLoading, options: [.initial, .new]) { [weak self] _, change in
-                MainActor.assumeIsolated {
-                    self?.isLoading = change.newValue ?? false
-                }
-            },
-            webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] _, change in
-                MainActor.assumeIsolated {
-                    self?.canGoBack = change.newValue ?? false
-                }
-            },
-            webView.observe(\.canGoForward, options: [.initial, .new]) { [weak self] _, change in
-                MainActor.assumeIsolated {
-                    self?.canGoForward = change.newValue ?? false
-                }
-            },
-        ]
-    }
-
-    private static func isLoopback(_ url: URL) -> Bool {
-        guard let scheme = url.scheme?.lowercased(), scheme == "http" else { return false }
-        guard let host = url.host?.lowercased() else { return false }
-        return host == "127.0.0.1" || host == "localhost" || host == "::1"
-    }
-}
-
-/// Minimal `NSViewRepresentable` hosting `EditorWebModel.webView`.
-struct EditorWebView: NSViewRepresentable {
-    let model: EditorWebModel
-
-    func makeNSView(context: Context) -> WKWebView {
-        model.webView
-    }
-
-    func updateNSView(_ nsView: WKWebView, context: Context) {
-        // No-op: the model drives navigation.
     }
 }
