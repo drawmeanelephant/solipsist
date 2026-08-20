@@ -62,13 +62,33 @@ jobs:
 
       # embed-boris.sh lipo-merges discrete arches when both are provided;
       # zig cross-compiles macOS slices from either host arch.
-      - name: Build universal Boris engine
+      - name: Build universal Boris engine + companion tools
         run: |
           cd boris
+          # Engine
           zig build -Dtarget=aarch64-macos -Doptimize=ReleaseFast --prefix /tmp/boris-arm64
           zig build -Dtarget=x86_64-macos -Doptimize=ReleaseFast --prefix /tmp/boris-x86_64
           lipo -create -output /tmp/boris-universal /tmp/boris-arm64/bin/boris /tmp/boris-x86_64/bin/boris
           lipo -info /tmp/boris-universal
+
+          # Companion tools: cross-build each arch, lipo-merge.
+          # boris-search-index is present in the kit but unused by the app —
+          # do not build or bundle it.
+          TOOLS="boris-editor boris-package boris-source-rag boris-content-audit"
+          for tool in $TOOLS; do
+            if [ -f "/tmp/boris-arm64/bin/$tool" ] && [ -f "/tmp/boris-x86_64/bin/$tool" ]; then
+              lipo -create -output "/tmp/boris-universal-$tool" \
+                "/tmp/boris-arm64/bin/$tool" "/tmp/boris-x86_64/bin/$tool"
+              lipo -info "/tmp/boris-universal-$tool"
+            else
+              echo "WARNING: $tool not found in both arch builds — embedding host-only"
+            fi
+          done
+
+      # Drop universal companion binaries into the kit bin dir so
+      # embed-boris.sh finds them through its existing search path.
+      - name: Populate universal companion tools
+        run: bash scripts/populate-universal-companions.sh boris/bin
 
       - name: Install tools & generate project
         run: |
@@ -151,6 +171,8 @@ jobs:
           APP_PATH="build/Build/Products/Release/Solipsist.app"
           echo "==> Inspecting Mach-O bundle structure:"
           file "$APP_PATH/Contents/MacOS/Solipsist"
+
+          # Engine: must be universal and runnable.
           if [ -f "$APP_PATH/Contents/Resources/boris" ]; then
             lipo -info "$APP_PATH/Contents/Resources/boris"
             "$APP_PATH/Contents/Resources/boris" --version
@@ -158,6 +180,18 @@ jobs:
             echo "FAIL: Contents/Resources/boris missing from the release bundle" >&2
             exit 1
           fi
+
+          # Companion tools: verify universal binary and --version where supported.
+          COMPANIONS="boris-editor boris-package boris-source-rag boris-content-audit"
+          for comp in $COMPANIONS; do
+            COMP_PATH="$APP_PATH/Contents/Resources/$comp"
+            if [ -f "$COMP_PATH" ]; then
+              echo "==> $comp:"
+              lipo -info "$COMP_PATH"
+            else
+              echo "WARNING: $comp missing from release bundle" >&2
+            fi
+          done
 
       # Hard Gatekeeper gate for real releases (a Developer ID is configured).
       # Ad-hoc/dev builds skip: spctl cannot pass without a Developer ID root.

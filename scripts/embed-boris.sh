@@ -108,16 +108,17 @@ bundle_and_sign() {
     }
   fi
 
-  # Embed companion binaries (boris-editor, boris-package, boris-source-rag)
-  # from kit bin dirs when available.
+  # Embed companion binaries (boris-editor, boris-package, boris-source-rag,
+  # boris-content-audit) from kit bin dirs when available.
   local comp_candidates=(
     "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/boris-agent-kit/bin"
     "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin"
     "$SRCROOT/../boris-agent-kit/bin"
   )
+  local search_index_found=0
   for cdir in "${comp_candidates[@]}"; do
     if [[ -d "$cdir" ]]; then
-      for comp in boris-editor boris-package boris-source-rag; do
+      for comp in boris-editor boris-package boris-source-rag boris-content-audit; do
         if [[ -x "$cdir/$comp" && ! -f "$DEST_DIR/$comp" ]]; then
           cp "$cdir/$comp" "$DEST_DIR/$comp"
           chmod +x "$DEST_DIR/$comp"
@@ -128,8 +129,16 @@ bundle_and_sign() {
           echo "embed-boris: bundled companion $comp"
         fi
       done
+      # Notice-skip: boris-search-index exists in the kit but the app
+      # does not locate or run it — do not embed it.
+      if [[ -x "$cdir/boris-search-index" ]]; then
+        search_index_found=1
+      fi
     fi
   done
+  if [[ "$search_index_found" -eq 1 ]]; then
+    echo "embed-boris: notice: boris-search-index present in kit but not bundled (unused by app)"
+  fi
 
   bundle_oliver "$sign_identity"
 }
