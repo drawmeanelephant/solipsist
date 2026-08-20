@@ -138,6 +138,14 @@ final class CompanionURLTests: XCTestCase {
         XCTAssertNil(EditorURL.projectPath(fromSourcePath: "/etc/passwd"))
     }
 
+    func testEditorURLMaskedDisplayString() throws {
+        let url = try EditorURL.parse("http://127.0.0.1:8080/#token=12345678abcdef&open=content/index.md")
+        let masked = EditorURL.maskedDisplayString(for: url)
+        XCTAssertFalse(masked.contains("12345678abcdef"))
+        XCTAssertTrue(masked.contains("token=••••••••"))
+        XCTAssertTrue(masked.contains("open=content/index.md"))
+    }
+
     // MARK: - PreviewURL Tests
 
     func testPreviewURLLoopbackRules() throws {

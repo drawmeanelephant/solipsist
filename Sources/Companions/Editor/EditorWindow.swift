@@ -47,7 +47,7 @@ struct EditorWindow: View {
         .onChange(of: session.editorURL) { _, newURL in
             if let newURL {
                 let targeted = EditorURL.opening(newURL, sourcePath: pageSourcePath)
-                urlText = targeted.absoluteString
+                urlText = EditorURL.maskedDisplayString(for: targeted)
                 model.load(url: targeted)
             }
         }
@@ -85,7 +85,7 @@ struct EditorWindow: View {
         ContentUnavailableView {
             Label("Editor", systemImage: "square.and.pencil")
         } description: {
-            Text("Select a source in the main window, then open the editor.")
+            Text("Select a page in the main window, then choose File → Edit Page (⌘⇧E) to open the editor.")
         }
     }
 
@@ -95,15 +95,24 @@ struct EditorWindow: View {
         } description: {
             Text(
                 session.statusText.isEmpty
-                    ? "The Boris editor will connect when the host process is running. Paste a BORIS_EDITOR_URL= line above to connect manually."
+                    ? "The Boris editor connects when the host process is running. File → Edit Page opens the editor for the selected page; paste a BORIS_EDITOR_URL= line above to connect manually."
                     : session.statusText
             )
         } actions: {
+            Button("Restart Host") {
+                session.restart()
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            .disabled(!session.canRestart)
+
             Button("Open in Browser") {
                 if let url = session.editorURL ?? model.currentURL {
                     NSWorkspace.shared.open(url)
                 }
             }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
             .disabled(session.editorURL == nil && model.currentURL == nil)
         }
     }
@@ -276,9 +285,15 @@ struct EditorWindow: View {
     }
 
     private func submit() {
+        if urlText.contains("••••"), let current = session.editorURL ?? model.currentURL {
+            let targeted = EditorURL.opening(current, sourcePath: pageSourcePath)
+            model.load(url: targeted)
+            return
+        }
         do {
             let url = try EditorURL.parse(urlText)
             model.load(url: url)
+            urlText = EditorURL.maskedDisplayString(for: url)
         } catch let err as EditorURL.ParseError {
             model.reject(err.localizedDescription)
         } catch {
