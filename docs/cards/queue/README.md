@@ -72,8 +72,7 @@ queue cards.
 The depth batch (#88–#91) landed. M9 (#78), M10 (#98), M11
 (#123), M12 (#131), M13 (#142), and M14 (#143) all landed and
 closed. Remaining ship is Apple-account only (#110 / #111) — not
-this queue. Two low-priority pin-follow trackers are filed for the
-named-but-untracked follow-ups: [#160](https://github.com/drawmeanelephant/solipsist/issues/160)
+this queue. The two pin-follow trackers are now shipped: [#160](https://github.com/drawmeanelephant/solipsist/issues/160)
 (A15 `open=`, boris#649) and [#161](https://github.com/drawmeanelephant/solipsist/issues/161)
 (A5 `validate --watch`, boris#647). The queue stays empty unless
 someone cuts a docs-only or `Tests/`-only slice.

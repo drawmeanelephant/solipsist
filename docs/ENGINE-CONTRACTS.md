@@ -82,7 +82,7 @@ data: 1
 - Prefer `--port 0` + stderr-line discovery over fixed ports (no collisions).
 - Graceful teardown: SIGTERM → exit 0, cleanup message (A12).
 
-### `validate --watch` (A5) — live problems daemon (design for #161)
+### `validate --watch` (A5) — live problems daemon (#161, landed)
 
 **Status: carried + probed (2026-08-19)** — [boris#647](https://github.com/drawmeanelephant/boris/issues/647)
 (`docs/issues/boris-A5-check-watch-rfc.md`) merged upstream (boris#651),
@@ -117,7 +117,7 @@ the `html-build-report-0.1.0` shape with `recoverable`; the daemon
 keeps watching after a failed build. The consumption design below
 holds as written.
 
-**Consumption design (pickable when the pin carries A5).**
+**Consumption design (landed — #161, PR #199).**
 
 - **Engine** — a `ValidateWatch` long-lived process mirroring
   `WatchServer`'s argv discipline: `validate --watch --watch-json
