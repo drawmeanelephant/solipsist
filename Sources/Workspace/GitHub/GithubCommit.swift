@@ -45,7 +45,7 @@ public enum GithubCommit {
         environment: [String: String] = [:]
     ) -> CommitResult {
         let process = Process()
-        process.executableURL = GitClone.gitExecutableURL()
+        process.executableURL = GitCLT.resolve()
         var arguments = ["-C", workingCopy.path]
         if let credentialHelperApp {
             arguments.append(contentsOf: GitClone.credentialHelperArguments(appURL: credentialHelperApp))
@@ -82,7 +82,7 @@ public enum GithubCommit {
         environment: [String: String]
     ) -> CommitResult {
         let process = Process()
-        process.executableURL = GitClone.gitExecutableURL()
+        process.executableURL = GitCLT.resolve()
         process.arguments = ["-C", workingCopy.path] + arguments
         var env = ProcessInfo.processInfo.environment
         env["GIT_TERMINAL_PROMPT"] = "0"

@@ -10,6 +10,7 @@ struct ReadingPane: View {
     let loadGeneration: Int
 
     @Environment(AppRuntime.self) private var runtime
+    @Environment(WorkspaceStore.self) private var store
     @Environment(\.openWindow) private var openWindow
 
     @State private var model = ReadingWebModel()
@@ -68,6 +69,7 @@ struct ReadingPane: View {
                 Text(page.title)
                     .font(.title2.weight(.semibold))
                     .lineLimit(1)
+                    .truncationMode(.tail)
                     .textSelection(.enabled)
                 Text(headerCaption(for: page))
                     .font(.caption)
@@ -75,12 +77,15 @@ struct ReadingPane: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
+                    .help(headerCaption(for: page))
             }
 
             Spacer(minLength: 12)
 
             if isShowingServedPage {
                 servedBadge
+            } else if isServing, !isBoundToThisSource {
+                foreignBadge
             }
 
             Button {
@@ -148,10 +153,35 @@ struct ReadingPane: View {
                     .controlSize(.small)
                 }
 
-                memoRow("ID", page.id)
+                memoRow("ID", page.id) {
+                    Button("Copy ID") { copyToPasteboard(page.id) }
+                        .controlSize(.mini)
+                        .help("Copy page ID")
+                }
                 memoRow("Status", display(page.status))
                 memoRow("Role", page.role == .trunk ? "Trunk" : "Satellite")
-                memoRow("Path", display(page.sourcePath))
+                memoRow("Path", display(page.sourcePath)) {
+                    HStack(spacing: 6) {
+                        Button("Copy Path") { copyToPasteboard(page.sourcePath) }
+                            .controlSize(.mini)
+                            .help("Copy sourcePath")
+                        Button("Reveal") { reveal(page: page) }
+                            .controlSize(.mini)
+                            .help("Reveal in Finder")
+                            .disabled(revealURL(for: page) == nil)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Button("Copy ID + Path") {
+                        copyToPasteboard("\(page.id) — \(page.sourcePath)")
+                    }
+                    .controlSize(.small)
+                    Button("Reveal") { reveal(page: page) }
+                        .controlSize(.small)
+                        .disabled(revealURL(for: page) == nil)
+                        .help("Reveal in Finder")
+                }
 
                 if !page.tags.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
@@ -167,16 +197,30 @@ struct ReadingPane: View {
                         Text("Relations")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        ForEach(Array(relations.enumerated()), id: \.offset) { _, relation in
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text(relation.kind)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .frame(minWidth: 72, alignment: .leading)
-                                Text(relation.target)
-                                    .textSelection(.enabled)
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 6)], alignment: .leading, spacing: 6) {
+                            ForEach(Array(relations.enumerated()), id: \.offset) { _, relation in
+                                Button {
+                                    resolveRelation(relation)
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Text(relation.kind)
+                                            .font(.caption2.weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                        Text(relation.target)
+                                            .font(.caption2)
+                                            .lineLimit(1)
+                                            .truncationMode(.middle)
+                                    }
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 4)
+                                    .background(Color.accentColor.opacity(0.12), in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .help("Open \(relation.target)")
+                                .accessibilityLabel("\(relation.kind) \(relation.target)")
+                                .accessibilityAddTraits(.isButton)
+                                .focusable(true)
                             }
-                            .font(.callout)
                         }
                     }
                 }
@@ -185,7 +229,7 @@ struct ReadingPane: View {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "safari")
                             .foregroundStyle(.tertiary)
-                        Text("Preview is not running. Open Preview to read the served page here.")
+                        Text(isServing ? "Preview is serving another source. Switch source or stop the other preview." : "Preview is not running. Open Preview to read the served page here.")
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -199,14 +243,17 @@ struct ReadingPane: View {
         }
     }
 
-    private func memoRow(_ label: String, _ value: String) -> some View {
+    private func memoRow(_ label: String, _ value: String, @ViewBuilder trailing: () -> some View = { EmptyView() }) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(label)
                 .foregroundStyle(.secondary)
                 .frame(width: 64, alignment: .trailing)
             Text(value)
                 .textSelection(.enabled)
+                .lineLimit(1)
+                .truncationMode(.middle)
             Spacer(minLength: 0)
+            trailing()
         }
         .font(.callout)
     }
@@ -220,8 +267,67 @@ struct ReadingPane: View {
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.green.opacity(0.14), in: Capsule())
+        .overlay(Capsule().stroke(Color.green.opacity(0.28), lineWidth: 0.5))
         .help("This page is loaded from the running preview watch.")
         .padding(.trailing, 4)
+        .accessibilityLabel("Served")
+        .accessibilityAddTraits(.isStaticText)
+    }
+
+    private var foreignBadge: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(Color.orange)
+                .frame(width: 7, height: 7)
+            Text("Foreign")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.orange.opacity(0.14), in: Capsule())
+        .overlay(Capsule().stroke(Color.orange.opacity(0.28), lineWidth: 0.5))
+        .help("Preview is serving another source — this letter shows the contract summary.")
+        .padding(.trailing, 4)
+        .accessibilityLabel("Preview is serving another source")
+    }
+
+    private func copyToPasteboard(_ string: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(string, forType: .string)
+    }
+
+    private func revealURL(for page: PlayPage) -> URL? {
+        guard let root = try? source.resolve().url else { return nil }
+        let base = (try? source.contentRoot()) ?? root
+        return base.appendingPathComponent(page.sourcePath)
+    }
+
+    private func reveal(page: PlayPage) {
+        guard let url = revealURL(for: page) else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    private func resolveRelation(_ relation: CompletionRelation) {
+        let target = relation.target.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !target.isEmpty else { return }
+        let graph = store.graph(for: source.id)
+        if let resolution = ProblemResolver.resolve(path: target, source: source, graph: graph) {
+            switch resolution {
+            case .page(let id, _):
+                if let noun = WorkspaceNoun(kind: "page", id: id, title: target, sourcePath: target) as WorkspaceNoun? {
+                    store.select(noun: noun)
+                }
+                store.select(mailbox: WorkspaceMailbox.pages)
+            case .revealFile(let url):
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
+        } else if let url = ProblemResolver.resolveFileURL(path: target, source: source) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        }
     }
 
     // MARK: - Watch / load

@@ -16,9 +16,29 @@ struct ContentAuditPane: View {
     @State private var loadError: String?
     @State private var ranOnce = false
 
+    private var isToolAvailable: Bool {
+        ContentAuditBinary.locate(borisBinary: runtime.engine?.binaryURL) != nil
+    }
+
+    private var missingToolHint: String {
+        "boris-content-audit not found — set SOLIPSIST_CONTENT_AUDIT_BIN or install the kit"
+    }
+
     var body: some View {
         Group {
-            if let report {
+            if !isToolAvailable && report == nil && loadError == nil && !isAuditing {
+                ContentUnavailableView {
+                    Label("Tool Not Available", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(missingToolHint)
+                } actions: {
+                    if !isAuditing {
+                        Button("Run Audit") { run() }
+                            .disabled(true)
+                            .help(missingToolHint)
+                    }
+                }
+            } else if let report {
                 reportView(report)
             } else if let loadError {
                 ContentUnavailableView {
@@ -27,14 +47,22 @@ struct ContentAuditPane: View {
                     Text(loadError)
                 } actions: {
                     Button("Run Again") { run() }
+                        .disabled(!isToolAvailable)
+                        .help(isToolAvailable ? "" : missingToolHint)
                 }
             } else {
                 ContentUnavailableView {
                     Label("Content Audit", systemImage: "checkmark.shield")
                 } description: {
-                    Text(isAuditing ? "Auditing the content graph…" : "No audit report yet")
+                    if !isToolAvailable {
+                        Text(missingToolHint)
+                    } else {
+                        Text(isAuditing ? "Auditing the content graph…" : "No audit report yet")
+                    }
                 } actions: {
-                    Button("Run Audit") { run() }
+                    Button(isAuditing ? "Auditing…" : "Run Audit") { run() }
+                        .disabled(!isToolAvailable || isAuditing)
+                        .help(isToolAvailable ? "" : missingToolHint)
                 }
             }
         }
@@ -42,7 +70,7 @@ struct ContentAuditPane: View {
         .task(id: source.id) {
             loadReport()
             ranOnce = true
-            run()
+            if isToolAvailable { run() }
         }
         .onChange(of: runtime.coordinator.isRunning) { _, running in
             guard !running, runtime.coordinator.lastVerb == .contentAudit else { return }
@@ -94,20 +122,29 @@ struct ContentAuditPane: View {
     }
 
     private func header(_ report: ContentAuditReport) -> some View {
-        HStack(spacing: 16) {
-            Label("Content Audit", systemImage: "checkmark.shield")
-                .font(.headline)
-            Spacer()
-            if let totals = report.totals {
-                stat("\(totals.records_discovered ?? 0)", "records")
-                stat("\(totals.malformed_records ?? 0)", "malformed")
-                stat("\(totals.dead_references ?? 0)", "dead refs")
-                stat("\(totals.mapped_poetry ?? 0)", "poetry mapped")
+        VStack(alignment: .leading, spacing: 6) {
+            if !isToolAvailable {
+                Label(missingToolHint, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .lineLimit(2)
             }
-            Button(isAuditing ? "Auditing…" : "Re-run") {
-                run()
+            HStack(spacing: 16) {
+                Label("Content Audit", systemImage: "checkmark.shield")
+                    .font(.headline)
+                Spacer()
+                if let totals = report.totals {
+                    stat("\(totals.records_discovered ?? 0)", "records")
+                    stat("\(totals.malformed_records ?? 0)", "malformed")
+                    stat("\(totals.dead_references ?? 0)", "dead refs")
+                    stat("\(totals.mapped_poetry ?? 0)", "poetry mapped")
+                }
+                Button(isAuditing ? "Auditing…" : "Re-run") {
+                    run()
+                }
+                .disabled(isAuditing || !isToolAvailable)
+                .help(isToolAvailable ? "" : missingToolHint)
             }
-            .disabled(isAuditing)
         }
     }
 

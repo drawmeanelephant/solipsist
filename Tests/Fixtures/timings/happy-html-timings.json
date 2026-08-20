@@ -1,0 +1,29 @@
+{
+  "format": "boris-timings",
+  "schemaVersion": "1",
+  "mode": "html",
+  "phases": {
+    "scan": 810333,
+    "parse": 584875,
+    "graph_validate": 1404625,
+    "dependency_resolve": 1879083,
+    "fingerprint": 5755333,
+    "render": 3916500,
+    "heading_harvest": 523334,
+    "search": 16047709,
+    "link_audit": 4649583,
+    "inventory": 4921542,
+    "checks": 4883083,
+    "claims": 1929875,
+    "touches": 2340334,
+    "proof_pack": 4393750
+  },
+  "counters": {
+    "page_reads": 9,
+    "include_reads": 0,
+    "hash_bytes": 10603,
+    "link_resolutions": 17,
+    "fast_path_hits": 11
+  },
+  "totalNs": 76075750
+}

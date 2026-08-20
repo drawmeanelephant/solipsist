@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "html-build-report-0.1.0",
+  "compilerId": "boris/0.8.1",
+  "ok": false,
+  "contentRoot": "broken-wikilink",
+  "outDir": "dist",
+  "errorCount": 2,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "EIO",
+      "message": "ReferenceFailed",
+      "remediation": "See the stderr diagnostic for the full explanation",
+      "sourcePath": null,
+      "line": null,
+      "column": null,
+      "id": null
+    },
+    {
+      "severity": "error",
+      "code": "EREFERENCEMISSING",
+      "message": "wiki-link target \"non-existent-page-target\" not found in the page graph",
+      "remediation": "Point the wiki-link at an existing page entity id, and if using #heading-id match a rendered heading id on that page",
+      "sourcePath": "page.md",
+      "line": 6,
+      "column": 20,
+      "id": "non-existent-page-target"
+    }
+  ]
+}

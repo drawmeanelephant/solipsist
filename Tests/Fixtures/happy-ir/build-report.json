@@ -1,5 +1,6 @@
 {
   "schemaVersion": "0.3.0",
+  "compiler": "boris/0.8.1+semantic-relations",
   "ok": true,
   "contentRoot": "content",
   "outDir": ".boris",

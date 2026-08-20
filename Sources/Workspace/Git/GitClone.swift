@@ -5,22 +5,8 @@ import Foundation
 /// `WorkspaceStore.addLocal`. This is not `BorisEngine` — it is a
 /// settings-adjacent one-shot process with its own cancel path.
 public enum GitClone {
-    /// `/usr/bin/git` on Apple platforms is an `xcrun` wrapper that refuses
-    /// to run inside the App Sandbox ("xcrun: error: cannot be used within
-    /// an App Sandbox"). Resolve the real binary — Command Line Tools or
-    /// Xcode — and fall back to `/usr/bin/git` where that is the only git
-    /// (unsandboxed hosts: spike, tests, non-Apple builds).
-    public static func gitExecutableURL() -> URL {
-        let candidates = [
-            "/Library/Developer/CommandLineTools/usr/bin/git",
-            "/Applications/Xcode.app/Contents/Developer/usr/bin/git",
-            "/usr/bin/git",
-        ]
-        for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
-            return URL(fileURLWithPath: path)
-        }
-        return URL(fileURLWithPath: "/usr/bin/git")
-    }
+    /// Resolved via ``GitCLT`` — same candidates, one probe.
+    public static func gitExecutableURL() -> URL { GitCLT.resolve() }
 
     public struct CloneResult: Sendable {
         public let exitCode: Int32

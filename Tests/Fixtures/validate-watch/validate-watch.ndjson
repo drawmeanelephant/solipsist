@@ -1,0 +1,5 @@
+{"event":"hello","watch_events_schema":1,"compiler":"boris/0.8.1"}
+{"event":"build-started","phase":"initial","mode":"validate","targets":["default"]}
+{"event":"build-succeeded","phase":"initial","mode":"validate","targets":["default"],"pages_written":null,"duration_ms":17}
+{"event":"watcher-started","mode":"validate","targets":["default"]}
+{"event":"watch-stopped","reason":"signal"}

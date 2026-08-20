@@ -1,8 +1,9 @@
 {
   "schemaVersion": "0.2.0",
+  "compiler": "boris/0.8.1",
   "ok": true,
   "contentRoot": "content",
-  "outDir": ".tmp_ir",
+  "outDir": ".boris",
   "pageCount": 45,
   "errorCount": 0,
   "diagnostics": []
