@@ -38,6 +38,15 @@ struct OutputsPane: View {
         }
     }
 
+    /// True when boris.json was modified after the last successful Plan.
+    private var isStalePlan: Bool {
+        guard let planTime = runtime.coordinator.planTimestamp else { return false }
+        guard let root = try? source.workspaceRoot() else { return false }
+        let profileURL = root.appendingPathComponent("boris.json")
+        guard let mtime = (try? FileManager.default.attributesOfItem(atPath: profileURL.path))?[.modificationDate] as? Date else { return false }
+        return mtime > planTime
+    }
+
     private func outputsList(_ profile: PublicationProfile) -> some View {
         List(selection: selectedOutputID) {
             Section {
@@ -45,6 +54,7 @@ struct OutputsPane: View {
                     ForEach(targets, id: \.name) { target in
                         TargetRow(
                             target: target,
+                            activity: runtime.coordinator.lastActivity(for: target.name),
                             isBusy: runtime.coordinator.isRunning,
                             onBuild: { requestBuild(kind: "target", id: target.name, title: target.name) }
                         )
@@ -54,6 +64,7 @@ struct OutputsPane: View {
                     let defaultTarget = PublicationTarget(name: "default", output: "dist")
                     TargetRow(
                         target: defaultTarget,
+                        activity: runtime.coordinator.lastActivity(for: "default"),
                         isBusy: runtime.coordinator.isRunning,
                         onBuild: { requestBuild(kind: "target", id: "default", title: "default") }
                     )
@@ -62,6 +73,12 @@ struct OutputsPane: View {
             } header: {
                 HStack {
                     Text("HTML Targets")
+                    if isStalePlan {
+                        Circle()
+                            .fill(Color.orange)
+                            .frame(width: 7, height: 7)
+                            .help("boris.json changed since last Plan — run Plan to refresh")
+                    }
                     Spacer()
                     Button("Build All") {
                         runtime.coordinator.run(.buildAll, store: store, runtime: runtime)
@@ -79,6 +96,7 @@ struct OutputsPane: View {
                             name: "IR (.boris)",
                             output: ir.output,
                             kind: "ir",
+                            activity: runtime.coordinator.lastActivity(for: "ir"),
                             isBusy: runtime.coordinator.isRunning,
                             onBuild: { requestBuild(kind: "edition", id: "ir", title: "IR") }
                         )
@@ -89,6 +107,7 @@ struct OutputsPane: View {
                             name: "RAG",
                             output: rag.output,
                             kind: "rag",
+                            activity: runtime.coordinator.lastActivity(for: "rag"),
                             isBusy: runtime.coordinator.isRunning,
                             onBuild: { requestBuild(kind: "edition", id: "rag", title: "RAG") }
                         )
@@ -99,6 +118,7 @@ struct OutputsPane: View {
                             name: "Context",
                             output: context.output,
                             kind: "context",
+                            activity: runtime.coordinator.lastActivity(for: "context"),
                             isBusy: runtime.coordinator.isRunning,
                             onBuild: { requestBuild(kind: "edition", id: "context", title: "Context") }
                         )
@@ -166,6 +186,7 @@ struct OutputsPane: View {
 
 private struct TargetRow: View {
     let target: PublicationTarget
+    let activity: CoordinatorActivity?
     let isBusy: Bool
     let onBuild: () -> Void
 
@@ -184,6 +205,14 @@ private struct TargetRow: View {
                         .background(Color.green.opacity(0.2))
                         .foregroundStyle(.green)
                         .clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+                if let activity {
+                    exitBadge(activity)
+                    if let duration = activity.durationNs {
+                        Text(formatDuration(duration))
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
                 Button("Build", action: onBuild)
@@ -221,6 +250,34 @@ private struct TargetRow: View {
         .padding(.vertical, 2)
     }
 
+    @ViewBuilder
+    private func exitBadge(_ activity: CoordinatorActivity) -> some View {
+        if let exit = activity.exitCode {
+            Text("exit \(exit)")
+                .font(.caption2.weight(.medium).monospacedDigit())
+                .foregroundStyle(exit == 0 ? Color.secondary : Color.red)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1.5)
+                .background(
+                    (exit == 0 ? Color.secondary : Color.red).opacity(0.12),
+                    in: Capsule()
+                )
+        }
+    }
+
+    private func formatDuration(_ ns: Int) -> String {
+        if ns < 1_000 {
+            return "\(ns)ns"
+        } else if ns < 1_000_000 {
+            return "\(ns / 1_000)µs"
+        } else if ns < 1_000_000_000 {
+            return "\(ns / 1_000_000)ms"
+        } else {
+            let seconds = Double(ns) / 1_000_000_000.0
+            return String(format: "%.2fs", seconds)
+        }
+    }
+
     private var projectionsList: [String]? {
         var list: [String] = []
         if let sitemap = target.sitemap { list.append("sitemap: \(sitemap.path)") }
@@ -234,6 +291,7 @@ private struct EditionRow: View {
     let name: String
     let output: String
     let kind: String
+    let activity: CoordinatorActivity?
     let isBusy: Bool
     let onBuild: () -> Void
 
@@ -248,12 +306,37 @@ private struct EditionRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            if let activity {
+                if let exit = activity.exitCode {
+                    Text("exit \(exit)")
+                        .font(.caption2.weight(.medium).monospacedDigit())
+                        .foregroundStyle(exit == 0 ? Color.secondary : Color.red)
+                }
+                if let duration = activity.durationNs {
+                    Text(formatDuration(duration))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer()
             Button("Build", action: onBuild)
                 .controlSize(.small)
                 .disabled(isBusy)
         }
         .padding(.vertical, 2)
+    }
+
+    private func formatDuration(_ ns: Int) -> String {
+        if ns < 1_000 {
+            return "\(ns)ns"
+        } else if ns < 1_000_000 {
+            return "\(ns / 1_000)µs"
+        } else if ns < 1_000_000_000 {
+            return "\(ns / 1_000_000)ms"
+        } else {
+            let seconds = Double(ns) / 1_000_000_000.0
+            return String(format: "%.2fs", seconds)
+        }
     }
 
     private var iconName: String {

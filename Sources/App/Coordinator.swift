@@ -16,6 +16,9 @@ final class Coordinator {
     private(set) var problems: [ProblemItem] = []
     private(set) var activityHistory: [CoordinatorActivity] = []
     private(set) var latestPlan: PublicationPlan?
+    /// Timestamp of the last successful Plan verb — used by Outputs to
+    /// show a stale-plan dot when boris.json mtime exceeds it.
+    private(set) var planTimestamp: Date?
     private(set) var latestCheckReport: AnalysisReport?
     private(set) var checkFindings: [AnalysisFinding] = []
     private var jobStartTime: ContinuousClock.Instant?
@@ -48,6 +51,14 @@ final class Coordinator {
 
     func clearActivity() {
         activityHistory.removeAll()
+    }
+
+    /// Returns the most recent activity whose summary starts with the
+    /// given target or edition name, or nil if none have run yet.
+    func lastActivity(for targetName: String) -> CoordinatorActivity? {
+        activityHistory.first { activity in
+            activity.verb == .buildThis && activity.summary.hasPrefix(targetName)
+        }
     }
 
     var canRunVerb: Bool { state == .idle || state == .watching }
@@ -453,6 +464,9 @@ final class Coordinator {
         }
         if let plan = result?.plan {
             self.latestPlan = plan
+            if verb == .plan, exit == 0 {
+                self.planTimestamp = Date()
+            }
         }
         if let checkReport = result?.checkReport {
             self.latestCheckReport = checkReport
