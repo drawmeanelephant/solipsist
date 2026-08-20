@@ -70,6 +70,15 @@ struct MainWindow: View {
         let hasSource = store.selectedSource != nil
         let canRun = hasSource && runtime.coordinator.canRunVerb
         let canEdit = store.selection.canEditPage
+        let hasPage = store.selection.noun?.kind == "page"
+
+        Button {
+            runtime.coordinator.run(.plan, store: store, runtime: runtime)
+        } label: {
+            Label("Plan", systemImage: "doc.plaintext")
+        }
+        .help("Plan")
+        .disabled(!canRun)
 
         Button {
             runtime.coordinator.run(.validate, store: store, runtime: runtime)
@@ -86,6 +95,33 @@ struct MainWindow: View {
         }
         .help("Build IR")
         .disabled(!canRun)
+
+        Button {
+            runtime.coordinator.run(.buildAll, store: store, runtime: runtime)
+        } label: {
+            Label("Build All", systemImage: "hammer.fill")
+        }
+        .help("Build All")
+        .disabled(!canRun)
+
+        Menu {
+            Button {
+                runtime.coordinator.run(.check, store: store, runtime: runtime)
+            } label: {
+                Text("Check")
+            }
+            .disabled(!canRun)
+
+            Button {
+                runtime.coordinator.run(.impact, store: store, runtime: runtime)
+            } label: {
+                Text("Impact")
+            }
+            .disabled(!hasPage || !runtime.coordinator.canRunVerb)
+        } label: {
+            Label("Boris…", systemImage: "ellipsis.circle")
+        }
+        .help("Boris…")
 
         Button {
             runtime.coordinator.stop(runtime: runtime)
@@ -124,12 +160,23 @@ struct MainWindow: View {
         } label: {
             Label("Inspector", systemImage: "sidebar.trailing")
         }
-        .help("Toggle Inspector (⌥⌘I)")
+        .help("Toggle Inspector (⌥⌘0)")
     }
 
     private var statusBar: some View {
-        HStack(spacing: 8) {
-            Text(runtime.statusLine(selectedSourceTitle: store.selectedSource?.title))
+        let sourceTitle = store.selectedSource?.title ?? "No source"
+        let verbText = runtime.statusVerbText
+        let exitText = runtime.statusExitText
+        let isFailure = runtime.statusExitIsFailure
+        return HStack(spacing: 6) {
+            Text(sourceTitle)
+            Text("·")
+            Text(verbText)
+            Text("·")
+            Text(exitText)
+                .foregroundStyle(isFailure ? Color.red : Color.secondary)
+            Text("·")
+            Text(runtime.engineVersion)
             Spacer()
         }
         .font(.caption)
@@ -138,6 +185,7 @@ struct MainWindow: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 5)
         .background(.bar)
+        .help(runtime.statusTooltip ?? "")
     }
 
     private var errorPresented: Binding<Bool> {
