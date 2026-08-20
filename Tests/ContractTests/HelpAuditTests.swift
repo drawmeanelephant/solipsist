@@ -48,7 +48,12 @@ final class HelpAuditTests: XCTestCase {
 
     func testHelpListsEveryMailbox() throws {
         let help = try HelpAudit.help()
-        for mailbox in WorkspaceMailbox.all {
+        let allMailboxes = WorkspaceMailbox.all + [
+            WorkspaceMailbox.remote,
+            WorkspaceMailbox.issues,
+            WorkspaceMailbox.pulls,
+        ]
+        for mailbox in allMailboxes {
             XCTAssertTrue(
                 help.contains(WorkspaceMailbox.displayName(mailbox)),
                 "Mailbox \(mailbox) is missing from docs/help.md"
