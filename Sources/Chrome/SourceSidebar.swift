@@ -148,22 +148,46 @@ private struct PagesGroup: View {
         MailboxRowID(sourceID: item.id, mailbox: WorkspaceMailbox.pages)
     }
 
+    private var graph: Graph? {
+        store.graph(for: item.id)
+    }
+
+    private var allPages: [PlayPage] {
+        guard let graph else { return [] }
+        return LocalPlayGraph.pages(from: graph)
+    }
+
     private var trunks: [PlayPage] {
-        guard let graph = store.graph(for: item.id) else { return [] }
+        guard let graph else { return [] }
         return LocalPlayGraph.trunks(from: graph)
     }
 
     var body: some View {
-        DisclosureGroup(isExpanded: $expanded) {
-            ForEach(trunks, id: \.id) { trunk in
-                TrunkRow(item: item, trunk: trunk)
-                    .tag(MailboxRowID(sourceID: item.id, mailbox: trunk.id))
-                    .contextMenu { sourceMenu(item, store: store) }
-            }
-        } label: {
-            MailboxRow(item: item, box: WorkspaceMailbox.pages)
+        if trunks.isEmpty {
+            MailboxRow(
+                item: item,
+                box: WorkspaceMailbox.pages,
+                count: allPages.isEmpty ? nil : allPages.count
+            )
+            .tag(pagesRowID)
+            .contextMenu { sourceMenu(item, store: store) }
+        } else {
+            DisclosureGroup(isExpanded: $expanded) {
+                ForEach(trunks, id: \.id) { trunk in
+                    let trunkCount = LocalPlayGraph.pages(in: allPages, trunkID: trunk.id).count
+                    TrunkRow(item: item, trunk: trunk, count: trunkCount)
+                        .tag(MailboxRowID(sourceID: item.id, mailbox: trunk.id))
+                        .contextMenu { sourceMenu(item, store: store) }
+                }
+            } label: {
+                MailboxRow(
+                    item: item,
+                    box: WorkspaceMailbox.pages,
+                    count: allPages.isEmpty ? nil : allPages.count
+                )
                 .tag(pagesRowID)
                 .contextMenu { sourceMenu(item, store: store) }
+            }
         }
     }
 }
@@ -173,16 +197,23 @@ private struct PagesGroup: View {
 private struct TrunkRow: View {
     let item: SourceItem
     let trunk: PlayPage
+    var count: Int = 0
 
     var body: some View {
-        Label {
-            Text(trunk.title)
-                .font(.system(size: 12.5, weight: .regular))
-                .lineLimit(1)
-        } icon: {
+        HStack(spacing: 6) {
             Image(systemName: "folder")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+                .frame(width: 16, alignment: .center)
+            Text(trunk.title)
+                .font(.system(size: 12.5, weight: .regular))
+                .lineLimit(1)
+            if count > 0 {
+                Spacer()
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
         }
         .accessibilityLabel("\(item.title), \(trunk.title)")
     }
@@ -203,15 +234,23 @@ fileprivate func sourceMenu(_ item: SourceItem, store: WorkspaceStore) -> some V
 private struct MailboxRow: View {
     let item: SourceItem
     let box: String
+    var count: Int? = nil
 
     var body: some View {
-        Label {
-            Text(WorkspaceMailbox.displayName(box))
-                .font(.system(size: 12.5, weight: .regular))
-        } icon: {
+        HStack(spacing: 6) {
             Image(systemName: WorkspaceMailbox.symbolName(box))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+                .frame(width: 16, alignment: .center)
+            Text(WorkspaceMailbox.displayName(box))
+                .font(.system(size: 12.5, weight: .regular))
+                .lineLimit(1)
+            if let count, count > 0 {
+                Spacer()
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
         }
         .accessibilityLabel("\(item.title), \(WorkspaceMailbox.displayName(box))")
     }

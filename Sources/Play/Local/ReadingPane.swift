@@ -88,21 +88,21 @@ struct ReadingPane: View {
             } label: {
                 Label("Preview", systemImage: "safari")
             }
-            .help("Open the full-site Preview companion")
+            .help("Open the full-site Preview companion (⌘⇧P)")
 
             Button {
                 openWindow(id: CompanionID.editor)
             } label: {
-                Label("Edit", systemImage: "square.and.pencil")
+                Label("Edit Page", systemImage: "square.and.pencil")
             }
-            .help("Open the hosted editor for this page")
+            .help("Open the hosted Boris editor companion for this page (⌘⇧E)")
 
             Button {
                 openWindow(id: CompanionID.compose)
             } label: {
                 Label("Compose", systemImage: "pencil")
             }
-            .help("Open the native Compose editor for this page")
+            .help("Open the native buffer editor with live Oliver preview (⌘⇧C)")
         }
         .buttonStyle(.bordered)
         .controlSize(.small)

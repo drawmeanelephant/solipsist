@@ -383,21 +383,44 @@ final class Coordinator {
             summary = timedOut ? "timing out…" : "stopping…"
             task?.cancel()
             let engine = runtime.engine
-            reapTask = Task {
+            // One-shot and both watch daemons get torn down. The one-shot
+            // escalates through the engine; the watches get SIGTERM + reapGrace.
+            let watchToStop = activeWatch
+            let validateToStop = activeValidateWatch
+            reapTask = Task { [weak self] in
                 await engine?.escalate()
+                await self?.reapWatches(
+                    watch: watchToStop,
+                    validate: validateToStop
+                )
             }
             return
         }
 
-        guard let watch = activeWatch, watch.isRunning else { return }
+        // No one-shot running — stop any active watch daemons.
+        let previewRunning = activeWatch?.isRunning == true
+        let validateRunning = activeValidateWatch?.isRunning == true
+        guard previewRunning || validateRunning else { return }
         state = .terminating
         summary = "stopping preview…"
-        watch.stop()
+        let watchToStop = activeWatch
+        let validateToStop = activeValidateWatch
+        watchToStop?.stop()
+        validateToStop?.stop()
         reapTask = Task {
             try? await Task.sleep(for: ChildProcessControl.reapGrace)
             guard !Task.isCancelled else { return }
-            watch.forceKill()
+            watchToStop?.forceKill()
+            validateToStop?.forceKill()
         }
+    }
+
+    /// SIGKILL any watch daemons that did not exit after reapGrace.
+    private func reapWatches(watch: WatchServer?, validate: ValidateWatch?) async {
+        try? await Task.sleep(for: ChildProcessControl.reapGrace)
+        guard !Task.isCancelled else { return }
+        watch?.forceKill()
+        validate?.forceKill()
     }
 
     private func finish(

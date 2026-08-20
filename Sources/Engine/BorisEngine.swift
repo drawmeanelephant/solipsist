@@ -113,6 +113,30 @@ public enum BorisEngineError: Error, Sendable, CustomStringConvertible {
 /// The engine: a single actor owning all Boris subprocess launches so that
 /// builds never overlap (Boris watch mode explicitly forbids concurrent
 /// builds in one process; we serialize across processes too).
+///
+/// ## Subprocess model
+///
+/// One `RunHandle` slot serializes one-shot builds (IR, HTML, validate,
+/// check, impact, plan, package, source-rag, content-audit, recipe-scale,
+/// publication verbs, kit tools). A second build cannot start until the
+/// first finishes or is cancelled.
+///
+/// Two **long-lived watch daemons** run outside the `RunHandle` slot as
+/// `Coordinator` siblings, each owning their own `Process`:
+///
+/// | Daemon | Class | Purpose |
+/// |--------|-------|---------|
+/// | Preview watch | `WatchServer` | `watch --serve --watch-json`; suspends during tree-writing jobs |
+/// | Validate watch | `ValidateWatch` | `validate --watch --watch-json`; A5 live problems daemon |
+///
+/// **Invariant:** at most one `RunHandle` one-shot + at most two watch
+/// daemons alive concurrently. `Coordinator.terminateAll` tears down all
+/// three. `Coordinator.stop()` escalates the one-shot (SIGTERM → grace →
+/// SIGKILL) and also SIGTERMs both watch daemons with a reapGrace.
+///
+/// Watch daemons never block each other and never block one-shots. A
+/// tree-writing build suspends the preview watch (`beginTreeWrite`) but
+/// not the validate watch — validation writes nothing (D11).
 public actor BorisEngine {
     public let binaryURL: URL
     private let runHandle = RunHandle()
