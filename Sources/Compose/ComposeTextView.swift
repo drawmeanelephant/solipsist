@@ -106,7 +106,6 @@ struct ComposeTextView: NSViewRepresentable {
             // `findBarPosition`; the `findBarVisible` selector is available
             // at runtime.
             if scrollView.responds(to: Selector(("setFindBarVisible:"))) {
-                // swiftlint:disable:next no_direct_perform_selector
                 scrollView.perform(Selector(("setFindBarVisible:")), with: NSNumber(value: false))
             }
             textView.string = document.text
@@ -118,9 +117,9 @@ struct ComposeTextView: NSViewRepresentable {
         context.coordinator.updateGutterWidth()
         // Keep gutter height in sync with textView content height
         if let gutter = context.coordinator.gutter {
-            var f = gutter.frame
-            f.size.height = max(textView.bounds.height, scrollView.contentSize.height)
-            gutter.frame = f
+            var gutterFrame = gutter.frame
+            gutterFrame.size.height = max(textView.bounds.height, scrollView.contentSize.height)
+            gutter.frame = gutterFrame
             gutter.needsDisplay = true
         }
     }
@@ -169,9 +168,9 @@ struct ComposeTextView: NSViewRepresentable {
             gutter?.needsDisplay = true
             // Keep gutter height in sync with textView's content height
             if let gutter {
-                var f = gutter.frame
-                f.size.height = max(textView.bounds.height, scrollView?.contentSize.height ?? 0)
-                gutter.frame = f
+                var gutterFrame = gutter.frame
+                gutterFrame.size.height = max(textView.bounds.height, scrollView?.contentSize.height ?? 0)
+                gutter.frame = gutterFrame
             }
         }
 
@@ -185,9 +184,9 @@ struct ComposeTextView: NSViewRepresentable {
             guard let gutter, let textView else { return }
             let newWidth = gutter.gutterWidth
             if abs(gutter.frame.width - newWidth) > 0.5 {
-                var f = gutter.frame
-                f.size.width = newWidth
-                gutter.frame = f
+                var gutterFrame = gutter.frame
+                gutterFrame.size.width = newWidth
+                gutter.frame = gutterFrame
                 textView.textContainer?.lineFragmentPadding = newWidth
                 textView.needsLayout = true
                 gutter.needsDisplay = true

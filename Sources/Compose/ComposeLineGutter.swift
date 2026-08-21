@@ -165,8 +165,9 @@ final class ComposeLineGutter: NSView {
         // lineRect is in textContainer coordinates; offset by inset to get textView coords
         var yInTextView = lineRect.minY + textView.textContainerInset.height
         // For trailing empty line, place it one lineHeight below last fragment
-        if range.location == (textView.string as NSString).length, range.length == 0,
-           (textView.string as NSString).length > 0 {
+        let isTrailingEmpty = range.location == (textView.string as NSString).length
+            && range.length == 0 && (textView.string as NSString).length > 0
+        if isTrailingEmpty {
             yInTextView = lineRect.maxY + textView.textContainerInset.height
             lineRect = NSRect(
                 x: 0,
@@ -208,11 +209,13 @@ final class ComposeLineGutter: NSView {
         numberString.draw(at: NSPoint(x: drawX, y: drawY), withAttributes: attrs)
     }
 
-    // Click to select line (nice-to-have)
+    /// Click to select line (nice-to-have)
     override func mouseDown(with event: NSEvent) {
         guard let textView,
               let layoutManager = textView.layoutManager
-        else { super.mouseDown(with: event); return }
+        else { super.mouseDown(with: event)
+            return
+        }
         let location = convert(event.locationInWindow, from: nil)
         // Find nearest line number by y
         let text = textView.string as NSString
