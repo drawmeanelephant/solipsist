@@ -8,9 +8,7 @@ suggestion `feat/a11y-compose-toolbar`.
 
 Spec: [`docs/issues/editor-accessibility-compose-toolbar.md`](../issues/editor-accessibility-compose-toolbar.md).
 
-**Status: ⬜ partially covered.** The polish batch (#209/#210) already labeled
-Preview / Front Matter / Render Options / Save. This card is the **delta**:
-Language picker label, three hints, and the diagnostics rows.
+**Status: ✅ merged (PR #247).** Kept as the record; do not reopen.
 
 ## Owns
 

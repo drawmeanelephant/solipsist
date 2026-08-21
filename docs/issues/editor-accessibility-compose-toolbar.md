@@ -6,6 +6,10 @@
 **Parent:** [#236](https://github.com/drawmeanelephant/solipsist/issues/236) (tracker)
 **Lane:** Compose — `Sources/Compose/`
 
+**Status: ✅ merged (PR #247).** Kept as the record; do not reopen. The
+merged implementation matches this spec, including plain strings (no
+`String(localized:)`).
+
 ## Problem
 
 Compose's toolbar and diagnostics pane are only partly VoiceOver-accessible.
