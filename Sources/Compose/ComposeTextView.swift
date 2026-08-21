@@ -1,9 +1,15 @@
 import AppKit
 import SwiftUI
 
-/// NSTextView host with live heuristic highlighting. The text storage is
-/// re-painted after every edit; the buffer in `ComposeDocument` stays the
-/// single source of truth.
+/// NSTextView host with live heuristic highlighting and native Find bar.
+/// The text storage is re-painted after every edit; the buffer in
+/// `ComposeDocument` stays the single source of truth.
+///
+/// Find & Replace (#225) uses the system find bar (`usesFindBar = true`,
+/// `isIncrementalSearchingEnabled = true`) hosted in the enclosing
+/// `NSScrollView` (which conforms to `NSTextFinderBarContainer`). This gives
+/// ⌘F / ⌘⌥F / ⌘G / ⇧⌘G, wrap-around, case-insensitive and regex toggles for
+/// free — no custom UI.
 struct ComposeTextView: NSViewRepresentable {
     @Bindable var document: ComposeDocument
     /// Click-to-line target (LATER-3.1); nil = no pending jump.
@@ -16,7 +22,15 @@ struct ComposeTextView: NSViewRepresentable {
         Coordinator(document: document, completion: completion)
     }
 
-    func makeNSView(context: Context) -> NSTextView {
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers = true
+        scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
+        scrollView.findBarPosition = .aboveContent
+
         let textView = NSTextView()
         textView.delegate = context.coordinator
         textView.isRichText = false
@@ -28,8 +42,34 @@ struct ComposeTextView: NSViewRepresentable {
         textView.font = baseFont
         textView.textContainerInset = NSSize(width: 10, height: 10)
         textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
         textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.containerSize = NSSize(
+            width: scrollView.contentSize.width,
+            height: CGFloat.greatestFiniteMagnitude
+        )
+        // #225 Find & Replace: system find bar + incremental search.
+        textView.usesFindBar = true
+        textView.usesFindPanel = false
+        textView.isIncrementalSearchingEnabled = true
+
+        // #226 Line numbers gutter: lightweight overlay as subview of the
+        // textView so it scrolls vertically with the buffer but stays fixed
+        // horizontally (widthTracksTextView disables horizontal scroll).
+        let gutter = ComposeLineGutter()
+        gutter.textView = textView
+        gutter.frame = NSRect(x: 0, y: 0, width: 36, height: textView.bounds.height)
+        gutter.autoresizingMask = [.height]
+        gutter.wantsLayer = true
+        // Reserve 36pt for the gutter + keep 10pt original inset as gap.
+        textView.textContainer?.lineFragmentPadding = 36
+        textView.addSubview(gutter)
+        context.coordinator.gutter = gutter
+
+        scrollView.documentView = textView
+        context.coordinator.textView = textView
+        context.coordinator.scrollView = scrollView
 
         context.coordinator.applyHighlight(
             textView,
@@ -37,19 +77,51 @@ struct ComposeTextView: NSViewRepresentable {
             language: document.language,
             force: true
         )
-        return textView
+        // Gutter width tracks line count; update after initial paint.
+        context.coordinator.updateGutterWidth()
+        gutter.needsDisplay = true
+        return scrollView
     }
 
-    func updateNSView(_ textView: NSTextView, context: Context) {
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView else { return }
         context.coordinator.document = document
         context.coordinator.completion = completion
+        context.coordinator.textView = textView
+        context.coordinator.scrollView = scrollView
+        // Re-bind gutter if view was recreated (SwiftUI .id)
+        if let gutter = context.coordinator.gutter, gutter.superview !== textView {
+            gutter.textView = textView
+            gutter.frame = NSRect(x: 0, y: 0, width: gutter.frame.width, height: textView.bounds.height)
+            textView.addSubview(gutter)
+        }
+
+        // Page switch (#225 edge): the buffer was replaced wholesale. Hide the
+        // find bar so it does not survive across pages. The SwiftUI `.id`
+        // recreation in `ComposeEditorView` is the primary reset; this is the
+        // fallback when the view is reused.
         if textView.string != document.text {
+            // Best-effort hide via NSTextFinderBarContainer. NSScrollView
+            // conforms to it in AppKit, even though the header only exposes
+            // `findBarPosition`; the `findBarVisible` selector is available
+            // at runtime.
+            if scrollView.responds(to: Selector(("setFindBarVisible:"))) {
+                scrollView.perform(Selector(("setFindBarVisible:")), with: NSNumber(value: false))
+            }
             textView.string = document.text
             context.coordinator.applyHighlight(textView, text: document.text, language: document.language, force: true)
         } else {
             context.coordinator.applyHighlight(textView, text: document.text, language: document.language)
         }
         context.coordinator.jump(to: jumpToCharacter, in: textView)
+        context.coordinator.updateGutterWidth()
+        // Keep gutter height in sync with textView content height
+        if let gutter = context.coordinator.gutter {
+            var gutterFrame = gutter.frame
+            gutterFrame.size.height = max(textView.bounds.height, scrollView.contentSize.height)
+            gutter.frame = gutterFrame
+            gutter.needsDisplay = true
+        }
     }
 
     private var baseFont: NSFont {
@@ -62,6 +134,9 @@ struct ComposeTextView: NSViewRepresentable {
         /// Cooklang completion vocabulary, updated on view syncs so a
         /// freshly-built `.boris/` index reaches the popup without a reload.
         var completion: ComposeCookCompletion = .empty
+        weak var textView: NSTextView?
+        weak var scrollView: NSScrollView?
+        weak var gutter: ComposeLineGutter?
         private var isApplying = false
         /// Last click-to-line offset we applied, so re-syncs do not re-jump.
         private var lastJumpedCharacter: Int?
@@ -89,6 +164,33 @@ struct ComposeTextView: NSViewRepresentable {
             document.text = newText
             repaintChanged(oldText: oldText, newText: newText, textView: textView, language: document.language)
             maybeOpenCompletion(in: textView, previousText: oldText)
+            updateGutterWidth()
+            gutter?.needsDisplay = true
+            // Keep gutter height in sync with textView's content height
+            if let gutter {
+                var gutterFrame = gutter.frame
+                gutterFrame.size.height = max(textView.bounds.height, scrollView?.contentSize.height ?? 0)
+                gutter.frame = gutterFrame
+            }
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            gutter?.needsDisplay = true
+        }
+
+        /// Update gutter width and text container padding when line count grows
+        /// beyond 4 digits. Minimum 36pt.
+        func updateGutterWidth() {
+            guard let gutter, let textView else { return }
+            let newWidth = gutter.gutterWidth
+            if abs(gutter.frame.width - newWidth) > 0.5 {
+                var gutterFrame = gutter.frame
+                gutterFrame.size.width = newWidth
+                gutter.frame = gutterFrame
+                textView.textContainer?.lineFragmentPadding = newWidth
+                textView.needsLayout = true
+                gutter.needsDisplay = true
+            }
         }
 
         /// LATER-3.4: when the author types a Cooklang token marker (`@`,

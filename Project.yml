@@ -125,6 +125,8 @@ targets:
       - path: Sources/Compose/MarkupRenderService.swift
       - path: Sources/Compose/ComposePageResolver.swift
       - path: Sources/Compose/OliverRenderService.swift
+      - path: Sources/Compose/ComposeLineGutter.swift
+      - path: Sources/Compose/ComposeTextView.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.drawmeanelephant.solipsist.contracttests

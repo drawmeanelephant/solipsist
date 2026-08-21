@@ -50,6 +50,7 @@ struct ComposeEditorView: View {
                     jumpToCharacter: jumpToCharacter,
                     completion: cookCompletion
                 )
+                .id(document.fileURL)
                 .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
                 if showPreview {
                     ComposePreviewView(
