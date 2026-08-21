@@ -79,6 +79,8 @@ struct ReadingPane: View {
                     .textSelection(.enabled)
                     .help(headerCaption(for: page))
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(page.title), \(headerCaption(for: page))")
 
             Spacer(minLength: 12)
 
