@@ -252,6 +252,15 @@ private struct MailboxRow: View {
         store.selection.sourceID == item.id && WorkspaceMailbox.display(store.selection.mailbox) == WorkspaceMailbox.display(box)
     }
 
+    /// VoiceOver label for the row. A count (Pages row) is announced like
+    /// the trunk rows do ("…, N pages") so the announced number matches the
+    /// visual badge; no count → label only.
+    private var accessibilityLabelText: String {
+        let name = "\(item.title), \(WorkspaceMailbox.displayName(box))"
+        guard let count, count > 0 else { return name }
+        return "\(name), \(count) pages"
+    }
+
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: WorkspaceMailbox.symbolName(box))
@@ -271,7 +280,7 @@ private struct MailboxRow: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(item.title), \(WorkspaceMailbox.displayName(box))")
+        .accessibilityLabel(accessibilityLabelText)
         .accessibilityValue(isSelected ? "selected" : "")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
