@@ -54,6 +54,19 @@ struct ComposeTextView: NSViewRepresentable {
         textView.usesFindPanel = false
         textView.isIncrementalSearchingEnabled = true
 
+        // #226 Line numbers gutter: lightweight overlay as subview of the
+        // textView so it scrolls vertically with the buffer but stays fixed
+        // horizontally (widthTracksTextView disables horizontal scroll).
+        let gutter = ComposeLineGutter()
+        gutter.textView = textView
+        gutter.frame = NSRect(x: 0, y: 0, width: 36, height: textView.bounds.height)
+        gutter.autoresizingMask = [.height]
+        gutter.wantsLayer = true
+        // Reserve 36pt for the gutter + keep 10pt original inset as gap.
+        textView.textContainer?.lineFragmentPadding = 36
+        textView.addSubview(gutter)
+        context.coordinator.gutter = gutter
+
         scrollView.documentView = textView
         context.coordinator.textView = textView
         context.coordinator.scrollView = scrollView
@@ -64,6 +77,9 @@ struct ComposeTextView: NSViewRepresentable {
             language: document.language,
             force: true
         )
+        // Gutter width tracks line count; update after initial paint.
+        context.coordinator.updateGutterWidth()
+        gutter.needsDisplay = true
         return scrollView
     }
 
@@ -73,6 +89,12 @@ struct ComposeTextView: NSViewRepresentable {
         context.coordinator.completion = completion
         context.coordinator.textView = textView
         context.coordinator.scrollView = scrollView
+        // Re-bind gutter if view was recreated (SwiftUI .id)
+        if let gutter = context.coordinator.gutter, gutter.superview !== textView {
+            gutter.textView = textView
+            gutter.frame = NSRect(x: 0, y: 0, width: gutter.frame.width, height: textView.bounds.height)
+            textView.addSubview(gutter)
+        }
 
         // Page switch (#225 edge): the buffer was replaced wholesale. Hide the
         // find bar so it does not survive across pages. The SwiftUI `.id`
@@ -93,6 +115,14 @@ struct ComposeTextView: NSViewRepresentable {
             context.coordinator.applyHighlight(textView, text: document.text, language: document.language)
         }
         context.coordinator.jump(to: jumpToCharacter, in: textView)
+        context.coordinator.updateGutterWidth()
+        // Keep gutter height in sync with textView content height
+        if let gutter = context.coordinator.gutter {
+            var f = gutter.frame
+            f.size.height = max(textView.bounds.height, scrollView.contentSize.height)
+            gutter.frame = f
+            gutter.needsDisplay = true
+        }
     }
 
     private var baseFont: NSFont {
@@ -107,6 +137,7 @@ struct ComposeTextView: NSViewRepresentable {
         var completion: ComposeCookCompletion = .empty
         weak var textView: NSTextView?
         weak var scrollView: NSScrollView?
+        weak var gutter: ComposeLineGutter?
         private var isApplying = false
         /// Last click-to-line offset we applied, so re-syncs do not re-jump.
         private var lastJumpedCharacter: Int?
@@ -134,6 +165,33 @@ struct ComposeTextView: NSViewRepresentable {
             document.text = newText
             repaintChanged(oldText: oldText, newText: newText, textView: textView, language: document.language)
             maybeOpenCompletion(in: textView, previousText: oldText)
+            updateGutterWidth()
+            gutter?.needsDisplay = true
+            // Keep gutter height in sync with textView's content height
+            if let gutter {
+                var f = gutter.frame
+                f.size.height = max(textView.bounds.height, scrollView?.contentSize.height ?? 0)
+                gutter.frame = f
+            }
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            gutter?.needsDisplay = true
+        }
+
+        /// Update gutter width and text container padding when line count grows
+        /// beyond 4 digits. Minimum 36pt.
+        func updateGutterWidth() {
+            guard let gutter, let textView else { return }
+            let newWidth = gutter.gutterWidth
+            if abs(gutter.frame.width - newWidth) > 0.5 {
+                var f = gutter.frame
+                f.size.width = newWidth
+                gutter.frame = f
+                textView.textContainer?.lineFragmentPadding = newWidth
+                textView.needsLayout = true
+                gutter.needsDisplay = true
+            }
         }
 
         /// LATER-3.4: when the author types a Cooklang token marker (`@`,
