@@ -118,6 +118,7 @@ targets:
       - path: Sources/Companions/Preview/PreviewURL.swift
       - path: Sources/Compose/ComposeLanguage.swift
       - path: Sources/Compose/ComposeDocument.swift
+      - path: Sources/Compose/ComposeSaveFlow.swift
       - path: Sources/Compose/ComposeHighlighter.swift
       - path: Sources/Compose/ComposeDiagnostic.swift
       - path: Sources/Compose/ComposeFrontmatter.swift
