@@ -214,6 +214,22 @@ struct ComposeWindow: View {
                         .truncationMode(.middle)
                 }
                 Spacer()
+                // #228 Cursor + word/char counts — right-aligned, Xcode-style
+                Text(document.cursorText)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .help("Cursor position")
+                    .accessibilityLabel("Cursor \(document.cursorText)")
+                Text(document.wordCountText)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .help("Word count")
+                    .accessibilityLabel(document.wordCountText)
+                Text(document.characterCountText)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .help(document.selectedLength > 0 ? "Selected characters" : "Character count")
+                    .accessibilityLabel(document.characterCountText)
                 if let saveStatus {
                     Text(saveStatus)
                         .font(.caption)
