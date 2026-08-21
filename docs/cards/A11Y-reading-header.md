@@ -8,9 +8,13 @@ suggestion `feat/a11y-reading-header`.
 
 Spec: [`docs/issues/editor-accessibility-reading-header.md`](../issues/editor-accessibility-reading-header.md).
 
+**Status: ⬜ not covered.** The header still announces as two separate
+elements; only the served badge has a11y work (polish batch — keep it).
+
 ## Owns
 
-- `Sources/Play/Local/ReadingPane.swift` — the letter header announcement
+- `Sources/Play/Local/ReadingPane.swift` — combine title + caption into one
+  announcement
 
 ## Do not touch
 
@@ -22,27 +26,30 @@ Spec: [`docs/issues/editor-accessibility-reading-header.md`](../issues/editor-ac
 
 ## Why
 
-The reading-pane header (title + caption with path · status · role) reads as
-separate pieces to VoiceOver instead of one announcement. The empty-state
-label already exists — keep it.
+The reading-pane header (title + caption "Served · 3 pages · edited 2m ago")
+reads as two separate stops to VoiceOver; the caption fragment is orphaned.
+The served badge already has its label + traits — keep them.
 
 ## Do
 
-1. Combine the title `VStack` (title + caption) into one element announcing
-   "title, status, role" (`display(page.status)` handles the empty case).
-2. Leave the Preview / Edit / Compose buttons and the served badge outside the
-   combined element — they keep their own labels.
-3. Use `String(localized:)` for the label.
-4. Tests: the header combines title, status, role into one label.
+1. Combine the header's title and caption into one element
+   (`.accessibilityElement(children: .combine)` or an explicit label) so it
+   announces "My Boris Site, Served · 3 pages · edited 2m ago" in one stop,
+   title first.
+2. Keep the served/draft badge's existing label + traits; make the
+   announcement order deterministic regardless of visual layout.
+3. Tests: no honest unit seam exists (views are not in the test target) — do
+   not invent a helper. Verify manually per the Gate.
 
 ## Do not
 
+- Re-do the served-badge label/traits (already on main).
 - Fold the action buttons into the combined element.
 - Build a separate accessibility mode.
 - Touch the other lanes' files (above).
 
 ## Gate
 
-VoiceOver on the reading pane announces "Getting Started, published, Trunk"
-as one element; the action buttons still announce individually.
-`SKIP_EMBED_BORIS=1 make build` + `make test` green.
+VoiceOver on the reading pane announces title + caption as one element, in
+order; the served/draft badge still announces its label. `SKIP_EMBED_BORIS=1
+make build` + `make test` green.

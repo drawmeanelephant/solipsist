@@ -1,56 +1,86 @@
-# Editor: Accessibility — Preview Toolbar
+# A11Y-3: Preview Toolbar — label the controls
 
-**Track:** macOS native polish / accessibility
-**Milestone:** 10 — macOS native editor improvements (post-M17 polish)
-**Issue:** [#241](https://github.com/drawmeanelephant/solipsist/issues/241)
-**Parent:** [#236](https://github.com/drawmeanelephant/solipsist/issues/236) (tracker)
-**Lane:** Preview companion — `Sources/Companions/Preview/`
+- **Issue:** [#241](https://github.com/drawmeanelephant/solipsist/issues/241)
+- **Parent:** [#236](https://github.com/drawmeanelephant/solipsist/issues/236)
+- **Lane:** Preview companion
+- **Owns:** `Sources/Companions/Preview/`
 
 ## Problem
 
-The Preview companion's toolbar controls are unlabeled for VoiceOver.
+The Preview window's toolbar controls are **unlabeled** to assistive
+technology. They carry only `.help()` tooltips, which VoiceOver does not read
+as a name. A VoiceOver user tabbing through the toolbar hears three unlabeled
+buttons ("button", "button", "button") and has no way to tell which is the URL
+field, Reload, or Open-in-Browser.
 
-## Verified current state
+## Verified current state (main `6ddffd7`)
 
-`Sources/Companions/Preview/PreviewWindow.swift` — `toolbar` renders a URL
-`TextField`, Reload, and Open-in-Browser buttons (plus a rejection line and
-the session status line). None has an `accessibilityLabel` /
-`accessibilityHint`.
+`Sources/Companions/Preview/` (toolbar in the Preview window):
+
+- **URL field** — no `.accessibilityLabel`.
+- **Reload button** — `.help("Reload")` only; no label, no traits.
+- **Open in Browser button** — `.help("Open in Browser")` only; no label, no
+  traits.
+- No accessibility attributes on any of the three controls.
+- `PreviewURL` (the URL value type) is in the test target; the toolbar views
+  are not.
 
 ## Scope
 
-### Must land
+Give each toolbar control a real accessibility identity:
 
-- URL field: "Preview URL. http://127.0.0.1:8080/__boris/"
-- Reload: "Reload the preview page."
-- Open in Browser: "Open in Safari."
-- The session status line announces as a single value (serve URL or failure).
+1. **URL field** — label it (e.g. `"Preview URL"`) so it reads as a labeled
+   text field, not an anonymous editable area.
+2. **Reload** — `.accessibilityLabel("Reload")`, plus `.isButton` trait.
+3. **Open in Browser** — `.accessibilityLabel("Open in Browser")`, plus
+   `.isButton` trait.
 
-### Must not land
-
-- Touching `Sources/Companions/Editor/`, `Sources/Compose/`, or
-  `Sources/Chrome/`.
-- A separate accessibility mode.
+Keep the existing `.help()` tooltips where they add hover text; the label is
+what VoiceOver reads. Do not change any visual appearance, layout, or
+behavior.
 
 ## Gate
 
-VoiceOver on the Preview window: the URL field, Reload, and Open-in-Browser
-announce their labels; the status line announces. `SKIP_EMBED_BORIS=1 make
-build` + `make test` green.
+With VoiceOver on in the Preview window toolbar:
+
+- URL field announces "Preview URL".
+- Reload announces "Reload, button".
+- Open in Browser announces "Open in Browser, button".
+- Tooltips (`.help`) still appear on hover.
 
 ## Implementation sketch
 
-1. Add `.accessibilityLabel(_:)` / `.accessibilityHint(_:)` to the text field
-   and both buttons.
-2. Mark the status `Text` (which renders `session.statusText`) as
-   accessibility-relevant so it announces connected / failure state.
+```swift
+TextField("", text: $url)
+    .accessibilityLabel("Preview URL")
+
+Button(action: reload) { Image(systemName: "arrow.clockwise") }
+    .accessibilityLabel("Reload")
+    .accessibilityAddTraits(.isButton)
+    .help("Reload")
+
+Button(action: openInBrowser) { Image(systemName: "safari") }
+    .accessibilityLabel("Open in Browser")
+    .accessibilityAddTraits(.isButton)
+    .help("Open in Browser")
+```
 
 ## Tests
 
-- `testPreviewToolbarLabels` — the toolbar controls expose non-empty labels.
-- Manual: VoiceOver walk-through of the Preview window.
+- The controls live in views that are not in the test target, so there is no
+  honest unit test seam here. Verify by build + manual VoiceOver check (or AX
+  probe) per the Gate.
+- Do not add UI-automation tests the project does not run.
 
 ## Edge cases
 
-- The preview URL is loopback — safe to expose to VoiceOver.
-- Failure state → the status line announces the failure message.
+- **Icon-only buttons** — the label must not be empty or fall back to the
+  symbol name; the explicit label is the source of truth.
+- **Keyboard focus** — labels must not break the existing focus/tab order.
+
+## Do not land
+
+- Changing the toolbar's layout, icons, or behavior.
+- Touching any file outside `Sources/Companions/Preview/`.
+- Accessiblity work on the Reading pane header (#240) or Editor toolbar
+  (#242) — separate child issues.

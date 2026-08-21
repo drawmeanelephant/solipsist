@@ -8,6 +8,8 @@ suggestion `feat/a11y-sidebar-counts`.
 
 Spec: [`docs/issues/editor-accessibility-sidebar-counts.md`](../issues/editor-accessibility-sidebar-counts.md).
 
+**Status: ✅ merged (PR #244).** Kept as the record; do not reopen.
+
 ## Owns
 
 - `Sources/Chrome/SourceSidebar.swift` — `accessibilityValue` counts on the

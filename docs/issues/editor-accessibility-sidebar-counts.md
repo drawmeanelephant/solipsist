@@ -6,6 +6,11 @@
 **Parent:** [#236](https://github.com/drawmeanelephant/solipsist/issues/236) (tracker)
 **Lane:** Mailboxes — `Sources/Chrome/`
 
+**Status: ✅ merged (PR #244).** Kept as the record; do not reopen. One
+note vs. this spec: the merged implementation used plain strings for the
+"items" unit (the repo has not adopted `String(localized:)`), matching the
+sidebar's existing style.
+
 ## Problem
 
 The mailbox sidebar announces row titles but not item counts, so VoiceOver

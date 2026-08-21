@@ -8,9 +8,14 @@ branch suggestion `feat/a11y-editor-toolbar`.
 
 Spec: [`docs/issues/editor-accessibility-editor-toolbar.md`](../issues/editor-accessibility-editor-toolbar.md).
 
+**Status: ⬜ not covered.** Toolbar controls carry only `.help()` or nothing;
+nav + phase were refactored into subviews but stayed unlabeled.
+
 ## Owns
 
-- `Sources/Companions/Editor/EditorWindow.swift` — toolbar labels
+- `Sources/Companions/Editor/EditorWindow.swift` — URL field, Connect, Restart
+- `Sources/Companions/Editor/` — `EditorNavButtons`, `EditorPhaseIndicator`
+  (refactored subviews from the polish batch)
 
 ## Do not touch
 
@@ -23,26 +28,32 @@ Spec: [`docs/issues/editor-accessibility-editor-toolbar.md`](../issues/editor-ac
 
 ## Why
 
-The Editor toolbar's nav buttons, Restart, Open-in-Browser, URL field, and
-Connect have `.help()` tooltips but no VoiceOver labels.
+The Editor toolbar's URL field, Connect, Restart, Back/Forward, and the phase
+indicator have no VoiceOver labels. The polish batch refactored nav into
+`EditorNavButtons` and the phase into `EditorPhaseIndicator` but left both
+unlabeled.
 
 ## Do
 
-1. Label the URL field ("Editor URL. Paste a BORIS_EDITOR_URL line to connect
-   manually."), Connect, Restart, Back, Forward, and Reload (copy in the
-   spec).
-2. Make the phase indicator (`phaseLabel`) announce idle / starting /
-   connected / failed state.
-3. Use `String(localized:)` for every user-facing string.
-4. Tests: the toolbar controls expose non-empty labels.
+1. Label the URL field ("Editor URL"), Connect, and Restart; add `.isButton`
+   to the buttons.
+2. In `EditorNavButtons`: label Back / Forward + `.isButton`.
+3. In `EditorPhaseIndicator`: label the current phase ("Engine running") +
+   `.isStaticText`; enumerate every phase value the indicator can render.
+4. Keep existing `.help()` tooltips.
+5. Strings: plain strings matching the file's existing style.
+6. Tests: no honest unit seam — verify manually per the Gate.
 
 ## Do not
 
+- Change layout, icons, or behavior.
 - Build a separate accessibility mode.
 - Add a third-party accessibility library.
 - Touch the other lanes' files (above).
 
 ## Gate
 
-VoiceOver on the Editor window announces every toolbar control and the phase
-indicator. `SKIP_EMBED_BORIS=1 make build` + `make test` green.
+VoiceOver on the Editor window announces "Editor URL", "Connect, button",
+"Restart, button", "Back, button" / "Forward, button", and the current phase
+("Engine running"); tooltips still appear on hover. `SKIP_EMBED_BORIS=1 make
+build` + `make test` green.
