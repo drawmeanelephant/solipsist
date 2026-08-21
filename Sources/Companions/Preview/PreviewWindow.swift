@@ -117,12 +117,15 @@ struct PreviewWindow: View {
                 TextField("http://127.0.0.1:8080/__boris/", text: $urlText)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(submit)
+                    .accessibilityLabel("Preview URL")
 
                 Button {
                     model.reload()
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
+                .accessibilityLabel("Reload")
+                .accessibilityAddTraits(.isButton)
                 .help("Reload")
                 .disabled(!model.canReload)
 
@@ -131,6 +134,8 @@ struct PreviewWindow: View {
                 } label: {
                     Image(systemName: "safari")
                 }
+                .accessibilityLabel("Open in Browser")
+                .accessibilityAddTraits(.isButton)
                 .help("Open in Browser")
                 .disabled(!model.canOpenInBrowser)
             }
