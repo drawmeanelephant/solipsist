@@ -5,6 +5,10 @@
 - **Lane:** Editor companion
 - **Owns:** `Sources/Companions/Editor/`
 
+**Status: ✅ merged (PR #252).** Kept as the record; do not reopen. The
+merged implementation matches this spec: plain strings, .help() tooltips
+kept, all controls labeled, phase indicator enumerates all four cases.
+
 ## Problem
 
 The Editor window's toolbar controls are **unlabeled** to assistive
