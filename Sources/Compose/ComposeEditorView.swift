@@ -36,6 +36,10 @@ struct ComposeEditorView: View {
     @State private var previewOptions = MarkupRenderOptions()
     @State private var saveError: String?
 
+    private var autosaveName: String {
+        "ComposeSplit-\(document.language.rawValue)"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             toolbar
@@ -52,6 +56,13 @@ struct ComposeEditorView: View {
                 )
                 .id(document.fileURL)
                 .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
+                .background(
+                    SplitViewAutosave(
+                        name: autosaveName,
+                        showFrontmatter: showFrontmatter,
+                        showPreview: showPreview
+                    )
+                )
                 if showPreview {
                     ComposePreviewView(
                         source: document.text,
