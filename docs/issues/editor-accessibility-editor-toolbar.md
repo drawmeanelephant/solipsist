@@ -1,60 +1,103 @@
-# Editor: Accessibility — Editor Toolbar
+# A11Y-4: Editor Toolbar — label the controls
 
-**Track:** macOS native polish / accessibility
-**Milestone:** 10 — macOS native editor improvements (post-M17 polish)
-**Issue:** [#242](https://github.com/drawmeanelephant/solipsist/issues/242)
-**Parent:** [#236](https://github.com/drawmeanelephant/solipsist/issues/236) (tracker)
-**Lane:** Editor companion — `Sources/Companions/Editor/`
+- **Issue:** [#242](https://github.com/drawmeanelephant/solipsist/issues/242)
+- **Parent:** [#236](https://github.com/drawmeanelephant/solipsist/issues/236)
+- **Lane:** Editor companion
+- **Owns:** `Sources/Companions/Editor/`
 
 ## Problem
 
-The Editor companion's toolbar controls are unlabeled for VoiceOver.
+The Editor window's toolbar controls are **unlabeled** to assistive
+technology. They carry only `.help()` tooltips (which VoiceOver does not read
+as a name) or nothing at all. A VoiceOver user tabbing through the toolbar
+hears anonymous buttons and cannot tell the URL field from Connect, Restart,
+or the back/forward navigation, and the connection-phase indicator reads as an
+unlabeled graphic.
 
-## Verified current state
+## Verified current state (main `6ddffd7`)
 
-`Sources/Companions/Editor/EditorWindow.swift` — `toolbar` renders nav buttons
-(Back / Forward / Reload), a phase indicator, Restart Host, Open-in-Browser, a
-URL `TextField`, and Connect. The nav buttons have `.help()` tooltips; none
-has an `accessibilityLabel` / `accessibilityHint`.
+`Sources/Companions/Editor/EditorWindow.swift` (and the refactored subviews it
+uses):
+
+- **URL field** — no `.accessibilityLabel`.
+- **Connect button** — bare `.help()`; no label, no traits.
+- **Restart button** — bare `.help()`; no label, no traits.
+- **Navigation (back/forward)** — refactored into `EditorNavButtons` (a
+  separate view) in the polish batch; still no labels, no traits.
+- **Phase indicator** — `EditorPhaseIndicator` (separate view, also from the
+  polish batch) is unlabeled; it renders the engine phase (e.g. `idle`,
+  `running`, `error`) with no accessibility identity.
+- `EditorURL` and `LocalPlayGraph` are in the test target; the toolbar views
+  are not.
 
 ## Scope
 
-### Must land
+Give each toolbar control a real accessibility identity:
 
-- URL field: "Editor URL. Paste a BORIS_EDITOR_URL line to connect manually."
-- Connect: "Connect to the editor host."
-- Restart: "Restart the boris-editor host."
-- Back: "Back. Navigate to the previous page."
-- Forward: "Forward. Navigate to the next page."
-- Reload: "Reload the editor page."
-- The phase indicator announces as a single value (idle / starting /
-  connected / failed).
+1. **URL field** — label it (e.g. `"Editor URL"`) so it reads as a labeled
+   text field.
+2. **Connect** — `.accessibilityLabel("Connect")`, plus `.isButton` trait.
+3. **Restart** — `.accessibilityLabel("Restart")`, plus `.isButton` trait.
+4. **Back / Forward** (in `EditorNavButtons`) — `.accessibilityLabel("Back")`
+   / `"Forward"`, plus `.isButton` trait.
+5. **Phase indicator** (`EditorPhaseIndicator`) — give it an
+   `.accessibilityLabel` describing the current phase (e.g. `"Engine idle"` /
+   `"Engine running"` / `"Engine error"`), plus `.isStaticText`.
 
-### Must not land
-
-- Touching `Sources/Companions/Preview/`, `Sources/Compose/`, or
-  `Sources/Chrome/`.
-- A separate accessibility mode.
+Keep existing `.help()` tooltips. Do not change any visual appearance, layout,
+or behavior.
 
 ## Gate
 
-VoiceOver on the Editor window: every toolbar control announces its label; the
-phase indicator announces connected / failed state. `SKIP_EMBED_BORIS=1 make
-build` + `make test` green.
+With VoiceOver on in the Editor window toolbar:
+
+- URL field announces "Editor URL".
+- Connect / Restart announce "Connect, button" / "Restart, button".
+- Back / Forward announce "Back, button" / "Forward, button".
+- Phase indicator announces the current phase (e.g. "Engine running").
+- Tooltips (`.help`) still appear on hover.
 
 ## Implementation sketch
 
-1. Add `.accessibilityLabel(_:)` / `.accessibilityHint(_:)` to the nav
-   buttons, Restart, Open-in-Browser, the URL field, and Connect.
-2. Ensure the phase `Text` (which renders `phaseLabel`) is
-   accessibility-relevant.
+```swift
+TextField("", text: $url)
+    .accessibilityLabel("Editor URL")
+
+Button(action: connect) { … }
+    .accessibilityLabel("Connect")
+    .accessibilityAddTraits(.isButton)
+    .help("Connect")
+
+// EditorNavButtons:
+Button(action: back) { … }
+    .accessibilityLabel("Back")
+    .accessibilityAddTraits(.isButton)
+
+// EditorPhaseIndicator:
+Text(phase.rawValue)
+    .accessibilityLabel("Engine \(phase.rawValue)")
+    .accessibilityAddTraits(.isStaticText)
+```
 
 ## Tests
 
-- `testEditorToolbarLabels` — the toolbar controls expose non-empty labels.
-- Manual: VoiceOver walk-through of the Editor window.
+- The controls live in views that are not in the test target, so there is no
+  honest unit test seam here. Verify by build + manual VoiceOver check (or AX
+  probe) per the Gate.
+- Do not add UI-automation tests the project does not run.
 
 ## Edge cases
 
-- Disabled states (nav buttons with no history) still announce their labels.
-- Failure phase → the phase indicator announces the error message.
+- **Phase strings** — the label must read sensibly for every phase value the
+  indicator can render (idle, running, error, and any others in the enum);
+  enumerate them in the implementation.
+- **Icon-only buttons** — labels must not fall back to symbol names; the
+  explicit label is the source of truth.
+- **Keyboard focus** — labels must not break the existing focus/tab order.
+
+## Do not land
+
+- Changing the toolbar's layout, icons, or behavior.
+- Touching any file outside `Sources/Companions/Editor/`.
+- Accessibility work on the Reading pane header (#240) or Preview toolbar
+  (#241) — separate child issues.

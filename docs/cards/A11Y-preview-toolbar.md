@@ -8,9 +8,13 @@ branch suggestion `feat/a11y-preview-toolbar`.
 
 Spec: [`docs/issues/editor-accessibility-preview-toolbar.md`](../issues/editor-accessibility-preview-toolbar.md).
 
+**Status: ⬜ not covered.** No accessibility attributes on any toolbar control
+(only `.help()` tooltips).
+
 ## Owns
 
-- `Sources/Companions/Preview/PreviewWindow.swift` — toolbar labels
+- `Sources/Companions/Preview/` — toolbar labels (URL field, Reload,
+  Open in Browser)
 
 ## Do not touch
 
@@ -23,26 +27,29 @@ Spec: [`docs/issues/editor-accessibility-preview-toolbar.md`](../issues/editor-a
 
 ## Why
 
-The Preview toolbar's URL field, Reload, and Open-in-Browser buttons have no
-VoiceOver labels.
+The Preview toolbar's URL field, Reload, and Open-in-Browser controls carry
+only `.help()` tooltips (or nothing) — VoiceOver reads three anonymous
+buttons.
 
 ## Do
 
-1. Label the URL field ("Preview URL. …"), Reload ("Reload the preview
-   page."), and Open in Browser ("Open in Safari.").
-2. Make the session status line (`session.statusText`) announce
-   connected / failure state.
-3. Use `String(localized:)` for every user-facing string.
-4. Tests: the toolbar controls expose non-empty labels.
+1. Label the URL field ("Preview URL"), Reload ("Reload"), and Open in Browser
+   ("Open in Browser"); add `.isButton` to the two buttons.
+2. Keep the existing `.help()` tooltips for hover text.
+3. Strings: plain strings matching the file's existing style — do not
+   introduce `String(localized:)`.
+4. Tests: no honest unit seam (views are not in the test target) — verify
+   manually per the Gate.
 
 ## Do not
 
+- Change layout, icons, or behavior.
 - Build a separate accessibility mode.
 - Add a third-party accessibility library.
 - Touch the other lanes' files (above).
 
 ## Gate
 
-VoiceOver on the Preview window announces the URL field, Reload, and
-Open-in-Browser, plus the status line. `SKIP_EMBED_BORIS=1 make build` +
-`make test` green.
+VoiceOver on the Preview window announces "Preview URL", "Reload, button", and
+"Open in Browser, button"; tooltips still appear on hover. `SKIP_EMBED_BORIS=1
+make build` + `make test` green.

@@ -20,16 +20,19 @@ tracker; each child is one lane, one worktree, one PR.
 All five are independent — no child consumes another's file, state, or
 selection. They can run in five worktrees at once.
 
-| Child | Issue | Lane | Gate (short) |
-|-------|-------|------|----------------|
-| [A-1 Compose toolbar + diagnostics](editor-accessibility-compose-toolbar.md) | [#239](https://github.com/drawmeanelephant/solipsist/issues/239) | Compose | every Compose toolbar control and diagnostics row announces |
-| [A-2 Reading pane header](editor-accessibility-reading-header.md) | [#240](https://github.com/drawmeanelephant/solipsist/issues/240) | Reading | header announces title, status, role |
-| [A-3 Preview toolbar](editor-accessibility-preview-toolbar.md) | [#241](https://github.com/drawmeanelephant/solipsist/issues/241) | Preview companion | URL / reload / open-in-browser labeled |
-| [A-4 Editor toolbar](editor-accessibility-editor-toolbar.md) | [#242](https://github.com/drawmeanelephant/solipsist/issues/242) | Editor companion | URL / connect / restart / nav labeled |
-| [A-5 Mailbox sidebar counts](editor-accessibility-sidebar-counts.md) | [#243](https://github.com/drawmeanelephant/solipsist/issues/243) | Mailboxes | Pages + trunk rows announce counts from the stored graph |
+| Child | Issue | Lane | Status | Gate (short) |
+|-------|-------|------|--------|----------------|
+| [A-1 Compose toolbar + diagnostics](editor-accessibility-compose-toolbar.md) | [#239](https://github.com/drawmeanelephant/solipsist/issues/239) | Compose | ⬜ partial — labels landed, delta remains | Language picker label + hints + diagnostics rows |
+| [A-2 Reading pane header](editor-accessibility-reading-header.md) | [#240](https://github.com/drawmeanelephant/solipsist/issues/240) | Reading | ⬜ not covered | header announces title + caption as one element |
+| [A-3 Preview toolbar](editor-accessibility-preview-toolbar.md) | [#241](https://github.com/drawmeanelephant/solipsist/issues/241) | Preview companion | ⬜ not covered | URL / reload / open-in-browser labeled |
+| [A-4 Editor toolbar](editor-accessibility-editor-toolbar.md) | [#242](https://github.com/drawmeanelephant/solipsist/issues/242) | Editor companion | ⬜ not covered | URL / connect / restart / nav / phase labeled |
+| [A-5 Mailbox sidebar counts](editor-accessibility-sidebar-counts.md) | [#243](https://github.com/drawmeanelephant/solipsist/issues/243) | Mailboxes | ✅ merged (PR #244) | Pages + trunk rows announce counts from the stored graph |
 
-Filed 2026-08-21 as #239–#243 (milestone 10). Close this tracker when all
-five land.
+Filed 2026-08-21 as #239–#243 (milestone 10). **Status as of 2026-08-21:**
+#243 landed (merged in PR #244); #239 is partially covered by the polish
+batch (#209/#210) — the specs and cards were recut to the remaining delta
+and marked accordingly; #240/#241/#242 are untouched and pickable as-is.
+Close this tracker when all five land.
 
 ## Shared nice-to-haves (not assigned — later)
 
@@ -49,8 +52,9 @@ five land.
 ## Gate (whole)
 
 With all five children landed, VoiceOver (⌘F5) can navigate the Compose
-window, both companions, and the sidebar without visual assistance: every
-toolbar control announces, a diagnostics row announces "Error on line 12: …",
-the reading header announces "title, status, role", and the Pages / trunk rows
-announce item counts that update when the graph rebuilds.
+window, both companions, and the sidebar without visual assistance: the
+Language picker announces the current language and every toolbar control
+announces a hint, a diagnostics row announces "Error on line 12: …", the
+reading header announces title + caption as one element, and the Pages / trunk
+rows announce item counts that update when the graph rebuilds (landed, #243).
 `SKIP_EMBED_BORIS=1 make build` + `make test` green.

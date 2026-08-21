@@ -162,23 +162,25 @@ entry). Do not pick.
 
 VoiceOver across the editor surfaces, cut into five disjoint lanes from
 tracker [#236](https://github.com/drawmeanelephant/solipsist/issues/236).
-Each card is one worktree, one PR against `main`; all five are independent
-and can run at once. Specs live in
+Each card is one worktree, one PR against `main`; the remaining four are
+independent and can run at once (#243 is merged). Specs live in
 [`docs/issues/`](../issues/README.md) (child-of-#236 drafts); the cards
 below are the session briefs.
 
 | Card | Issue | Lane | Parallel with | Gate |
 |------|-------|------|----------------|------|
 | [A11Y tracker](../issues/editor-compose-accessibility.md) | [#236](https://github.com/drawmeanelephant/solipsist/issues/236) | design | — | five children land; VoiceOver covers all surfaces |
-| [A11Y-1 Compose toolbar + diagnostics](A11Y-compose-toolbar.md) | [#239](https://github.com/drawmeanelephant/solipsist/issues/239) | Compose | A11Y-2..A11Y-5 | every Compose toolbar control and diagnostics row announces |
-| [A11Y-2 Reading pane header](A11Y-reading-header.md) | [#240](https://github.com/drawmeanelephant/solipsist/issues/240) | Reading | A11Y-1, A11Y-3..A11Y-5 | header announces title, status, role |
-| [A11Y-3 Preview toolbar](A11Y-preview-toolbar.md) | [#241](https://github.com/drawmeanelephant/solipsist/issues/241) | Preview companion | A11Y-1, A11Y-2, A11Y-4, A11Y-5 | URL / reload / open-in-browser labeled |
-| [A11Y-4 Editor toolbar](A11Y-editor-toolbar.md) | [#242](https://github.com/drawmeanelephant/solipsist/issues/242) | Editor companion | A11Y-1..A11Y-3, A11Y-5 | URL / connect / restart / nav labeled |
-| [A11Y-5 Mailbox sidebar counts](A11Y-sidebar-counts.md) | [#243](https://github.com/drawmeanelephant/solipsist/issues/243) | Mailboxes | A11Y-1..A11Y-4 | Pages + trunk rows announce counts from the stored graph |
+| [A11Y-1 Compose toolbar + diagnostics](A11Y-compose-toolbar.md) | [#239](https://github.com/drawmeanelephant/solipsist/issues/239) | Compose | A11Y-2..A11Y-5 | ⬜ partial — Language picker label + hints + diagnostics rows |
+| [A11Y-2 Reading pane header](A11Y-reading-header.md) | [#240](https://github.com/drawmeanelephant/solipsist/issues/240) | Reading | A11Y-1, A11Y-3..A11Y-5 | ⬜ header announces title + caption as one element |
+| [A11Y-3 Preview toolbar](A11Y-preview-toolbar.md) | [#241](https://github.com/drawmeanelephant/solipsist/issues/241) | Preview companion | A11Y-1, A11Y-2, A11Y-4, A11Y-5 | ⬜ URL / reload / open-in-browser labeled |
+| [A11Y-4 Editor toolbar](A11Y-editor-toolbar.md) | [#242](https://github.com/drawmeanelephant/solipsist/issues/242) | Editor companion | A11Y-1..A11Y-3, A11Y-5 | ⬜ URL / connect / restart / nav / phase labeled |
+| [A11Y-5 Mailbox sidebar counts](A11Y-sidebar-counts.md) | [#243](https://github.com/drawmeanelephant/solipsist/issues/243) | Mailboxes | — | ✅ merged (PR #244) |
 
-Filed 2026-08-21 as #239–#243 (milestone 10). Close #236 when all five
-land. Do not grow a card into another card's lane — the Owns / Do-not-
-touch lists are the contract.
+Filed 2026-08-21 as #239–#243 (milestone 10). **Status:** #243 landed
+(PR #244); #239 is partially covered by the polish batch (#209/#210) — its
+spec and card were recut to the remaining delta; the other three are
+untouched and pickable. Close #236 when all five land. Do not grow a card
+into another card's lane — the Owns / Do-not-touch lists are the contract.
 
 ## Do not start yet
 
