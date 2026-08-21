@@ -126,6 +126,7 @@ targets:
       - path: Sources/Compose/ComposePageResolver.swift
       - path: Sources/Compose/OliverRenderService.swift
       - path: Sources/Compose/ComposeLineGutter.swift
+      - path: Sources/Compose/ComposeTabIndent.swift
       - path: Sources/Compose/ComposeTextView.swift
     settings:
       base:
