@@ -5,6 +5,10 @@
 - **Lane:** Preview companion
 - **Owns:** `Sources/Companions/Preview/`
 
+**Status: ✅ merged (PR #251).** Kept as the record; do not reopen. The
+merged implementation matches this spec: plain strings, .help() tooltips
+kept, all three controls labeled.
+
 ## Problem
 
 The Preview window's toolbar controls are **unlabeled** to assistive

@@ -162,8 +162,8 @@ entry). Do not pick.
 
 VoiceOver across the editor surfaces, cut into five disjoint lanes from
 tracker [#236](https://github.com/drawmeanelephant/solipsist/issues/236).
-Each card is one worktree, one PR against `main`; the remaining two are
-independent and can run at once (#243, #239, #240 merged). Specs live in
+Each card is one worktree, one PR against `main`; all five are now
+merged. Specs live in
 [`docs/issues/`](../issues/README.md) (child-of-#236 drafts); the cards
 below are the session briefs.
 
@@ -172,15 +172,14 @@ below are the session briefs.
 | [A11Y tracker](../issues/editor-compose-accessibility.md) | [#236](https://github.com/drawmeanelephant/solipsist/issues/236) | design | — | five children land; VoiceOver covers all surfaces |
 | [A11Y-1 Compose toolbar + diagnostics](A11Y-compose-toolbar.md) | [#239](https://github.com/drawmeanelephant/solipsist/issues/239) | Compose | A11Y-2..A11Y-5 | ✅ merged (PR #247) |
 | [A11Y-2 Reading pane header](A11Y-reading-header.md) | [#240](https://github.com/drawmeanelephant/solipsist/issues/240) | Reading | A11Y-1, A11Y-3..A11Y-5 | ✅ merged (PR #249) |
-| [A11Y-3 Preview toolbar](A11Y-preview-toolbar.md) | [#241](https://github.com/drawmeanelephant/solipsist/issues/241) | Preview companion | A11Y-1, A11Y-2, A11Y-4, A11Y-5 | ⬜ URL / reload / open-in-browser labeled |
-| [A11Y-4 Editor toolbar](A11Y-editor-toolbar.md) | [#242](https://github.com/drawmeanelephant/solipsist/issues/242) | Editor companion | A11Y-1..A11Y-3, A11Y-5 | ⬜ URL / connect / restart / nav / phase labeled |
+| [A11Y-3 Preview toolbar](A11Y-preview-toolbar.md) | [#241](https://github.com/drawmeanelephant/solipsist/issues/241) | Preview companion | A11Y-1, A11Y-2, A11Y-4, A11Y-5 | ✅ merged (PR #251) |
+| [A11Y-4 Editor toolbar](A11Y-editor-toolbar.md) | [#242](https://github.com/drawmeanelephant/solipsist/issues/242) | Editor companion | A11Y-1..A11Y-3, A11Y-5 | ✅ merged (PR #252) |
 | [A11Y-5 Mailbox sidebar counts](A11Y-sidebar-counts.md) | [#243](https://github.com/drawmeanelephant/solipsist/issues/243) | Mailboxes | — | ✅ merged (PR #244) |
 
-Filed 2026-08-21 as #239–#243 (milestone 10). **Status:** #243 landed
-(PR #244), #239 landed (PR #247), and #240 landed (PR #249); the remaining
-two are untouched and pickable. Close #236 when all five land. Do not grow
-a card into another card's lane — the Owns / Do-not-touch lists are the
-contract.
+Filed 2026-08-21 as #239–#243 (milestone 10). **All five children landed:**
+#243 (PR #244), #239 (PR #247), #240 (PR #249), #241 (PR #251),
+#242 (PR #252). #236 tracker closed. Do not grow a card into another
+card's lane — the Owns / Do-not-touch lists are the contract.
 
 ## Do not start yet
 

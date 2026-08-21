@@ -51,9 +51,9 @@ two touch the same lane in the same PR.
 | [Editor UX Polish](editor-companion-ux-polish.md) | [#237](https://github.com/drawmeanelephant/solipsist/issues/237) | `Sources/Companions/Editor/` |
 | [Go to Line (⌘L)](editor-compose-go-to-line.md) | [#238](https://github.com/drawmeanelephant/solipsist/issues/238) | `Sources/Compose/` |
 
-Status (2026-08-21): #243 merged (PR #244); #239 partially covered by the
-polish batch (#209/#210) — its spec + card are recut to the remaining delta;
-#240/#241/#242 untouched and pickable.
+Status (2026-08-21): all five accessibility children merged — #243 (PR
+#244), #239 (PR #247), #240 (PR #249), #241 (PR #251), #242 (PR #252).
+#236 tracker closed.
 
 Do not ask: unifying `compiler` field names, library mode, relaxing
 editor token/CSP, shipping `boris-editor` in the agent-pack.

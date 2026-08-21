@@ -24,14 +24,13 @@ selection. They can run in five worktrees at once.
 |-------|-------|------|--------|----------------|
 | [A-1 Compose toolbar + diagnostics](editor-accessibility-compose-toolbar.md) | [#239](https://github.com/drawmeanelephant/solipsist/issues/239) | Compose | ✅ merged (PR #247) | Language picker label + hints + diagnostics rows |
 | [A-2 Reading pane header](editor-accessibility-reading-header.md) | [#240](https://github.com/drawmeanelephant/solipsist/issues/240) | Reading | ✅ merged (PR #249) | header announces title + caption as one element |
-| [A-3 Preview toolbar](editor-accessibility-preview-toolbar.md) | [#241](https://github.com/drawmeanelephant/solipsist/issues/241) | Preview companion | ⬜ not covered | URL / reload / open-in-browser labeled |
-| [A-4 Editor toolbar](editor-accessibility-editor-toolbar.md) | [#242](https://github.com/drawmeanelephant/solipsist/issues/242) | Editor companion | ⬜ not covered | URL / connect / restart / nav / phase labeled |
+| [A-3 Preview toolbar](editor-accessibility-preview-toolbar.md) | [#241](https://github.com/drawmeanelephant/solipsist/issues/241) | Preview companion | ✅ merged (PR #251) | URL / reload / open-in-browser labeled |
+| [A-4 Editor toolbar](editor-accessibility-editor-toolbar.md) | [#242](https://github.com/drawmeanelephant/solipsist/issues/242) | Editor companion | ✅ merged (PR #252) | URL / connect / restart / nav / phase labeled |
 | [A-5 Mailbox sidebar counts](editor-accessibility-sidebar-counts.md) | [#243](https://github.com/drawmeanelephant/solipsist/issues/243) | Mailboxes | ✅ merged (PR #244) | Pages + trunk rows announce counts from the stored graph |
 
-Filed 2026-08-21 as #239–#243 (milestone 10). **Status as of 2026-08-21:**
-#243 landed (merged in PR #244), #239 landed (merged in PR #247), and
-#240 landed (merged in PR #249); #241/#242 are untouched and pickable
-as-is. Close this tracker when all five land.
+Filed 2026-08-21 as #239–#243 (milestone 10). **All five children landed:**
+#243 (PR #244), #239 (PR #247), #240 (PR #249), #241 (PR #251),
+#242 (PR #252). Tracker closed.
 
 ## Shared nice-to-haves (not assigned — later)
 

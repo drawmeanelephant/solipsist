@@ -8,8 +8,7 @@ branch suggestion `feat/a11y-preview-toolbar`.
 
 Spec: [`docs/issues/editor-accessibility-preview-toolbar.md`](../issues/editor-accessibility-preview-toolbar.md).
 
-**Status: ⬜ not covered.** No accessibility attributes on any toolbar control
-(only `.help()` tooltips).
+**Status: ✅ merged (PR #251).** Kept as the record; do not reopen.
 
 ## Owns
 

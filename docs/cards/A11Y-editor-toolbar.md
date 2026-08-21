@@ -8,8 +8,7 @@ branch suggestion `feat/a11y-editor-toolbar`.
 
 Spec: [`docs/issues/editor-accessibility-editor-toolbar.md`](../issues/editor-accessibility-editor-toolbar.md).
 
-**Status: ⬜ not covered.** Toolbar controls carry only `.help()` or nothing;
-nav + phase were refactored into subviews but stayed unlabeled.
+**Status: ✅ merged (PR #252).** Kept as the record; do not reopen.
 
 ## Owns
 
