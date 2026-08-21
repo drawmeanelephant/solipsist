@@ -20,9 +20,10 @@ struct ComposeEditorView: View {
     /// Cooklang completion vocabulary (LATER-3.4); `.empty` (default) keeps
     /// the popup off for hosts without a `.boris/` index.
     var cookCompletion: ComposeCookCompletion = .empty
-    /// Called after an explicit save actually wrote the buffer. The host
-    /// (ComposeWindow) uses this to flow the save into the coordinator's
-    /// save→validate gate.
+    /// The save verb (#231). The editor never writes the buffer itself:
+    /// Save / ⌘S call this, and the host (ComposeWindow) writes inside the
+    /// coordinator's tree-write window and surfaces errors in its status
+    /// bar.
     var onSave: (() -> Void)?
     /// External line-jump from ProblemsPane (M11 #207): when set, the editor
     /// jumps to this absolute character offset.
@@ -37,7 +38,6 @@ struct ComposeEditorView: View {
     /// LATER-3.3: leading pane editing the closed front-matter key set.
     @State private var showFrontmatter = false
     @State private var previewOptions = MarkupRenderOptions()
-    @State private var saveError: String?
 
     private var autosaveName: String {
         "ComposeSplit-\(document.language.rawValue)"
@@ -170,14 +170,10 @@ struct ComposeEditorView: View {
             .accessibilityHint("Configure Oliver's parse extensions.")
 
             Button {
-                do {
-                    saveError = nil
-                    if try document.save() {
-                        onSave?()
-                    }
-                } catch {
-                    saveError = error.localizedDescription
-                }
+                // #231: never write here. The host's save flow wraps the
+                // write in the coordinator's tree-write window; saving
+                // directly would race the preview watch mid-write.
+                onSave?()
             } label: {
                 Label("Save", systemImage: "square.and.arrow.down")
             }
@@ -186,13 +182,6 @@ struct ComposeEditorView: View {
             .accessibilityLabel("Save")
             .accessibilityHint("Write the buffer to disk (⌘S).")
             .disabled(!document.isDirty)
-
-            if let saveError {
-                Text(saveError)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .lineLimit(1)
-            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)

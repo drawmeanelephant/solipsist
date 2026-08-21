@@ -177,18 +177,24 @@ struct ComposeWindow: View {
 
     // MARK: - Save → coordinator gate
 
+    /// The single save entry point — toolbar Save, ⌘S, every host verb.
+    /// #231: the write happens inside `ComposeSaveFlow`'s tree-write window,
+    /// so the preview watch can never observe a partially-written file.
     private func save() {
         saveStatus = nil
-        do {
-            // Tree write: suspend the preview watch for the write, like
-            // play's IR build does; resume on the way out.
-            runtime.coordinator.beginTreeWrite()
-            defer { runtime.coordinator.endTreeWrite() }
-            guard try document.save() else { return }
-            runtime.coordinator.noteSave()
+        let outcome = ComposeSaveFlow.run(
+            beginTreeWrite: { runtime.coordinator.beginTreeWrite() },
+            endTreeWrite: { runtime.coordinator.endTreeWrite() },
+            noteSave: { runtime.coordinator.noteSave() },
+            save: { try document.save() }
+        )
+        switch outcome {
+        case .saved:
             saveStatus = "Saved · queued validate"
-        } catch {
-            saveStatus = error.localizedDescription
+        case .notDirty:
+            break
+        case .failed(let message):
+            saveStatus = message
         }
     }
 
