@@ -153,26 +153,36 @@ private struct PagesGroup: View {
         return LocalPlayGraph.trunks(from: graph)
     }
 
+    /// Accessibility counts (A11Y-5 / #243) from the already-decoded
+    /// graph the store mirrors — Pages row total + per-trunk items.
+    /// No graph yet → no counts, not an error.
+    private var graphCounts: PlayPageCounts? {
+        store.graph(for: item.id).map(LocalPlayGraph.counts(from:))
+    }
+
     var body: some View {
         DisclosureGroup(isExpanded: $expanded) {
             ForEach(trunks, id: \.id) { trunk in
-                TrunkRow(item: item, trunk: trunk)
+                TrunkRow(item: item, trunk: trunk, itemCount: graphCounts?.trunkCounts[trunk.id])
                     .tag(MailboxRowID(sourceID: item.id, mailbox: trunk.id))
                     .contextMenu { sourceMenu(item, store: store) }
             }
         } label: {
-            MailboxRow(item: item, box: WorkspaceMailbox.pages)
+            MailboxRow(item: item, box: WorkspaceMailbox.pages, itemCount: graphCounts?.pages)
                 .tag(pagesRowID)
                 .contextMenu { sourceMenu(item, store: store) }
         }
     }
 }
 
-/// A trunk folder row under Pages. Label is the trunk title; the
-/// selection value is the trunk id (written raw to `mailbox`).
+/// A Trunk folder row under Pages. Label is the trunk title; the
+/// selection value is the trunk id (written raw to `mailbox`). `itemCount`
+/// is the A11Y-5 #243 trunk item count from the stored graph, when the
+/// graph is loaded.
 private struct TrunkRow: View {
     let item: SourceItem
     let trunk: PlayPage
+    var itemCount: Int?
 
     var body: some View {
         Label {
@@ -185,6 +195,7 @@ private struct TrunkRow: View {
                 .foregroundStyle(.secondary)
         }
         .accessibilityLabel("\(item.title), \(trunk.title)")
+        .accessibilityItemCount(itemCount)
     }
 }
 
@@ -203,6 +214,9 @@ fileprivate func sourceMenu(_ item: SourceItem, store: WorkspaceStore) -> some V
 private struct MailboxRow: View {
     let item: SourceItem
     let box: String
+    /// A11Y-5 (#243): item count for the Pages row, when the graph is
+    /// loaded. Nil → no `accessibilityValue`; the row just keeps its label.
+    var itemCount: Int?
 
     var body: some View {
         Label {
@@ -214,6 +228,22 @@ private struct MailboxRow: View {
                 .foregroundStyle(.secondary)
         }
         .accessibilityLabel("\(item.title), \(WorkspaceMailbox.displayName(box))")
+        .accessibilityItemCount(itemCount)
+    }
+}
+
+private extension View {
+    /// Announce an item count only when one exists (A11Y-5 / #243). Rows
+    /// the sidebar does not count get no `accessibilityValue` at all.
+    /// Plain "\(count) items" to match the file's non-localized strings;
+    /// the count is the accessible value, the label carries the row name.
+    @ViewBuilder
+    func accessibilityItemCount(_ count: Int?) -> some View {
+        if let count {
+            accessibilityValue("\(count) items")
+        } else {
+            self
+        }
     }
 }
 

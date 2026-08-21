@@ -37,7 +37,33 @@ struct PlayPage: Identifiable, Hashable, Sendable {
     }
 }
 
+/// Sidebar accessibility counts (A11Y-5 / #243): the Pages row's item
+/// count and each trunk folder's count, derived from the same walk
+/// `pages(from:)` does — never a second interpretation of `graph.parent`.
+struct PlayPageCounts: Equatable, Sendable {
+    /// All pages in the graph (the Pages mailbox always means all).
+    let pages: Int
+    /// Trunk id → items in that trunk folder (the trunk row plus its
+    /// satellites — what `pages(in:trunkID:)` returns).
+    let trunkCounts: [String: Int]
+}
+
 enum LocalPlayGraph {
+    /// Accessibility counts for the sidebar (A11Y-5 / #243). Pages count
+    /// is the full list; trunk counts match the M13-2 trunk filter, so the
+    /// announced numbers always agree with the letter list. Empty graph →
+    /// zero pages and no trunk counts, not an error.
+    static func counts(from graph: Graph) -> PlayPageCounts {
+        let pages = pages(from: graph)
+        var trunkCounts: [String: Int] = [:]
+        for page in pages {
+            if let trunkID = page.trunkID {
+                trunkCounts[trunkID, default: 0] += 1
+            }
+        }
+        return PlayPageCounts(pages: pages.count, trunkCounts: trunkCounts)
+    }
+
     /// Walk `graph.nodes` by `parent`. Does not consult `edges` / `nav`.
     static func pages(from graph: Graph) -> [PlayPage] {
         let known = Set(graph.nodes.map(\.id))
