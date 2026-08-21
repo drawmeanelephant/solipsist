@@ -1,9 +1,15 @@
 import AppKit
 import SwiftUI
 
-/// NSTextView host with live heuristic highlighting. The text storage is
-/// re-painted after every edit; the buffer in `ComposeDocument` stays the
-/// single source of truth.
+/// NSTextView host with live heuristic highlighting and native Find bar.
+/// The text storage is re-painted after every edit; the buffer in
+/// `ComposeDocument` stays the single source of truth.
+///
+/// Find & Replace (#225) uses the system find bar (`usesFindBar = true`,
+/// `isIncrementalSearchingEnabled = true`) hosted in the enclosing
+/// `NSScrollView` (which conforms to `NSTextFinderBarContainer`). This gives
+/// ⌘F / ⌘⌥F / ⌘G / ⇧⌘G, wrap-around, case-insensitive and regex toggles for
+/// free — no custom UI.
 struct ComposeTextView: NSViewRepresentable {
     @Bindable var document: ComposeDocument
     /// Click-to-line target (LATER-3.1); nil = no pending jump.
@@ -16,7 +22,15 @@ struct ComposeTextView: NSViewRepresentable {
         Coordinator(document: document, completion: completion)
     }
 
-    func makeNSView(context: Context) -> NSTextView {
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers = true
+        scrollView.borderType = .noBorder
+        scrollView.drawsBackground = false
+        scrollView.findBarPosition = .aboveContent
+
         let textView = NSTextView()
         textView.delegate = context.coordinator
         textView.isRichText = false
@@ -28,8 +42,21 @@ struct ComposeTextView: NSViewRepresentable {
         textView.font = baseFont
         textView.textContainerInset = NSSize(width: 10, height: 10)
         textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
         textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.containerSize = NSSize(
+            width: scrollView.contentSize.width,
+            height: CGFloat.greatestFiniteMagnitude
+        )
+        // #225 Find & Replace: system find bar + incremental search.
+        textView.usesFindBar = true
+        textView.usesFindPanel = false
+        textView.isIncrementalSearchingEnabled = true
+
+        scrollView.documentView = textView
+        context.coordinator.textView = textView
+        context.coordinator.scrollView = scrollView
 
         context.coordinator.applyHighlight(
             textView,
@@ -37,13 +64,29 @@ struct ComposeTextView: NSViewRepresentable {
             language: document.language,
             force: true
         )
-        return textView
+        return scrollView
     }
 
-    func updateNSView(_ textView: NSTextView, context: Context) {
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView else { return }
         context.coordinator.document = document
         context.coordinator.completion = completion
+        context.coordinator.textView = textView
+        context.coordinator.scrollView = scrollView
+
+        // Page switch (#225 edge): the buffer was replaced wholesale. Hide the
+        // find bar so it does not survive across pages. The SwiftUI `.id`
+        // recreation in `ComposeEditorView` is the primary reset; this is the
+        // fallback when the view is reused.
         if textView.string != document.text {
+            // Best-effort hide via NSTextFinderBarContainer. NSScrollView
+            // conforms to it in AppKit, even though the header only exposes
+            // `findBarPosition`; the `findBarVisible` selector is available
+            // at runtime.
+            if scrollView.responds(to: Selector(("setFindBarVisible:"))) {
+                // swiftlint:disable:next no_direct_perform_selector
+                scrollView.perform(Selector(("setFindBarVisible:")), with: NSNumber(value: false))
+            }
             textView.string = document.text
             context.coordinator.applyHighlight(textView, text: document.text, language: document.language, force: true)
         } else {
@@ -62,6 +105,8 @@ struct ComposeTextView: NSViewRepresentable {
         /// Cooklang completion vocabulary, updated on view syncs so a
         /// freshly-built `.boris/` index reaches the popup without a reload.
         var completion: ComposeCookCompletion = .empty
+        weak var textView: NSTextView?
+        weak var scrollView: NSScrollView?
         private var isApplying = false
         /// Last click-to-line offset we applied, so re-syncs do not re-jump.
         private var lastJumpedCharacter: Int?
