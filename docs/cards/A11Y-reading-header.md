@@ -8,8 +8,7 @@ suggestion `feat/a11y-reading-header`.
 
 Spec: [`docs/issues/editor-accessibility-reading-header.md`](../issues/editor-accessibility-reading-header.md).
 
-**Status: ⬜ not covered.** The header still announces as two separate
-elements; only the served badge has a11y work (polish batch — keep it).
+**Status: ✅ merged (PR #249).** Kept as the record; do not reopen.
 
 ## Owns
 
