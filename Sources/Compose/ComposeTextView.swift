@@ -80,6 +80,7 @@ struct ComposeTextView: NSViewRepresentable {
         // Gutter width tracks line count; update after initial paint.
         context.coordinator.updateGutterWidth()
         gutter.needsDisplay = true
+        document.updateCursor(textView.selectedRange())
         return scrollView
     }
 
@@ -114,6 +115,7 @@ struct ComposeTextView: NSViewRepresentable {
             context.coordinator.applyHighlight(textView, text: document.text, language: document.language)
         }
         context.coordinator.jump(to: jumpToCharacter, in: textView)
+        document.updateCursor(textView.selectedRange())
         context.coordinator.updateGutterWidth()
         // Keep gutter height in sync with textView content height
         if let gutter = context.coordinator.gutter {
@@ -166,6 +168,7 @@ struct ComposeTextView: NSViewRepresentable {
             maybeOpenCompletion(in: textView, previousText: oldText)
             updateGutterWidth()
             gutter?.needsDisplay = true
+            document.updateCursor(textView.selectedRange())
             // Keep gutter height in sync with textView's content height
             if let gutter {
                 var gutterFrame = gutter.frame
@@ -175,7 +178,12 @@ struct ComposeTextView: NSViewRepresentable {
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else {
+                gutter?.needsDisplay = true
+                return
+            }
             gutter?.needsDisplay = true
+            document.updateCursor(textView.selectedRange())
         }
 
         /// Update gutter width and text container padding when line count grows

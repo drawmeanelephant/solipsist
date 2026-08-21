@@ -43,6 +43,134 @@ final class ComposeDocument {
     /// Whether the buffer differs from the last save/load.
     private(set) var isDirty = false
 
+    /// Cursor position for the status bar (#228). Updated by
+    /// `ComposeTextView.Coordinator` on every selection change.
+    var cursorLine: Int = 1
+    var cursorColumn: Int = 1
+    /// Length of the current selection (0 = no selection). Used to show
+    /// "42 selected" in place of the total character count.
+    var selectedLength: Int = 0
+
+    /// Word count via `NSString` `.byWords` (handles hyphens, contractions).
+    var wordCount: Int {
+        let nsText = text as NSString
+        var count = 0
+        nsText.enumerateSubstrings(
+            in: NSRange(location: 0, length: nsText.length),
+            options: [.byWords, .substringNotRequired]
+        ) { _, _, _, _ in count += 1 }
+        return count
+    }
+
+    /// Character count (Swift grapheme clusters, matches `text.count`).
+    var characterCount: Int { text.count }
+
+    /// Formatted word count for the status bar, e.g. "1,234 words".
+    var wordCountText: String {
+        let formatted = formatCount(wordCount)
+        return "\(formatted) \(wordCount == 1 ? "word" : "words")"
+    }
+
+    /// Formatted character count, e.g. "5,678 chars" or "42 selected".
+    var characterCountText: String {
+        if selectedLength > 0 {
+            let formatted = formatCount(selectedLength)
+            return "\(formatted) selected"
+        }
+        let formatted = formatCount(characterCount)
+        return "\(formatted) chars"
+    }
+
+    /// Formatted cursor position, e.g. "Ln 12, Col 45".
+    var cursorText: String {
+        "Ln \(cursorLine), Col \(cursorColumn)"
+    }
+
+    /// Update cursor from an `NSRange` (UTF-16 offset) in the current `text`.
+    func updateCursor(_ range: NSRange) {
+        let nsText = text as NSString
+        let length = nsText.length
+        let location = min(max(range.location, 0), length)
+        selectedLength = min(max(range.length, 0), length - location)
+
+        if length == 0 {
+            cursorLine = 1
+            cursorColumn = 1
+            return
+        }
+        if isTrailingNewLine(location: location, nsText: nsText) {
+            cursorLine = countLines(in: nsText) + 1
+            cursorColumn = 1
+            return
+        }
+        let (line, lineStart) = lineAndColumnStart(for: location, in: nsText)
+        cursorLine = max(1, line)
+        cursorColumn = max(1, location - lineStart + 1)
+    }
+
+    private func isTrailingNewLine(location: Int, nsText: NSString) -> Bool {
+        location == nsText.length && nsText.length > 0 && nsText.character(at: nsText.length - 1) == 10
+    }
+
+    private func countLines(in nsText: NSString) -> Int {
+        var lines = 0
+        nsText.enumerateSubstrings(
+            in: NSRange(location: 0, length: nsText.length),
+            options: [.byLines, .substringNotRequired]
+        ) { _, _, _, _ in lines += 1 }
+        return lines
+    }
+
+    private func lineAndColumnStart(for location: Int, in nsText: NSString) -> (Int, Int) {
+        var line = 1
+        var lineStart = 0
+        var found = false
+        nsText.enumerateSubstrings(
+            in: NSRange(location: 0, length: nsText.length),
+            options: [.byLines, .substringNotRequired]
+        ) { _, subRange, _, stop in
+            if NSLocationInRange(location, subRange) || location == NSMaxRange(subRange) {
+                lineStart = subRange.location
+                found = true
+                stop.pointee = true
+            } else if location < subRange.location {
+                stop.pointee = true
+            } else {
+                line += 1
+            }
+        }
+        if !found {
+            let fallback = fallbackLineStart(for: location, in: nsText)
+            return (fallback.line, fallback.start)
+        }
+        return (line, lineStart)
+    }
+
+    private func fallbackLineStart(for location: Int, in nsText: NSString) -> (line: Int, start: Int) {
+        var fallbackLine = 1
+        var fallbackStart = 0
+        nsText.enumerateSubstrings(
+            in: NSRange(location: 0, length: min(location, nsText.length)),
+            options: [.byLines, .substringNotRequired]
+        ) { _, subRange, _, _ in
+            fallbackLine += 1
+            fallbackStart = NSMaxRange(subRange)
+        }
+        var line = max(1, fallbackLine - 1)
+        var start = fallbackStart
+        if start > location {
+            start = 0
+            line = 1
+        }
+        return (line, start)
+    }
+
+    private func formatCount(_ count: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: count)) ?? "\(count)"
+    }
+
     /// Human-readable state for the compose window's status line.
     var statusText: String {
         var parts: [String] = []
@@ -67,6 +195,9 @@ final class ComposeDocument {
         self.language = language ?? ComposeLanguage.detect(fileURL: fileURL, contents: text)
         self.languageExplicit = language != nil
         self.isDirty = false
+        self.cursorLine = 1
+        self.cursorColumn = 1
+        self.selectedLength = 0
     }
 
     /// The frontmatter dialect, mirroring Oliver's shared pre-pass
@@ -114,6 +245,9 @@ final class ComposeDocument {
         text = loaded
         language = ComposeLanguage.detect(fileURL: url, contents: loaded)
         isDirty = false
+        cursorLine = 1
+        cursorColumn = 1
+        selectedLength = 0
     }
 }
 
