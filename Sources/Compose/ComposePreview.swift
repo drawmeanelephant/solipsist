@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 /// The compose element's preview pane. Renders through the injected
 /// `MarkupRenderService` (Oliver-backed in the app; placeholder standalone),
@@ -8,6 +9,10 @@ struct ComposePreviewView: View {
     let language: ComposeLanguage
     let options: MarkupRenderOptions
     let renderService: any MarkupRenderService
+    /// Theme CSS resolved from the source's profile / `themes/` directory
+    /// (#230). Nil → the fallback stylesheet. The host resolves it; this
+    /// view never touches the workspace.
+    var themeCSS: String?
     /// Receives the mapped diagnostics after each render (LATER-3.1). The
     /// editor owns the problems pane; the preview only renders HTML.
     var onDiagnostics: ([ComposeDiagnostic]) -> Void = { _ in }
@@ -38,7 +43,9 @@ struct ComposePreviewView: View {
                 guard !Task.isCancelled else { return }
                 let rendered = try await renderService.render(source, language: language, options: options)
                 guard !Task.isCancelled else { return }
-                html = rendered.html
+                // Wrap the fragment with the theme CSS here so the web view
+                // receives one self-contained document (#230).
+                html = ComposePreviewDocument.html(fragment: rendered.html, themeCSS: themeCSS)
                 renderError = nil
                 onDiagnostics(rendered.diagnostics)
             } catch is CancellationError {
@@ -60,38 +67,30 @@ private struct PreviewRequest: Equatable {
     let source: String
 }
 
-/// Hosts the rendered fragment. `WKWebView`-free on purpose: the compose
-/// preview is a sandboxed HTML fragment view, not a browser surface.
+/// Hosts the rendered document in a sandboxed `WKWebView` (#230): full CSS,
+/// JavaScript, and media support without an in-process HTML parse. The web
+/// view uses a non-persistent data store (no disk cache) and loads the
+/// self-contained document with `baseURL: nil` — styling needs no file or
+/// network access, and there is no app-side HTTP server (D11). Navigation
+/// policy lives in `ComposePreviewCoordinator`.
 private struct ComposeHTMLPreview: NSViewRepresentable {
     let html: String
 
-    func makeNSView(context: Context) -> NSTextView {
-        let textView = NSTextView()
-        textView.isEditable = false
-        textView.isSelectable = true
-        textView.drawsBackground = true
-        textView.backgroundColor = .textBackgroundColor
-        textView.textContainerInset = NSSize(width: 12, height: 12)
-        apply(html, to: textView)
-        return textView
+    func makeCoordinator() -> ComposePreviewCoordinator {
+        ComposePreviewCoordinator()
     }
 
-    func updateNSView(_ textView: NSTextView, context: Context) {
-        apply(html, to: textView)
+    func makeNSView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        configuration.suppressesIncrementalRendering = true
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
+        context.coordinator.load(html, in: webView)
+        return webView
     }
 
-    private func apply(_ html: String, to textView: NSTextView) {
-        guard
-            let data = html.data(using: .utf8),
-            let attributed = try? NSAttributedString(
-                data: data,
-                options: [.documentType: NSAttributedString.DocumentType.html],
-                documentAttributes: nil
-            )
-        else {
-            textView.string = html
-            return
-        }
-        textView.textStorage?.setAttributedString(attributed)
+    func updateNSView(_ webView: WKWebView, context: Context) {
+        context.coordinator.reloadIfChanged(html, in: webView)
     }
 }

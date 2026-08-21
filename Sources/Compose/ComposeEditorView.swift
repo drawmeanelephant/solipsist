@@ -14,6 +14,9 @@ struct ComposeEditorView: View {
     @Bindable var document: ComposeDocument
 
     var renderService: any MarkupRenderService = PlaceholderRenderService()
+    /// Theme CSS for the preview pane (#230): the canonical target's theme
+    /// from the source profile, resolved by the host. Nil → fallback style.
+    var themeCSS: String?
     /// Cooklang completion vocabulary (LATER-3.4); `.empty` (default) keeps
     /// the popup off for hosts without a `.boris/` index.
     var cookCompletion: ComposeCookCompletion = .empty
@@ -69,6 +72,7 @@ struct ComposeEditorView: View {
                         language: document.language,
                         options: previewOptions,
                         renderService: renderService,
+                        themeCSS: themeCSS,
                         onDiagnostics: { diagnostics = $0 }
                     )
                     .frame(minWidth: 240, maxWidth: .infinity, maxHeight: .infinity)
