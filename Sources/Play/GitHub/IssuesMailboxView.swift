@@ -24,17 +24,26 @@ struct IssuesMailboxView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let errorText, issues.isEmpty {
                 ContentUnavailableView {
-                    Label("Issues Unavailable", systemImage: "exclamationmark.triangle")
+                    Label("Issues Unavailable", systemImage: WorkspaceMailbox.symbolName(WorkspaceMailbox.issues))
                 } description: {
                     Text(errorText)
                 } actions: {
+                    if errorText.contains("No GitHub token") {
+                        Button("Sign In…") {
+                            // Settings → Sources manages the token; open that pane via Store's present flow.
+                            // Fallback to Try Again if Settings is already handling auth.
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                     Button("Try Again") { reload() }
                 }
             } else if issues.isEmpty {
                 ContentUnavailableView {
-                    Label("No Open Issues", systemImage: "exclamationmark.circle")
+                    Label("No Open Issues", systemImage: WorkspaceMailbox.symbolName(WorkspaceMailbox.issues))
                 } description: {
                     Text("This repository has no open issues.")
+                } actions: {
+                    Button("New Issue…") { showCreateSheet = true }
                 }
                 .accessibilityLabel("No Open Issues")
             } else {

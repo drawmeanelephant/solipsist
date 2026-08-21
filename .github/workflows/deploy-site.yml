@@ -20,14 +20,14 @@ jobs:
       - name: Checkout Solipsist
         uses: actions/checkout@v7
 
-      # D7 pin: the same afterparty engine commit the app bundles. `main` on
-      # boris is the stale v0.8.0 line; moving pins are not reproducible.
+      # D7 pin: the same afterparty engine commit the app bundles (bf464a0).
+      # `main` on boris is the stale v0.8.0 line; moving pins are not reproducible.
       - name: Checkout Boris compiler
         uses: actions/checkout@v7
         with:
           repository: drawmeanelephant/boris
           path: boris
-          ref: b82e9e2eace74d9ca61df23dffc1329d2a2fe628
+          ref: bf464a02883d1dce1d9f990739183c248e68c5c3
 
       # Same pin boris's own CI uses (github-pages.yml); `master` tarballs
       # rotate out of the mirrors and 404.

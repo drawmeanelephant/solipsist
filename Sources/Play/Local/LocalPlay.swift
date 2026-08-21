@@ -260,12 +260,26 @@ struct LocalPlay: PlaySurface {
                 ContentUnavailableView.search(text: searchText)
             } else {
                 List(filtered, selection: selectedPageID) { page in
-                    PageRow(page: page, findings: runtime.coordinator.checkFindings)
-                        .tag(page.id)
+                    PageRow(
+                        page: page,
+                        findings: runtime.coordinator.checkFindings,
+                        isSelected: store.selection.noun?.id == page.id
+                    )
+                    .tag(page.id)
                         .simultaneousGesture(TapGesture(count: 2).onEnded {
                             selectPage(page)
                             openWindow(id: CompanionID.compose)
                         })
+                        .contextMenu {
+                            Button("Compose (Native)") {
+                                selectPage(page)
+                                openWindow(id: CompanionID.compose)
+                            }
+                            Button("Edit Page in Boris Editor") {
+                                selectPage(page)
+                                openWindow(id: CompanionID.editor)
+                            }
+                        }
                 }
                 .listStyle(.inset)
                 .safeAreaPadding(.top, toolbarBand)
@@ -457,15 +471,18 @@ struct LocalPlay: PlaySurface {
 private struct PageRow: View {
     let page: PlayPage
     let findings: [AnalysisFinding]
+    var isSelected = false
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             if page.depth > 0 {
                 Color.clear.frame(width: CGFloat(page.depth) * 16)
+                    .accessibilityHidden(true)
             }
             Image(systemName: page.role == .trunk ? "doc.text" : "doc")
                 .foregroundStyle(.secondary)
                 .frame(width: 16)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(page.title)
                     .lineLimit(1)
@@ -488,6 +505,11 @@ private struct PageRow: View {
             }
         }
         .help("\(page.title) · \(page.status) · \(page.id)")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(page.title), \(page.status), \(page.id), level \(page.depth + 1)")
+        .accessibilityValue(isSelected ? "selected" : "")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint("Page at depth \(page.depth)")
     }
 
     private var pageFindings: [AnalysisFinding] {

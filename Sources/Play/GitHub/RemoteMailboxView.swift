@@ -20,23 +20,36 @@ struct RemoteMailboxView: View {
     @State private var isPushing = false
 
     var body: some View {
-        List {
-            syncSection
-            commitSection
-            pushSection
-            prSection
-            statusSection
-            if let error = live.lastSyncError {
-                Section {
-                    Text(error)
-                        .font(.callout)
-                        .foregroundStyle(.red)
-                } header: {
-                    Text("Last Sync Failed")
+        Group {
+            if !live.isAvailable {
+                ContentUnavailableView {
+                    Label("Remote Unavailable", systemImage: WorkspaceMailbox.symbolName(WorkspaceMailbox.remote))
+                } description: {
+                    Text("This working copy is unreachable. Relocate it from File → Relocate Source… or Settings → Sources, or remove it.")
+                } actions: {
+                    Button("Relocate…") { store.presentRelocatePanel(for: source.id) }
+                    Button("Remove", role: .destructive) { store.remove(source.id) }
                 }
+            } else {
+                List {
+                    syncSection
+                    commitSection
+                    pushSection
+                    prSection
+                    statusSection
+                    if let error = live.lastSyncError {
+                        Section {
+                            Text(error)
+                                .font(.callout)
+                                .foregroundStyle(.red)
+                        } header: {
+                            Text("Last Sync Failed")
+                        }
+                    }
+                }
+                .listStyle(.inset)
             }
         }
-        .listStyle(.inset)
         .navigationTitle(source.title)
         .task(id: source.id) {
             await refreshStatus()

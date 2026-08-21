@@ -6,10 +6,25 @@ Solipsist is a native macOS workstation for [Boris](https://github.com/drawmeane
 
 Accounts live in Settings. The main window is mailboxes, a reading place, and a drawer. Companion windows host surfaces Solipsist does not rewrite.
 
-- **Settings → Sources**: The account book. Add, relocate, and remove local folders (`Solipsist → Settings…`). A source is a folder of Boris content, not a file tree. `File → Open…` (`⌘O`) and Open Recent write the same store. Try `Stunts/happy` first.
-- **Mailboxes (Left)**: Each source is an account header. Under it: Pages, Outputs, Publish, Plan, Activity, and Content Audit. Selecting a header opens that source's Pages mailbox.
-- **Reading (Center)**: The message list of the selected mailbox, plus a reading pane for the selected message. On Pages, pick a page to read it as a letter (the served page when Preview is up; a contract summary when it is not). The problems list under the reading place is where every coordinator job reports its exit and diagnostics.
-- **Inspector Drawer (Right)**: Options, profile keys, page fields, and execution knobs of the current selection.
+- **Settings → Sources**: The account book (`Solipsist → Settings…` or `⌘,`). Add local folders, clone git repositories (`File → Clone Repository…`), or connect GitHub accounts via OAuth device flow (tokens stored securely in Keychain). A source is a folder of Boris content, not a raw file tree. `File → Open…` (`⌘O`) and Open Recent write the same store. Try `Stunts/happy` first.
+- **Mailboxes (Left)**: Each source is an account header in the sidebar outline.
+  - **Local sources**: Pages (expanding to nested trunk subfolders from `graph.parent`), Outputs, Publish, Plan, Activity, and Content Audit.
+  - **GitHub sources**: Pages and trunk subfolders, Outputs, Publish, Plan, Activity, Content Audit, plus **Remote** (branch status, ahead/behind tracking, commit/push/sync), **Issues** (open repository issues), and **Pull Requests** (open PRs and authoring).
+  - Selecting an account header opens that source's Pages mailbox.
+- **Reading (Center)**: The message list of the selected mailbox, plus a reading pane for the selected message. On Pages, pick a page to read it as a letter — `Served` (green capsule) when the live preview watch is bound to this source, `Foreign` (orange capsule) when preview serves another source, and a contract-backed summary when preview is down. The badge in the letter header and the `Preview is serving another source` hint keep the single-watch reuse honest. Use `Copy ID` / `Copy Path` / `Reveal in Finder` in the summary, and tap relation chips to resolve via the graph.
+- **Problems as a place**: The problems list under the reading place is where coordinator jobs and the live A5 `validate --watch` daemon report exits and diagnostics. Rows show severity chips (error red / info secondary), code capsules, and middle-truncated `path:line:column`. Right-click for **Copy**, **Copy as Markdown**, **Open in Compose at line**, and **Reveal in Finder** — a broken `[[wikilink]]` click selects Pages + that page and opens Compose at the reported line.
+- **Inspector Drawer (Right)**: Context-aware options, profile keys, page fields, target settings, branch status, and execution knobs of the current selection. The toolbar belt (`Plan` `⌘⇧L` / `Validate` `⌘⇧K` / `Build IR` `⌘B` / `Build All` `⌘⇧U`) and the status bar (`source · verb · exit · engine`, red on non-zero, hover shows duration / timings) mirror the **Boris** menu.
+
+## Mailbox Surfaces & Workflows
+
+- **Pages & Trunk Folders**: The Pages mailbox lists all publication pages. When the decoded graph contains trunk folders, Pages expands into nested subfolders. Selecting a trunk folder filters the letter list to that trunk and its descendants.
+- **Outputs**: Inspect HTML build targets and editions (IR, RAG, Context). Select a target to view theme, layout, sitemap, RSS, and LLMs metadata in the drawer.
+- **Publish**: Manage publication targets, including Standard.site and Nostr publisher configurations.
+- **Plan & Activity**: Review publication build plans and coordinator job run histories.
+- **Content Audit**: Run structure, integrity, and relation checks across the publication graph (such as unreferenced pages or missing parents).
+- **Remote (GitHub)**: Displays working copy status, current branch, ahead/behind commit counts relative to upstream, and provides Sync, Commit, and Push actions.
+- **Issues (GitHub)**: Lists open GitHub issues for the repository with links to view and manage them in the browser.
+- **Pull Requests (GitHub)**: Lists open pull requests with draft status and branch heads, and provides a `New Pull Request…` toolbar action to push upstream and open the PR authoring flow.
 
 ## Menu Reference
 
@@ -56,7 +71,7 @@ Every menu verb and keyboard shortcut:
 | Verb | Shortcut | Description |
 | --- | --- | --- |
 | Show Inspector, Hide Inspector | `⌥⌘0` | Toggle the Inspector drawer on the right. |
-| Preview | `⌘⇧P` | Open the Preview companion window (live preview via `watch --serve` with loopback URL validation). |
+| Preview | `⌘⇧P` | Open the Preview companion window (live preview via `watch --serve` with loopback URL validation and SSE reload). |
 | Editor | `⌘⇧E` | Open the Editor companion window (token-isolated host for `boris-editor`). |
 | Compose | `⌘⇧C` | Open the Compose window (native Markdown / Textile / Cooklang editor for the selected page; Oliver-powered preview; Save flows into the coordinator's validate gate). |
 
@@ -68,8 +83,8 @@ Every menu verb and keyboard shortcut:
 
 ## Companion Windows
 
-- **Preview Companion (`⌘⇧P`)**: Live preview of the full site, powered by `watch --serve` with loopback URL validation. The reading pane reuses this same watch for the selected page; it does not start a second one.
-- **Editor Companion (`⌘⇧E`)**: Token-isolated companion host for `boris-editor`. File → Edit Page opens it against the selected page.
+- **Preview Companion (`⌘⇧P`)**: Live preview of the full site, powered by Boris engine A1 `--watch-json` / `serve-started` stream with loopback URL validation and Server-Sent Events (SSE `event: reload`). The reading pane reuses this same watch stream for the selected page without starting a duplicate subprocess.
+- **Editor Companion (`⌘⇧E`)**: Token-isolated companion host for `boris-editor`. File → Edit Page opens it against the selected page with `open=` parameter targeting the page's source path.
 - **Compose Window (`⌘⇧C`)**: Native compose surface for the selected page's source file — Markdown / Textile / Cooklang editing with heuristic highlighting, an Oliver-rendered preview split (live, debounced; Render Options mirror Oliver's `ParseOptions` — wikilinks, callouts, smart typography, footnotes, task lists, frontmatter policy, raw-HTML policy, XHTML profile), and save-triggered validate through the coordinator. The renderer binary is located via `SOLIPSIST_OLIVER_BIN` → app bundle → sibling of `boris` → dev checkouts. Language is auto-detected from the file; the picker overrides it per session.
 
 For architecture and roadmap details, see [ROADMAP.md](https://github.com/drawmeanelephant/solipsist/blob/main/docs/ROADMAP.md).

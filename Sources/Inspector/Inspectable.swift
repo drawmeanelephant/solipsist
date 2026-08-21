@@ -30,6 +30,38 @@ struct InspectorSnapshot: Inspectable {
     var sourceKind: SourceKind?
     var nounKind: String?
     var mailbox: String?
+    var nounID: String? = nil
+    var nounTitle: String? = nil
+    var nounSourcePath: String? = nil
+
+    init(
+        sourceKind: SourceKind? = nil,
+        nounKind: String? = nil,
+        mailbox: String? = nil,
+        nounID: String? = nil,
+        nounTitle: String? = nil,
+        nounSourcePath: String? = nil
+    ) {
+        self.sourceKind = sourceKind
+        self.nounKind = nounKind
+        self.mailbox = mailbox
+        self.nounID = nounID
+        self.nounTitle = nounTitle
+        self.nounSourcePath = nounSourcePath
+    }
+
+    init(
+        sourceKind: SourceKind?,
+        noun: WorkspaceNoun?,
+        mailbox: String?
+    ) {
+        self.sourceKind = sourceKind
+        self.nounKind = noun?.kind
+        self.mailbox = mailbox
+        self.nounID = noun?.id
+        self.nounTitle = noun?.title
+        self.nounSourcePath = noun?.sourcePath
+    }
 
     var inspectorSections: [InspectorSection] {
         guard let sourceKind else { return [] }
@@ -47,7 +79,7 @@ struct InspectorSnapshot: Inspectable {
             sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
 
         case WorkspaceMailbox.outputs:
-            if nounKind == InspectorNounKind.target {
+            if nounKind == InspectorNounKind.target || nounKind == "edition" {
                 sections.append(InspectorSection(id: InspectorSectionID.target, title: "Target"))
             }
             if sourceKind == .local {
@@ -61,16 +93,26 @@ struct InspectorSnapshot: Inspectable {
             }
             sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
 
-        case WorkspaceMailbox.plan, WorkspaceMailbox.activity:
+        case WorkspaceMailbox.plan, WorkspaceMailbox.activity, WorkspaceMailbox.contentAudit:
             sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution Controls"))
             if sourceKind == .local {
                 sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Site Profile"))
             }
 
+        case WorkspaceMailbox.remote:
+            sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Remote Sync & Execution"))
+
+        case WorkspaceMailbox.issues, WorkspaceMailbox.pulls:
+            sections.append(InspectorSection(id: InspectorSectionID.execution, title: "GitHub & Execution"))
+
         default:
-            // Unknown mailbox (e.g. a future trunk id): not the Pages
-            // surface. Execution controls only, until M13-2 lands the
-            // trunk folder filter.
+            // Unknown mailbox (e.g. a trunk id): if a page is selected,
+            // show that page's inspector; otherwise signal the trunk filter.
+            if nounKind == InspectorNounKind.page {
+                sections.append(InspectorSection(id: InspectorSectionID.page, title: "Page"))
+            } else if sourceKind == .local {
+                sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Trunk Filter & Profile"))
+            }
             sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
         }
 

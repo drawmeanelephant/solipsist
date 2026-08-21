@@ -11,20 +11,25 @@ Solipsist is a **harness**, not a better compiler and not a Markdown IDE. Boris 
 
 ## Where we are
 
-M0–M8 **gates** and the depth batch exist: first-run, filter, plan as
-a document, profile 1:1, `recipe-scale`, the rest of `standard-site`,
-readable proof. Remaining **ship** work is a notarized DMG on a clean
-Mac. Remaining **product** cut is the Mail body: sources in Settings,
-a mailbox sidebar, a reading pane.
+M0–M14 shipped as gates; M15–M17 shipped the GitHub source and the
+`boris-content-audit` / `boris-source-rag` / Compose-depth depth. Remaining
+**ship** work is Apple-account only.
 
 | Track | Status |
 |-------|--------|
-| M0–M8 gates | landed |
-| P Project subdomain | withdrawn — this site is Cloudflare Pages |
-| Usability | landed — first-run, status, problem → page |
-| Play / inspector / publish depth | landed |
-| M9 Ship | open — notarized DMG on a clean Mac |
-| M10 Mail body | planned — Settings, mailboxes, reading pane, native compose ([#98](https://github.com/drawmeanelephant/solipsist/issues/98), [#106](https://github.com/drawmeanelephant/solipsist/issues/106)) |
+| M0–M8 gates | ✅ landed |
+| M9 Ship | ✅ pipeline + universal bundle (notarized `v*` + clean-Mac proof are #110/#111, Apple-account only) |
+| P Project subdomain | ⛔ withdrawn — this site is Cloudflare Pages |
+| M10 Mail body | ✅ Settings, mailboxes, reading pane, hosted Edit, native Compose ([#98](https://github.com/drawmeanelephant/solipsist/issues/98)) |
+| M11 Prove the Mail body | ✅ Help audit + test pass |
+| M12 Clone | ✅ `Add Git Repository…` → Local source |
+| M13 Graph folders | ✅ trunk mailboxes from `graph.parent` |
+| M14 Watch contract | ✅ A1 `--watch-json` + letter SSE |
+| M15 GitHub source | ✅ OAuth device flow + `SourceKind.github` |
+| M16 Write the remote | ✅ commit / push / PR authoring / issues |
+| M17 Pull Requests mailbox | ✅ `/pulls` list + authoring entry |
+| Polish `>200` | ✅ `>200` batch (reading, problems, chrome, a11y, empties, compose, contracts, git) |
+| Usability / depth | ✅ first-run, filter, plan doc, profile 1:1, `recipe-scale`, Standard.site/Nostr proof |
 
 ## v1 must
 

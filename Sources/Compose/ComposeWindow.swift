@@ -22,6 +22,7 @@ struct ComposeWindow: View {
     @State private var pendingSwitch: WorkspaceNoun?
     @State private var loadError: String?
     @State private var saveStatus: String?
+    @State private var externalJump: Int?
     /// Cooklang completion vocabulary (LATER-3.4): re-decoded from the
     /// source's `.boris/` artifacts whenever a page is loaded, so a fresh
     /// build reaches the popup without restarting the window.
@@ -34,7 +35,8 @@ struct ComposeWindow: View {
                     document: document,
                     renderService: OliverRenderService(),
                     cookCompletion: cookCompletion,
-                    onSave: save
+                    onSave: save,
+                    externalJump: externalJump
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     statusBar
@@ -47,6 +49,16 @@ struct ComposeWindow: View {
         .navigationTitle("Compose")
         .task(id: store.selection.noun) {
             handleSelection()
+        }
+        .task(id: runtime.pendingComposeJump) {
+            if let jump = runtime.pendingComposeJump, jump.pageID == pageNoun?.id {
+                if let offset = characterOffset(for: jump.line, column: jump.column, in: document.text) {
+                    externalJump = offset
+                } else {
+                    externalJump = 0
+                }
+                runtime.pendingComposeJump = nil
+            }
         }
         .confirmationDialog(
             "Discard unsaved changes?",
@@ -114,9 +126,32 @@ struct ComposeWindow: View {
             cookCompletion = ComposeCookCompletion.load(workspaceRoot: workspaceRoot)
             loadError = nil
             saveStatus = nil
+            if let jump = runtime.pendingComposeJump, jump.pageID == noun.id {
+                if let offset = characterOffset(for: jump.line, column: jump.column, in: document.text) {
+                    externalJump = offset
+                }
+                runtime.pendingComposeJump = nil
+            } else {
+                externalJump = nil
+            }
         } catch {
             loadError = String(describing: error)
         }
+    }
+
+    private func characterOffset(for line: Int, column: Int?, in text: String) -> Int? {
+        guard line >= 1 else { return nil }
+        let textNSString = text as NSString
+        var found: Int?
+        var current = 1
+        textNSString.enumerateSubstrings(in: NSRange(location: 0, length: textNSString.length), options: [.byLines, .substringNotRequired]) { _, range, _, stop in
+            if current == line {
+                found = range.location + min(max((column ?? 1) - 1, 0), range.length)
+                stop.pointee = true
+            }
+            current += 1
+        }
+        return found.map { min(max($0, 0), textNSString.length) }
     }
 
     // MARK: - Save → coordinator gate

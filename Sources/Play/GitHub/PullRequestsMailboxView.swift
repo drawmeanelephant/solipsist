@@ -25,17 +25,24 @@ struct PullRequestsMailboxView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let errorText, pulls.isEmpty {
                 ContentUnavailableView {
-                    Label("Pull Requests Unavailable", systemImage: "exclamationmark.triangle")
+                    Label("Pull Requests Unavailable", systemImage: WorkspaceMailbox.symbolName(WorkspaceMailbox.pulls))
                 } description: {
                     Text(errorText)
                 } actions: {
+                    if errorText.contains("No GitHub token") {
+                        Button("Sign In…") {}
+                            .buttonStyle(.borderedProminent)
+                    }
                     Button("Try Again") { reload() }
                 }
             } else if pulls.isEmpty {
                 ContentUnavailableView {
-                    Label("No Open Pull Requests", systemImage: "arrow.triangle.branch")
+                    Label("No Open Pull Requests", systemImage: WorkspaceMailbox.symbolName(WorkspaceMailbox.pulls))
                 } description: {
                     Text("This repository has no open pull requests.")
+                } actions: {
+                    Button("New Pull Request…") { showPRSheet = true }
+                        .buttonStyle(.borderedProminent)
                 }
                 .accessibilityLabel("No Open Pull Requests")
             } else {

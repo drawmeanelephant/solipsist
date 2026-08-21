@@ -1,0 +1,32 @@
+{
+  "format": "boris-publication-plan",
+  "schema_version": 1,
+  "input": "content",
+  "input_format": "markdown",
+  "site": {
+    "url": "https://example.com",
+    "title": "Harvest Editions",
+    "description": null
+  },
+  "targets": [
+    {
+      "name": "public",
+      "output": "dist",
+      "public": true,
+      "theme": "themes/boris",
+      "layout": null,
+      "layout_rules": [],
+      "projections": {
+        "html": true,
+        "sitemap": null,
+        "rss": null,
+        "llms": null
+      }
+    }
+  ],
+  "editions": {
+    "ir": {"output": ".boris"},
+    "rag": {"output": "rag", "scope": "guides", "split_size": 262144, "bundles_only": false},
+    "context": {"output": "context", "scope": "reference", "split_size": 131072}
+  }
+}

@@ -16,6 +16,9 @@ final class Coordinator {
     private(set) var problems: [ProblemItem] = []
     private(set) var activityHistory: [CoordinatorActivity] = []
     private(set) var latestPlan: PublicationPlan?
+    /// Timestamp of the last successful Plan verb — used by Outputs to
+    /// show a stale-plan dot when boris.json mtime exceeds it.
+    private(set) var planTimestamp: Date?
     private(set) var latestCheckReport: AnalysisReport?
     private(set) var checkFindings: [AnalysisFinding] = []
     private var jobStartTime: ContinuousClock.Instant?
@@ -48,6 +51,14 @@ final class Coordinator {
 
     func clearActivity() {
         activityHistory.removeAll()
+    }
+
+    /// Returns the most recent activity whose summary starts with the
+    /// given target or edition name, or nil if none have run yet.
+    func lastActivity(for targetName: String) -> CoordinatorActivity? {
+        activityHistory.first { activity in
+            activity.verb == .buildThis && activity.summary.hasPrefix(targetName)
+        }
     }
 
     var canRunVerb: Bool { state == .idle || state == .watching }
@@ -372,21 +383,44 @@ final class Coordinator {
             summary = timedOut ? "timing out…" : "stopping…"
             task?.cancel()
             let engine = runtime.engine
-            reapTask = Task {
+            // One-shot and both watch daemons get torn down. The one-shot
+            // escalates through the engine; the watches get SIGTERM + reapGrace.
+            let watchToStop = activeWatch
+            let validateToStop = activeValidateWatch
+            reapTask = Task { [weak self] in
                 await engine?.escalate()
+                await self?.reapWatches(
+                    watch: watchToStop,
+                    validate: validateToStop
+                )
             }
             return
         }
 
-        guard let watch = activeWatch, watch.isRunning else { return }
+        // No one-shot running — stop any active watch daemons.
+        let previewRunning = activeWatch?.isRunning == true
+        let validateRunning = activeValidateWatch?.isRunning == true
+        guard previewRunning || validateRunning else { return }
         state = .terminating
         summary = "stopping preview…"
-        watch.stop()
+        let watchToStop = activeWatch
+        let validateToStop = activeValidateWatch
+        watchToStop?.stop()
+        validateToStop?.stop()
         reapTask = Task {
             try? await Task.sleep(for: ChildProcessControl.reapGrace)
             guard !Task.isCancelled else { return }
-            watch.forceKill()
+            watchToStop?.forceKill()
+            validateToStop?.forceKill()
         }
+    }
+
+    /// SIGKILL any watch daemons that did not exit after reapGrace.
+    private func reapWatches(watch: WatchServer?, validate: ValidateWatch?) async {
+        try? await Task.sleep(for: ChildProcessControl.reapGrace)
+        guard !Task.isCancelled else { return }
+        watch?.forceKill()
+        validate?.forceKill()
     }
 
     private func finish(
@@ -430,6 +464,9 @@ final class Coordinator {
         }
         if let plan = result?.plan {
             self.latestPlan = plan
+            if verb == .plan, exit == 0 {
+                self.planTimestamp = Date()
+            }
         }
         if let checkReport = result?.checkReport {
             self.latestCheckReport = checkReport

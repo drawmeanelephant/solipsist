@@ -34,7 +34,7 @@ public enum GithubSync {
         session: SyncSession
     ) -> SyncResult {
         let process = Process()
-        process.executableURL = GitClone.gitExecutableURL()
+        process.executableURL = GitCLT.resolve()
         var arguments = ["-C", workingCopy.path]
         if let credentialHelperApp {
             arguments.append(contentsOf: GitClone.credentialHelperArguments(appURL: credentialHelperApp))

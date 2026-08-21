@@ -41,6 +41,15 @@ jobs:
         with:
           version: 0.16.0
 
+      - name: Cache Zig build artifacts
+        uses: actions/cache@v4
+        with:
+          path: boris/zig-cache
+          key: zig-${{ runner.os }}-bf464a0-${{ hashFiles('boris/build.zig.zon') }}
+          restore-keys: |
+            zig-${{ runner.os }}-bf464a0-
+            zig-${{ runner.os }}-
+
       # Host-only (macos-15 is arm64). Release still cross-builds fat slices.
       - name: Build host Boris
         run: |
@@ -65,6 +74,18 @@ jobs:
       - uses: actions/checkout@v7
       - name: Generate project and compile the app
         run: make build
+
+      # When SKIP_EMBED_BORIS=1 the app compiles without a bundled engine.
+      # Assert that the Resources directory does NOT contain a boris binary
+      # — a stale cache could silently ship an old embedded engine.
+      - name: Assert no stale boris in bundle
+        run: |
+          APP_PATH="build/Build/Products/Debug/Solipsist.app"
+          if [ -f "$APP_PATH/Contents/Resources/boris" ]; then
+            echo "FAIL: Contents/Resources/boris exists but SKIP_EMBED_BORIS=1" >&2
+            exit 1
+          fi
+          echo "app: bundle OK (no embedded boris, as expected with SKIP_EMBED_BORIS=1)"
 
   fixtures:
     name: fixtures

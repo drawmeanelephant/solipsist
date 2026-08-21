@@ -148,54 +148,85 @@ private struct PagesGroup: View {
         MailboxRowID(sourceID: item.id, mailbox: WorkspaceMailbox.pages)
     }
 
+    private var graph: Graph? {
+        store.graph(for: item.id)
+    }
+
+    private var allPages: [PlayPage] {
+        guard let graph else { return [] }
+        return LocalPlayGraph.pages(from: graph)
+    }
+
     private var trunks: [PlayPage] {
-        guard let graph = store.graph(for: item.id) else { return [] }
+        guard let graph else { return [] }
         return LocalPlayGraph.trunks(from: graph)
     }
 
-    /// Accessibility counts (A11Y-5 / #243) from the already-decoded
-    /// graph the store mirrors — Pages row total + per-trunk items.
-    /// No graph yet → no counts, not an error.
-    private var graphCounts: PlayPageCounts? {
-        store.graph(for: item.id).map(LocalPlayGraph.counts(from:))
-    }
-
     var body: some View {
-        DisclosureGroup(isExpanded: $expanded) {
-            ForEach(trunks, id: \.id) { trunk in
-                TrunkRow(item: item, trunk: trunk, itemCount: graphCounts?.trunkCounts[trunk.id])
-                    .tag(MailboxRowID(sourceID: item.id, mailbox: trunk.id))
-                    .contextMenu { sourceMenu(item, store: store) }
-            }
-        } label: {
-            MailboxRow(item: item, box: WorkspaceMailbox.pages, itemCount: graphCounts?.pages)
+        if trunks.isEmpty {
+            MailboxRow(
+                item: item,
+                box: WorkspaceMailbox.pages,
+                count: allPages.isEmpty ? nil : allPages.count
+            )
+            .tag(pagesRowID)
+            .contextMenu { sourceMenu(item, store: store) }
+        } else {
+            DisclosureGroup(isExpanded: $expanded) {
+                ForEach(trunks, id: \.id) { trunk in
+                    let trunkCount = LocalPlayGraph.pages(in: allPages, trunkID: trunk.id).count
+                    TrunkRow(item: item, trunk: trunk, count: trunkCount)
+                        .tag(MailboxRowID(sourceID: item.id, mailbox: trunk.id))
+                        .contextMenu { sourceMenu(item, store: store) }
+                }
+            } label: {
+                MailboxRow(
+                    item: item,
+                    box: WorkspaceMailbox.pages,
+                    count: allPages.isEmpty ? nil : allPages.count
+                )
                 .tag(pagesRowID)
                 .contextMenu { sourceMenu(item, store: store) }
+            }
         }
     }
 }
 
-/// A Trunk folder row under Pages. Label is the trunk title; the
-/// selection value is the trunk id (written raw to `mailbox`). `itemCount`
-/// is the A11Y-5 #243 trunk item count from the stored graph, when the
-/// graph is loaded.
+/// A trunk folder row under Pages. Label is the trunk title; the
+/// selection value is the trunk id (written raw to `mailbox`).
 private struct TrunkRow: View {
     let item: SourceItem
     let trunk: PlayPage
-    var itemCount: Int?
+    var count: Int = 0
+    @Environment(WorkspaceStore.self) private var store
+
+    private var isSelected: Bool {
+        store.selection.sourceID == item.id && store.selection.mailbox == trunk.id
+    }
 
     var body: some View {
-        Label {
-            Text(trunk.title)
-                .font(.system(size: 12.5, weight: .regular))
-                .lineLimit(1)
-        } icon: {
+        HStack(spacing: 6) {
             Image(systemName: "folder")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+                .frame(width: 16, alignment: .center)
+                .accessibilityHidden(true)
+            Text(trunk.title)
+                .font(.system(size: 12.5, weight: .regular))
+                .lineLimit(1)
+            if count > 0 {
+                Spacer()
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
         }
-        .accessibilityLabel("\(item.title), \(trunk.title)")
-        .accessibilityItemCount(itemCount)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(item.title), \(trunk.title), \(count) pages")
+        .accessibilityValue(isSelected ? "selected" : "")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint("Trunk folder")
     }
 }
 
@@ -214,36 +245,44 @@ fileprivate func sourceMenu(_ item: SourceItem, store: WorkspaceStore) -> some V
 private struct MailboxRow: View {
     let item: SourceItem
     let box: String
-    /// A11Y-5 (#243): item count for the Pages row, when the graph is
-    /// loaded. Nil → no `accessibilityValue`; the row just keeps its label.
-    var itemCount: Int?
+    var count: Int? = nil
+    @Environment(WorkspaceStore.self) private var store
+
+    private var isSelected: Bool {
+        store.selection.sourceID == item.id && WorkspaceMailbox.display(store.selection.mailbox) == WorkspaceMailbox.display(box)
+    }
+
+    /// VoiceOver label for the row. A count (Pages row) is announced like
+    /// the trunk rows do ("…, N pages") so the announced number matches the
+    /// visual badge; no count → label only.
+    private var accessibilityLabelText: String {
+        let name = "\(item.title), \(WorkspaceMailbox.displayName(box))"
+        guard let count, count > 0 else { return name }
+        return "\(name), \(count) pages"
+    }
 
     var body: some View {
-        Label {
-            Text(WorkspaceMailbox.displayName(box))
-                .font(.system(size: 12.5, weight: .regular))
-        } icon: {
+        HStack(spacing: 6) {
             Image(systemName: WorkspaceMailbox.symbolName(box))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+                .frame(width: 16, alignment: .center)
+                .accessibilityHidden(true)
+            Text(WorkspaceMailbox.displayName(box))
+                .font(.system(size: 12.5, weight: .regular))
+                .lineLimit(1)
+            if let count, count > 0 {
+                Spacer()
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
         }
-        .accessibilityLabel("\(item.title), \(WorkspaceMailbox.displayName(box))")
-        .accessibilityItemCount(itemCount)
-    }
-}
-
-private extension View {
-    /// Announce an item count only when one exists (A11Y-5 / #243). Rows
-    /// the sidebar does not count get no `accessibilityValue` at all.
-    /// Plain "\(count) items" to match the file's non-localized strings;
-    /// the count is the accessible value, the label carries the row name.
-    @ViewBuilder
-    func accessibilityItemCount(_ count: Int?) -> some View {
-        if let count {
-            accessibilityValue("\(count) items")
-        } else {
-            self
-        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabelText)
+        .accessibilityValue(isSelected ? "selected" : "")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

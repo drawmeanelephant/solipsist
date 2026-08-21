@@ -1,0 +1,19 @@
+{
+  "format": "boris-timings",
+  "schemaVersion": "1",
+  "mode": "ir",
+  "phases": {
+    "scan": 366625,
+    "parse": 1026583,
+    "graph_validate": 754208,
+    "dependency_resolve": 949250
+  },
+  "counters": {
+    "page_reads": 3,
+    "include_reads": 0,
+    "hash_bytes": 0,
+    "link_resolutions": 0,
+    "fast_path_hits": 0
+  },
+  "totalNs": 12723417
+}
