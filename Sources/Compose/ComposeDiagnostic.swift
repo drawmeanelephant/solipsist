@@ -24,3 +24,17 @@ struct ComposeDiagnostic: Identifiable, Equatable {
         self.characterIndex = characterIndex
     }
 }
+
+extension ComposeDiagnostic {
+    /// VoiceOver label for a diagnostics row (A11Y-1 #239): severity first,
+    /// then the line when present, then the message — e.g. "Error on line
+    /// 12: unexpected token" / "Warning: missing closing fence". No line →
+    /// no "on line" clause.
+    var accessibilityLabel: String {
+        let severity = self.severity == .error ? "Error" : "Warning"
+        if let line {
+            return "\(severity) on line \(line): \(message)"
+        }
+        return "\(severity): \(message)"
+    }
+}
