@@ -198,6 +198,11 @@ private struct TrunkRow: View {
     let item: SourceItem
     let trunk: PlayPage
     var count: Int = 0
+    @Environment(WorkspaceStore.self) private var store
+
+    private var isSelected: Bool {
+        store.selection.sourceID == item.id && store.selection.mailbox == trunk.id
+    }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -205,6 +210,7 @@ private struct TrunkRow: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .frame(width: 16, alignment: .center)
+                .accessibilityHidden(true)
             Text(trunk.title)
                 .font(.system(size: 12.5, weight: .regular))
                 .lineLimit(1)
@@ -213,9 +219,14 @@ private struct TrunkRow: View {
                 Text("\(count)")
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             }
         }
-        .accessibilityLabel("\(item.title), \(trunk.title)")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(item.title), \(trunk.title), \(count) pages")
+        .accessibilityValue(isSelected ? "selected" : "")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint("Trunk folder")
     }
 }
 
@@ -235,6 +246,11 @@ private struct MailboxRow: View {
     let item: SourceItem
     let box: String
     var count: Int? = nil
+    @Environment(WorkspaceStore.self) private var store
+
+    private var isSelected: Bool {
+        store.selection.sourceID == item.id && WorkspaceMailbox.display(store.selection.mailbox) == WorkspaceMailbox.display(box)
+    }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -242,6 +258,7 @@ private struct MailboxRow: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .frame(width: 16, alignment: .center)
+                .accessibilityHidden(true)
             Text(WorkspaceMailbox.displayName(box))
                 .font(.system(size: 12.5, weight: .regular))
                 .lineLimit(1)
@@ -250,9 +267,13 @@ private struct MailboxRow: View {
                 Text("\(count)")
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             }
         }
+        .accessibilityElement(children: .combine)
         .accessibilityLabel("\(item.title), \(WorkspaceMailbox.displayName(box))")
+        .accessibilityValue(isSelected ? "selected" : "")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

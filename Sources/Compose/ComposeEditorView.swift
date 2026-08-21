@@ -21,6 +21,9 @@ struct ComposeEditorView: View {
     /// (ComposeWindow) uses this to flow the save into the coordinator's
     /// save→validate gate.
     var onSave: (() -> Void)?
+    /// External line-jump from ProblemsPane (M11 #207): when set, the editor
+    /// jumps to this absolute character offset.
+    var externalJump: Int?
 
     /// Problems from the live preview render (LATER-3.1). Computed from the
     /// render, not injected by the host.
@@ -70,6 +73,12 @@ struct ComposeEditorView: View {
             }
         }
         .navigationTitle(document.statusText)
+        .onChange(of: externalJump) { _, newValue in
+            if let newValue { jumpToCharacter = newValue }
+        }
+        .task(id: externalJump) {
+            if let externalJump { jumpToCharacter = externalJump }
+        }
     }
 
     /// Resolve a diagnostic to a character offset: Oliver's `span.start`
@@ -119,12 +128,18 @@ struct ComposeEditorView: View {
                 Label("Preview", systemImage: "eye")
             }
             .toggleStyle(.button)
+            .help("Toggle preview (⌘⇧P)")
+            .accessibilityLabel("Preview")
+            .accessibilityHint("Toggle the Oliver preview pane")
+            .accessibilityAddTraits(showPreview ? .isSelected : [])
 
             Toggle(isOn: $showFrontmatter) {
                 Label("Front Matter", systemImage: "doc.text.magnifyingglass")
             }
             .toggleStyle(.button)
             .help("Edit the front-matter block (closed key set)")
+            .accessibilityLabel("Front Matter")
+            .accessibilityAddTraits(showFrontmatter ? .isSelected : [])
 
             Menu {
                 previewOptionsContent
@@ -132,6 +147,7 @@ struct ComposeEditorView: View {
                 Label("Render Options", systemImage: "slider.horizontal.3")
             }
             .help("Oliver ParseOptions — every extension is off by default.")
+            .accessibilityLabel("Render Options")
 
             Button {
                 do {
@@ -146,6 +162,8 @@ struct ComposeEditorView: View {
                 Label("Save", systemImage: "square.and.arrow.down")
             }
             .keyboardShortcut("s", modifiers: .command)
+            .help("Save (⌘S)")
+            .accessibilityLabel("Save")
             .disabled(!document.isDirty)
 
             if let saveError {

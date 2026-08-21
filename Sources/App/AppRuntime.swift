@@ -120,4 +120,14 @@ final class AppRuntime {
         let seconds = Double(ns) / 1_000_000_000.0
         return String(format: "%.2f s", seconds)
     }
+
+    // MARK: - Compose line-jump (M11 #207)
+
+    struct ComposeJumpRequest: Equatable, Sendable {
+        let pageID: String
+        let line: Int
+        let column: Int?
+    }
+
+    var pendingComposeJump: ComposeJumpRequest?
 }

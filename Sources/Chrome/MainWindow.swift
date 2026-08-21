@@ -62,7 +62,7 @@ struct MainWindow: View {
         } message: {
             Text(store.lastError ?? "")
         }
-        .frame(minWidth: 920, minHeight: 520)
+        .frame(minWidth: 920, idealWidth: 1200, minHeight: 580, idealHeight: 760)
     }
 
     @ViewBuilder
@@ -77,7 +77,8 @@ struct MainWindow: View {
         } label: {
             Label("Plan", systemImage: "doc.plaintext")
         }
-        .help("Plan")
+        .help("Plan (⌘⇧L)")
+        .accessibilityLabel("Plan")
         .disabled(!canRun)
 
         Button {
@@ -85,7 +86,8 @@ struct MainWindow: View {
         } label: {
             Label("Validate", systemImage: "checkmark.circle")
         }
-        .help("Validate")
+        .help("Validate (⌘⇧K)")
+        .accessibilityLabel("Validate")
         .disabled(!canRun)
 
         Button {
@@ -93,7 +95,8 @@ struct MainWindow: View {
         } label: {
             Label("Build IR", systemImage: "hammer")
         }
-        .help("Build IR")
+        .help("Build IR (⌘B)")
+        .accessibilityLabel("Build IR")
         .disabled(!canRun)
 
         Button {
@@ -101,7 +104,8 @@ struct MainWindow: View {
         } label: {
             Label("Build All", systemImage: "hammer.fill")
         }
-        .help("Build All")
+        .help("Build All (⌘⇧U)")
+        .accessibilityLabel("Build All")
         .disabled(!canRun)
 
         Menu {
@@ -121,14 +125,16 @@ struct MainWindow: View {
         } label: {
             Label("Boris…", systemImage: "ellipsis.circle")
         }
-        .help("Boris…")
+        .help("Boris… Check/Impact")
+        .accessibilityLabel("Boris")
 
         Button {
             runtime.coordinator.stop(runtime: runtime)
         } label: {
             Label("Stop", systemImage: "stop.fill")
         }
-        .help("Stop")
+        .help("Stop (⌘.)")
+        .accessibilityLabel("Stop")
         .disabled(!runtime.coordinator.canStop)
 
         Button {
@@ -136,7 +142,8 @@ struct MainWindow: View {
         } label: {
             Label("Preview", systemImage: "safari")
         }
-        .help("Open Preview")
+        .help("Open Preview (⌘⇧P)")
+        .accessibilityLabel("Preview")
         .disabled(!hasSource)
 
         Button {
@@ -144,7 +151,8 @@ struct MainWindow: View {
         } label: {
             Label("Editor", systemImage: "square.and.pencil")
         }
-        .help("Open Editor")
+        .help("Open Editor (⌘⇧E)")
+        .accessibilityLabel("Editor")
         .disabled(!canEdit)
 
         Button {
@@ -152,7 +160,8 @@ struct MainWindow: View {
         } label: {
             Label("Compose", systemImage: "pencil")
         }
-        .help("Compose")
+        .help("Compose (⌘⇧C)")
+        .accessibilityLabel("Compose")
         .disabled(!canEdit)
 
         Button {
@@ -161,6 +170,7 @@ struct MainWindow: View {
             Label("Inspector", systemImage: "sidebar.trailing")
         }
         .help("Toggle Inspector (⌥⌘0)")
+        .accessibilityLabel("Inspector")
     }
 
     private var statusBar: some View {

@@ -19,7 +19,7 @@ struct OutputsPane: View {
                 outputsList(profile)
             } else if let loadError {
                 ContentUnavailableView {
-                    Label("Profile Unavailable", systemImage: "gearshape")
+                    Label("Profile Unavailable", systemImage: WorkspaceMailbox.symbolName(WorkspaceMailbox.outputs))
                 } description: {
                     Text(loadError)
                 } actions: {
@@ -27,9 +27,16 @@ struct OutputsPane: View {
                 }
             } else {
                 ContentUnavailableView {
-                    Label("No Profile", systemImage: "gearshape")
+                    Label("No Profile", systemImage: WorkspaceMailbox.symbolName(WorkspaceMailbox.outputs))
                 } description: {
                     Text("No boris.json found in this workspace. Create one or plan to generate defaults.")
+                } actions: {
+                    Button("Plan") {
+                        runtime.coordinator.run(.plan, store: store, runtime: runtime)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!runtime.coordinator.canRunVerb)
+                    Button("Open…") { store.presentOpenPanel() }
                 }
             }
         }

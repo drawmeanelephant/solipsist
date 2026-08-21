@@ -4,15 +4,22 @@ import SwiftUI
 /// tracking verb, exit code, execution timings duration, problem counts, and diagnostics.
 struct ActivityPane: View {
     @Environment(AppRuntime.self) private var runtime
+    @Environment(WorkspaceStore.self) private var store
     @Environment(\.toolbarBand) private var toolbarBand
 
     var body: some View {
         Group {
             if runtime.coordinator.activityHistory.isEmpty {
                 ContentUnavailableView {
-                    Label("No Activity", systemImage: "clock")
+                    Label("No Activity", systemImage: WorkspaceMailbox.symbolName(WorkspaceMailbox.activity))
                 } description: {
-                    Text("Jobs run by the coordinator will appear here.")
+                    Text("Jobs run by the coordinator will appear here. Run Plan or Build All to see activity.")
+                } actions: {
+                    Button("Plan") {
+                        runtime.coordinator.run(.plan, store: store, runtime: runtime)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!runtime.coordinator.canRunVerb || store.selectedSource == nil)
                 }
             } else {
                 activityList
