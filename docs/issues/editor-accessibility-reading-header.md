@@ -5,7 +5,10 @@
 - **Lane:** Reading
 - **Owns:** `Sources/Play/Local/ReadingPane.swift`
 
-## Problem
+**Status: ✅ merged (PR #249).** Kept as the record; do not reopen. The
+merged implementation matches this spec: title + caption combine into one
+announcement (title first), the served badge keeps its label + traits, and
+the action buttons stay separate.
 
 The Reading pane header announces its title and its status caption as **two
 separate accessibility elements**. A VoiceOver user swiping through the header
