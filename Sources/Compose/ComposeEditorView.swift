@@ -116,6 +116,8 @@ struct ComposeEditorView: View {
             .pickerStyle(.menu)
             .fixedSize()
             .help("Authoring frontend (Oliver's \(document.language.oliverFrontend))")
+            .accessibilityLabel("Language, currently \(document.language.displayName)")
+            .accessibilityHint("Select the authoring frontend")
 
             Text(document.language.conformanceNote)
                 .font(.caption)
@@ -139,6 +141,7 @@ struct ComposeEditorView: View {
             .toggleStyle(.button)
             .help("Edit the front-matter block (closed key set)")
             .accessibilityLabel("Front Matter")
+            .accessibilityHint("Show or hide the front matter editor.")
             .accessibilityAddTraits(showFrontmatter ? .isSelected : [])
 
             Menu {
@@ -148,6 +151,7 @@ struct ComposeEditorView: View {
             }
             .help("Oliver ParseOptions — every extension is off by default.")
             .accessibilityLabel("Render Options")
+            .accessibilityHint("Configure Oliver's parse extensions.")
 
             Button {
                 do {
@@ -164,6 +168,7 @@ struct ComposeEditorView: View {
             .keyboardShortcut("s", modifiers: .command)
             .help("Save (⌘S)")
             .accessibilityLabel("Save")
+            .accessibilityHint("Write the buffer to disk (⌘S).")
             .disabled(!document.isDirty)
 
             if let saveError {
@@ -232,6 +237,8 @@ private struct ComposeDiagnosticsPane: View {
             .contentShape(Rectangle())
             .onTapGesture { onSelect(diagnostic) }
             .help("Jump to this diagnostic")
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(diagnostic.accessibilityLabel)
         }
     }
 }
