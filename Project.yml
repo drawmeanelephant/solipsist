@@ -125,6 +125,9 @@ targets:
       - path: Sources/Compose/MarkupRenderService.swift
       - path: Sources/Compose/ComposePageResolver.swift
       - path: Sources/Compose/OliverRenderService.swift
+      - path: Sources/Compose/ComposePreviewDocument.swift
+      - path: Sources/Compose/ComposeThemeCSS.swift
+      - path: Sources/Compose/ComposeWebPreviewHost.swift
       - path: Sources/Compose/ComposeLineGutter.swift
       - path: Sources/Compose/ComposeTabIndent.swift
       - path: Sources/Compose/ComposeTextView.swift

@@ -27,6 +27,10 @@ struct ComposeWindow: View {
     /// source's `.boris/` artifacts whenever a page is loaded, so a fresh
     /// build reaches the popup without restarting the window.
     @State private var cookCompletion = ComposeCookCompletion.empty
+    /// Preview theme CSS (#230): the canonical HTML target's stylesheet,
+    /// read from the source's `themes/` directory. Resolved per page switch;
+    /// nil → the preview's fallback stylesheet.
+    @State private var themeCSS: String?
 
     var body: some View {
         Group {
@@ -34,6 +38,7 @@ struct ComposeWindow: View {
                 ComposeEditorView(
                     document: document,
                     renderService: OliverRenderService(),
+                    themeCSS: themeCSS,
                     cookCompletion: cookCompletion,
                     onSave: save,
                     externalJump: externalJump
@@ -124,6 +129,7 @@ struct ComposeWindow: View {
             let url = ComposePageResolver.fileURL(contentRoot: contentRoot, sourcePath: node.sourcePath)
             try document.load(from: url)
             cookCompletion = ComposeCookCompletion.load(workspaceRoot: workspaceRoot)
+            themeCSS = resolveThemeCSS(workspaceRoot: workspaceRoot)
             loadError = nil
             saveStatus = nil
             if let jump = runtime.pendingComposeJump, jump.pageID == noun.id {
@@ -152,6 +158,21 @@ struct ComposeWindow: View {
             current += 1
         }
         return found.map { min(max($0, 0), textNSString.length) }
+    }
+
+    /// Theme CSS for the preview (#230): decode the source profile, pick the
+    /// canonical target's theme, collect its stylesheets from `themes/`.
+    /// Anything missing (no profile, no target theme, unreadable folder)
+    /// degrades to nil — the preview falls back to its readable stylesheet.
+    private func resolveThemeCSS(workspaceRoot: URL) -> String? {
+        guard let profileURL = selectedLocalSource?.profileURL() else { return nil }
+        do {
+            let data = try Data(contentsOf: profileURL)
+            let profile = try JSONDecoder().decode(PublicationProfile.self, from: data)
+            return ComposeThemeCSS.collect(workspaceRoot: workspaceRoot, targets: profile.targets)
+        } catch {
+            return nil
+        }
     }
 
     // MARK: - Save → coordinator gate
