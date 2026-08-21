@@ -182,6 +182,8 @@ struct EditorWindow: View {
                 } label: {
                     Label("Restart Host", systemImage: "arrow.counterclockwise")
                 }
+                .accessibilityLabel("Restart")
+                .accessibilityAddTraits(.isButton)
                 .help("Restart boris-editor")
                 .disabled(!session.canRestart)
 
@@ -190,6 +192,8 @@ struct EditorWindow: View {
                 } label: {
                     Image(systemName: "safari")
                 }
+                .accessibilityLabel("Open in Browser")
+                .accessibilityAddTraits(.isButton)
                 .help("Open in Browser")
                 .disabled(!model.canOpenInBrowser)
             }
@@ -198,8 +202,11 @@ struct EditorWindow: View {
                 TextField("BORIS_EDITOR_URL=http://127.0.0.1:49152/#token=…", text: $urlText)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(submit)
+                    .accessibilityLabel("Editor URL")
 
                 Button("Connect", action: submit)
+                    .accessibilityLabel("Connect")
+                    .accessibilityAddTraits(.isButton)
             }
 
             if let rejection = model.rejection {
@@ -239,6 +246,8 @@ private struct EditorNavButtons: View {
             } label: {
                 Image(systemName: "chevron.left")
             }
+            .accessibilityLabel("Back")
+            .accessibilityAddTraits(.isButton)
             .help("Back")
             .disabled(!model.canGoBack)
 
@@ -247,6 +256,8 @@ private struct EditorNavButtons: View {
             } label: {
                 Image(systemName: "chevron.right")
             }
+            .accessibilityLabel("Forward")
+            .accessibilityAddTraits(.isButton)
             .help("Forward")
             .disabled(!model.canGoForward)
 
@@ -255,6 +266,8 @@ private struct EditorNavButtons: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
+            .accessibilityLabel("Reload")
+            .accessibilityAddTraits(.isButton)
             .help("Reload")
             .disabled(!model.canReload)
         }
@@ -275,6 +288,9 @@ private struct EditorPhaseIndicator: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityPhaseLabel)
+        .accessibilityAddTraits(.isStaticText)
     }
 
     @ViewBuilder
@@ -304,6 +320,22 @@ private struct EditorPhaseIndicator: View {
             return "Connected · \(url.host ?? "loopback")"
         case .failed(let message):
             return message
+        }
+    }
+
+    /// A11Y-4 (#242): a VoiceOver-readable label for every phase value the
+    /// indicator can render. Enumerates all four `Phase` cases so a new one
+    /// won't ship unlabeled.
+    private var accessibilityPhaseLabel: String {
+        switch phase {
+        case .idle:
+            return "Engine idle"
+        case .starting:
+            return "Engine starting"
+        case .connected:
+            return "Engine running"
+        case .failed:
+            return "Engine error"
         }
     }
 }
