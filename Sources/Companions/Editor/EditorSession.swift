@@ -90,6 +90,12 @@ final class EditorSession {
         return false
     }
 
+    /// #237: True when the editor host has connected and the URL is live.
+    var isConnected: Bool {
+        if case .connected = phase { return true }
+        return false
+    }
+
     var statusText: String {
         switch phase {
         case .idle:

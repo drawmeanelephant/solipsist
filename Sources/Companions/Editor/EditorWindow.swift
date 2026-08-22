@@ -3,6 +3,8 @@ import Observation
 import SwiftUI
 import WebKit
 
+// swiftlint:disable file_length
+
 /// Companion host for `boris-editor` (Svelte). Chassis registers the window
 /// and leaves it closed; the editor opens against the selected page.
 ///
@@ -12,13 +14,16 @@ import WebKit
 /// by today's shell). The header names the selected page and its
 /// `sourcePath`. Manual URL paste and "Open in Browser" stay as the
 /// loopback fallback.
-struct EditorWindow: View {
+struct EditorWindow: View { // swiftlint:disable:this type_body_length
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
 
     @State private var model = EditorWebModel()
     @State private var urlText = ""
     @State private var session = EditorSession()
+    /// #237: When true, the manual URL field and Connect button are visible.
+    /// Shown by default when idle/failed; hidden when connected.
+    @State private var showManualConnect = false
 
     var body: some View {
         Group {
@@ -43,7 +48,7 @@ struct EditorWindow: View {
             }
         }
         .frame(minWidth: 480, minHeight: 360)
-        .navigationTitle("Editor")
+        .navigationTitle(headerNavigationTitle)
         .onChange(of: session.editorURL) { _, newURL in
             if let newURL {
                 let targeted = EditorURL.opening(newURL, sourcePath: pageSourcePath)
@@ -89,16 +94,33 @@ struct EditorWindow: View {
         }
     }
 
+    /// #237: The editor window's navigation title shows the page name
+    /// when one is selected, falling back to "Editor".
+    private var headerNavigationTitle: String {
+        if let noun = store.selection.noun, noun.kind == "page", !noun.title.isEmpty {
+            return "Editor — \(noun.title)"
+        }
+        return "Editor"
+    }
+
     private func idleState(for source: SourceItem) -> some View {
         ContentUnavailableView {
             Label("Editor Host Not Running", systemImage: "square.and.pencil")
         } description: {
-            Text(
-                session.statusText.isEmpty
-                    ? "The Boris editor connects when the host process is running. "
-                    + "File → Edit Page opens the editor; paste a BORIS_EDITOR_URL= line above to connect manually."
-                    : session.statusText
-            )
+            VStack(alignment: .leading, spacing: 8) {
+                if let guidance = errorGuidance {
+                    Text(guidance.headline)
+                        .font(.body)
+                    Text(guidance.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("The Boris editor connects when the host process is running.")
+                    Text("File → Edit Page opens the editor, or paste a BORIS_EDITOR_URL line to connect manually.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         } actions: {
             Button("Restart Host") {
                 session.restart()
@@ -116,6 +138,36 @@ struct EditorWindow: View {
             .controlSize(.small)
             .disabled(session.editorURL == nil && model.currentURL == nil)
         }
+    }
+
+    /// #237: Maps raw error messages from the session to actionable guidance.
+    private var errorGuidance: (headline: String, detail: String)? {
+        guard case .failed(let message) = session.phase else { return nil }
+        if message.contains("binary not found") {
+            return (
+                "boris-editor binary not found",
+                "Install boris-editor or set SOLIPSIST_BORIS_EDITOR_BIN in your environment."
+            )
+        }
+        if message.contains("did not report a token URL") {
+            return (
+                "Editor host did not report a token URL within 15s",
+                "The editor host may be slow to start. Try again or check the boris-editor logs."
+            )
+        }
+        if message.contains("exited (") {
+            return (
+                message,
+                "The editor host crashed. Check the boris-editor logs for details."
+            )
+        }
+        if message.contains("not available") {
+            return (
+                message,
+                "Ensure Boris is built and the engine binary is accessible."
+            )
+        }
+        return nil
     }
 
     private func header(for source: SourceItem) -> some View {
@@ -165,6 +217,7 @@ struct EditorWindow: View {
 
     private var toolbar: some View {
         VStack(alignment: .leading, spacing: 6) {
+            // Row 1: Nav + phase indicator + actions (always visible)
             HStack(spacing: 8) {
                 EditorNavButtons(model: model)
 
@@ -198,15 +251,16 @@ struct EditorWindow: View {
                 .disabled(!model.canOpenInBrowser)
             }
 
-            HStack(spacing: 8) {
-                TextField("BORIS_EDITOR_URL=http://127.0.0.1:49152/#token=…", text: $urlText)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(submit)
-                    .accessibilityLabel("Editor URL")
-
-                Button("Connect", action: submit)
-                    .accessibilityLabel("Connect")
-                    .accessibilityAddTraits(.isButton)
+            // #237: Row 2 — redacted URL (connected) or manual connect
+            // (idle/failed or toggled open)
+            if session.isConnected {
+                if showManualConnect {
+                    manualConnectRow
+                } else {
+                    redactedURLRow
+                }
+            } else if showManualConnect || session.isFailure || session.phase == .idle {
+                manualConnectRow
             }
 
             // #232: one-shot confirmation after an automatic reconnect.
@@ -223,6 +277,69 @@ struct EditorWindow: View {
             }
         }
         .padding(8)
+        .onChange(of: session.phase) { _, newPhase in
+            if case .connected = newPhase {
+                showManualConnect = false
+            } else {
+                showManualConnect = true
+            }
+        }
+    }
+
+    /// #237: Redacted URL row — shows `host:port` only, with full URL
+    /// in tooltip. Double-click reveals the manual connect field.
+    private var redactedURLRow: some View {
+        HStack(spacing: 8) {
+            if let url = session.editorURL {
+                let reduced = EditorURL.hostPort(for: url)
+                Text(reduced)
+                    .font(.caption.monospacedDigit())
+                    .lineLimit(1)
+                    .foregroundStyle(.secondary)
+                    .help(url.absoluteString)
+                    .onTapGesture(count: 2) {
+                        showManualConnect = true
+                    }
+                Spacer()
+            }
+
+            Button {
+                showManualConnect = true
+            } label: {
+                Image(systemName: "chevron.down")
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Show URL field")
+            .accessibilityAddTraits(.isButton)
+            .help("Reveal the manual URL field")
+        }
+    }
+
+    /// #237: Manual connect row — URL text field + Connect button.
+    /// Hidden by default when connected; shown when idle, failed, or toggled.
+    private var manualConnectRow: some View {
+        HStack(spacing: 8) {
+            TextField("BORIS_EDITOR_URL=http://127.0.0.1:49152/#token=…", text: $urlText)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(submit)
+                .accessibilityLabel("Editor URL")
+
+            Button("Connect", action: submit)
+                .accessibilityLabel("Connect")
+                .accessibilityAddTraits(.isButton)
+
+            if session.isConnected {
+                Button {
+                    showManualConnect = false
+                } label: {
+                    Image(systemName: "chevron.up")
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Hide URL field")
+                .accessibilityAddTraits(.isButton)
+                .help("Hide the manual URL field")
+            }
+        }
     }
 
     private func submit() {

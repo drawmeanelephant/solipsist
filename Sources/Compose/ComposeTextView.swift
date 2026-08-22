@@ -10,13 +10,15 @@ import SwiftUI
 /// `NSScrollView` (which conforms to `NSTextFinderBarContainer`). This gives
 /// ⌘F / ⌘⌥F / ⌘G / ⇧⌘G, wrap-around, case-insensitive and regex toggles for
 /// free — no custom UI.
-struct ComposeTextView: NSViewRepresentable {
+struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_body_length
     @Bindable var document: ComposeDocument
     /// Click-to-line target (LATER-3.1); nil = no pending jump.
     var jumpToCharacter: Int?
     /// Cooklang completion vocabulary (LATER-3.4); `.empty` disables the
     /// popup. Sourced from the selected source's `.boris/` artifacts.
     var completion: ComposeCookCompletion = .empty
+    /// #238: Go to Line — 1-based line number to jump to; nil = no pending jump.
+    var jumpToLine: Int?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(document: document, completion: completion)
@@ -69,6 +71,7 @@ struct ComposeTextView: NSViewRepresentable {
 
         scrollView.documentView = textView
         context.coordinator.textView = textView
+        context.coordinator.hostedTextView = textView
         context.coordinator.scrollView = scrollView
 
         context.coordinator.applyHighlight(
@@ -115,6 +118,9 @@ struct ComposeTextView: NSViewRepresentable {
             context.coordinator.applyHighlight(textView, text: document.text, language: document.language)
         }
         context.coordinator.jump(to: jumpToCharacter, in: textView)
+        if let jumpToLine {
+            context.coordinator.jumpToLine(jumpToLine)
+        }
         document.updateCursor(textView.selectedRange())
         context.coordinator.updateGutterWidth()
         // Keep gutter height in sync with textView content height
@@ -142,6 +148,9 @@ struct ComposeTextView: NSViewRepresentable {
         private var isApplying = false
         /// Last click-to-line offset we applied, so re-syncs do not re-jump.
         private var lastJumpedCharacter: Int?
+        /// #238: Weak reference to the hosted NSTextView, set once during
+        /// `makeNSView` so `jumpToLine` can register undo and scroll.
+        weak var hostedTextView: NSTextView?
 
         /// Last state we painted, so programmatic syncs (which fire on every
         /// `document` change) do not re-paint an unchanged buffer.
@@ -295,6 +304,39 @@ struct ComposeTextView: NSViewRepresentable {
             let nsString = textView.string as NSString
             let clamped = min(max(character, 0), nsString.length)
             let range = NSRange(location: clamped, length: 0)
+            textView.setSelectedRange(range)
+            textView.scrollRangeToVisible(range)
+        }
+
+        /// #238: Jump to a 1-based line number. Registers the current cursor
+        /// position in the undo stack so ⌘Z restores it. Clamps to the
+        /// buffer range; empty buffers jump to offset 0.
+        func jumpToLine(_ line: Int) {
+            guard let textView = hostedTextView else { return }
+            let nsString = textView.string as NSString
+            guard nsString.length > 0 else { return }
+            let currentRange = textView.selectedRange()
+            let undoManager = textView.undoManager
+            undoManager?.registerUndo(withTarget: textView) { target in
+                target.setSelectedRange(currentRange)
+                target.scrollRangeToVisible(currentRange)
+            }
+            undoManager?.setActionName("Go to Line")
+            let totalLines = max(1, nsString.components(separatedBy: "\n").count)
+            let clamped = max(1, min(line, totalLines))
+            var foundLine = 1
+            var targetLocation = 0
+            nsString.enumerateSubstrings(
+                in: NSRange(location: 0, length: nsString.length),
+                options: [.byLines, .substringNotRequired]
+            ) { _, range, _, stop in
+                if foundLine == clamped {
+                    targetLocation = range.location
+                    stop.pointee = true
+                }
+                foundLine += 1
+            }
+            let range = NSRange(location: targetLocation, length: 0)
             textView.setSelectedRange(range)
             textView.scrollRangeToVisible(range)
         }

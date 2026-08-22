@@ -283,9 +283,40 @@ struct LocalPlay: PlaySurface {
                 }
                 .listStyle(.inset)
                 .safeAreaPadding(.top, toolbarBand)
+                // #233: keyboard navigation — Return (Compose), ⌘Return (Editor),
+                // Escape (deselect), Page Up/Down (scroll by page), Home/End.
                 .onKeyPress(.return) {
                     guard store.selection.canEditPage else { return .ignored }
                     openWindow(id: CompanionID.compose)
+                    return .handled
+                }
+                .onKeyPress(.return) {
+                    guard NSEvent.modifierFlags.contains(.command),
+                          store.selection.canEditPage else { return .ignored }
+                    openWindow(id: CompanionID.editor)
+                    return .handled
+                }
+                .onKeyPress(.escape) {
+                    if store.selection.noun != nil {
+                        store.select(noun: nil)
+                        return .handled
+                    }
+                    return .ignored
+                }
+                .onKeyPress(.pageUp) {
+                    scrollList(by: -pageScrollCount(filtered))
+                    return .handled
+                }
+                .onKeyPress(.pageDown) {
+                    scrollList(by: pageScrollCount(filtered))
+                    return .handled
+                }
+                .onKeyPress(.home) {
+                    if let first = filtered.first { selectPage(first) }
+                    return .handled
+                }
+                .onKeyPress(.end) {
+                    if let last = filtered.last { selectPage(last) }
                     return .handled
                 }
             }
@@ -295,6 +326,28 @@ struct LocalPlay: PlaySurface {
             placement: .toolbar,
             prompt: "Filter by title, id, tag, or status…"
         )
+    }
+
+    /// #233: Scroll the Pages list by approximately one visible page height.
+    /// The estimate uses a fixed row height (28pt, matching `PageRow`'s
+    /// compact layout) and the list's frame height minus chrome.
+    private func scrollList(by offset: Int) {
+        guard !loadedPages.isEmpty else { return }
+        let filtered = LocalPlayGraph.filter(pages: loadedPages, query: searchText)
+        guard !filtered.isEmpty else { return }
+        let currentID = store.selection.noun?.id
+        let currentIndex = currentID.flatMap { id in filtered.firstIndex(where: { $0.id == id }) } ?? 0
+        let targetIndex = max(0, min(filtered.count - 1, currentIndex + offset))
+        selectPage(filtered[targetIndex])
+    }
+
+    /// #233: Estimated number of list rows per visible page. Uses 28pt
+    /// (compact `PageRow` height) and a minimum list height of 90pt for
+    /// the top pane.
+    private func pageScrollCount(_ pages: [PlayPage]) -> Int {
+        let listHeight = max(topHeight, 90)
+        let rowHeight: CGFloat = 28
+        return max(1, Int(listHeight / rowHeight))
     }
 
     private var selectedPageID: Binding<String?> {

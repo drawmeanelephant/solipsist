@@ -48,6 +48,12 @@ enum ComposeHighlighter {
             }
         }
 
+        // #235: Autolink post-processing — paint the angle brackets of
+        // autolinks back to plain text so the URL is easier to read.
+        if language == .markdown {
+            paintAutolinkBrackets(text, in: result)
+        }
+
         // Front matter is data, not content: paint it last so no inner rule
         // (a `#` in YAML, an `@` in a cooklang ingredient list) bleeds in.
         if let frontmatter = ComposeDocument.Frontmatter.parse(in: text) {
@@ -144,6 +150,37 @@ enum ComposeHighlighter {
                 )
             }
         }
+
+        // #235: Autolink bracket post-processing for the repainted range.
+        if language == .markdown {
+            repaintAutolinkBrackets(text, in: range, storage: storage)
+        }
+    }
+
+    /// #235: Repaints the angle brackets of autolink matches within `range`
+    /// back to plain text. Extracted from `repaint` to keep cyclomatic
+    /// complexity under the lint threshold.
+    private static func repaintAutolinkBrackets(
+        _ text: String,
+        in range: NSRange,
+        storage: NSMutableAttributedString
+    ) {
+        let nsText = text as NSString
+        guard let regex = try? NSRegularExpression(pattern: "<[^<>\\s]+>", options: []) else { return }
+        let full = NSRange(location: 0, length: nsText.length)
+        let plain = ComposeHighlightStyle.plain
+        regex.enumerateMatches(in: text, range: full) { match, _, _ in
+            guard let match, match.range.length > 2 else { return }
+            let leadingBracket = NSRange(location: match.range.location, length: 1)
+            let trailingBracket = NSRange(
+                location: match.range.location + match.range.length - 1,
+                length: 1
+            )
+            let hitLead = NSIntersectionRange(leadingBracket, range)
+            if hitLead.length > 0 { paint(plain, over: hitLead, in: storage) }
+            let hitTrail = NSIntersectionRange(trailingBracket, range)
+            if hitTrail.length > 0 { paint(plain, over: hitTrail, in: storage) }
+        }
     }
 
     // MARK: - Palette
@@ -176,13 +213,17 @@ enum ComposeHighlighter {
     // MARK: - Markdown (CommonMark 0.31.2 + Oliver's opt-in extensions)
 
     private static let markdownRules: [ComposeHighlightRule] = [
+        // #235: HTML comments — paint first so inline rules paint over them
+        // inside non-comment regions.
+        rule(#"<!--[\s\S]*?-->"#, comment, dotMatches: true),
         // Inline: emphasis family first, widest delimiter runs first.
         rule(#"(\*\*\*|___)(?=\S)(.+?)(?<=\S)\1"#, strong),
         rule(#"(?<![*_])(\*\*|__)(?=\S)(.+?)(?<=\S)\1(?!\1)(?![*_])"#, strong),
         rule(#"(?<![*_])(\*|_)(?!\1)(?=\S)(.+?)(?<=\S)\1(?!\1)(?![*_])"#, emphasis),
         rule(#"~~[^~\n]+~~"#, emphasis),
-        rule(#"`[^`\n]+`"#, code),
-        // Links before images so the image rule repaints the whole construct.
+        // #235: Code spans — match across newlines so **bold** inside
+        // multi-line backtick spans stays green (code wins by paint order).
+        rule(#"`[^`]+`"#, code),
         rule(#"\[([^\]\n]+)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)"#, link),
         rule(#"\[([^\]\n]+)\](?:\[([^\]\n]*)\])?"#, link),
         rule(#"!\[([^\]\n]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)"#, image),
@@ -195,7 +236,10 @@ enum ComposeHighlighter {
         // Blocks.
         // Oliver extension: > [!note] callouts (docs/CALLOUTS.md).
         rule(#"^>[ \t]*\[![A-Za-z0-9-]+\][^\n]*"#, callout),
-        rule(#"^(#{1,6})(?:[ \t]+.*)?$"#, heading, anchors: true),
+        // #235: ATX headings require at least one space after the hashes
+        // so YAML comments (# inside front-matter block scalars) are not
+        // painted as headings.
+        rule(#"^(#{1,6})[ \t]+[^\n]*"#, heading, anchors: true),
         rule(#"^[ \t]*=+[ \t]*$"#, heading, anchors: true),
         rule(#"^[ \t]*(-{3,}|\*{3,}|_{3,})[ \t]*$"#, quote, anchors: true),
         rule(#"^>[ \t]?"#, quote, anchors: true),
@@ -251,8 +295,9 @@ enum ComposeHighlighter {
         // Timers: ~name{3%minutes} / ~{25%minutes} / ~rest.
         rule(#"~\{[^}\n]*\}"#, timer),
         rule(#"~[^\s@#~{]+(?:\{[^}\n]*\})?"#, timer),
-        // Steps, notes, sections, comments.
-        rule(#"^>[ \t]?[^\n]*"#, note, anchors: true),
+        // #235: Notes — match consecutive > lines as a single block so the
+        // note paint covers the entire note, not individual lines.
+        rule(#"(?:^>[^\n]*\n?)+"#, note, anchors: true, dotMatches: true),
         rule(#"^=+[ \t]*[^\n]*"#, heading, anchors: true),
         rule(#"^--[^\n]*"#, comment, anchors: true),
         rule(#"\[-[^]*?-\]"#, comment, dotMatches: true),
@@ -285,6 +330,33 @@ enum ComposeHighlighter {
             let italic = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
                 .withTraits(.italic)
             attributed.addAttribute(.font, value: italic, range: range)
+        }
+    }
+
+    // MARK: - #235 Autolink post-processing
+
+    /// #235: Paints the angle brackets of autolinks (`<url>`) back to plain
+    /// text so the URL itself is easier to read. Runs after all rules have
+    /// been applied. Only fires for Markdown (autolinks are a CommonMark
+    /// feature; Cooklang and Textile use different link syntax).
+    private static func paintAutolinkBrackets(_ text: String, in attributed: NSMutableAttributedString) {
+        let nsText = text as NSString
+        let full = NSRange(location: 0, length: nsText.length)
+        // Match autolinks: <scheme:path> or <user@host>
+        guard let regex = try? NSRegularExpression(
+            pattern: "<[^<>\\s]+>",
+            options: []
+        ) else { return }
+        let plain = ComposeHighlightStyle.plain
+        regex.enumerateMatches(in: text, range: full) { match, _, _ in
+            guard let match, match.range.length > 2 else { return }
+            let leadingBracket = NSRange(location: match.range.location, length: 1)
+            let trailingBracket = NSRange(
+                location: match.range.location + match.range.length - 1,
+                length: 1
+            )
+            paint(plain, over: leadingBracket, in: attributed)
+            paint(plain, over: trailingBracket, in: attributed)
         }
     }
 }
