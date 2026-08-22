@@ -209,6 +209,13 @@ struct EditorWindow: View {
                     .accessibilityAddTraits(.isButton)
             }
 
+            // #232: one-shot confirmation after an automatic reconnect.
+            if let notice = session.transientNotice {
+                Text(notice)
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            }
+
             if let rejection = model.rejection {
                 Text(rejection)
                     .font(.caption)
@@ -298,7 +305,7 @@ private struct EditorPhaseIndicator: View {
         switch phase {
         case .idle:
             Image(systemName: "circle.dotted")
-        case .starting:
+        case .starting, .reconnecting:
             ProgressView()
                 .controlSize(.small)
         case .connected:
@@ -318,13 +325,15 @@ private struct EditorPhaseIndicator: View {
             return "Starting boris-editor…"
         case .connected(let url):
             return "Connected · \(url.host ?? "loopback")"
+        case .reconnecting(let attempt):
+            return "Reconnecting · attempt \(attempt) of \(EditorAutoReconnect.maxAttempts)"
         case .failed(let message):
             return message
         }
     }
 
     /// A11Y-4 (#242): a VoiceOver-readable label for every phase value the
-    /// indicator can render. Enumerates all four `Phase` cases so a new one
+    /// indicator can render. Enumerates all five `Phase` cases so a new one
     /// won't ship unlabeled.
     private var accessibilityPhaseLabel: String {
         switch phase {
@@ -334,6 +343,8 @@ private struct EditorPhaseIndicator: View {
             return "Engine starting"
         case .connected:
             return "Engine running"
+        case .reconnecting:
+            return "Engine reconnecting"
         case .failed:
             return "Engine error"
         }
