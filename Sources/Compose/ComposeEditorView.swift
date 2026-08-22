@@ -43,6 +43,11 @@ struct ComposeEditorView: View {
         "ComposeSplit-\(document.language.rawValue)"
     }
 
+    @State private var saveError: String?
+    /// #238: Go to Line — when set, the editor jumps to this line number.
+    @State private var goToLineTarget: Int?
+    @State private var showGoToLine = false
+
     var body: some View {
         VStack(spacing: 0) {
             toolbar
@@ -55,7 +60,8 @@ struct ComposeEditorView: View {
                 ComposeTextView(
                     document: document,
                     jumpToCharacter: jumpToCharacter,
-                    completion: cookCompletion
+                    completion: cookCompletion,
+                    jumpToLine: goToLineTarget
                 )
                 .id(document.fileURL)
                 .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
@@ -94,6 +100,22 @@ struct ComposeEditorView: View {
         }
         .task(id: externalJump) {
             if let externalJump { jumpToCharacter = externalJump }
+        }
+        // #238: Go to Line — ⌘L opens the dialog via a hidden button
+        // (onKeyPress overload resolution is ambiguous in macOS 26).
+        .background {
+            Button("") { showGoToLine = true }
+                .keyboardShortcut("l", modifiers: .command)
+                .hidden()
+        }
+        .sheet(isPresented: $showGoToLine) {
+            GoToLineSheet(
+                isPresented: $showGoToLine,
+                currentLine: document.cursorLine,
+                totalLines: document.totalLines
+            ) { line in
+                goToLineTarget = line
+            }
         }
     }
 
@@ -245,5 +267,54 @@ private struct ComposeDiagnosticsPane: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel(diagnostic.accessibilityLabel)
         }
+    }
+}
+
+/// #238: "Go to Line" sheet — a compact dialog with a single text field
+/// for a 1-based line number. Pre-filled with the cursor's current line;
+/// validated and clamped before the jump.
+private struct GoToLineSheet: View {
+    @Binding var isPresented: Bool
+    let currentLine: Int
+    let totalLines: Int
+    var onJump: (Int) -> Void
+
+    @State private var lineNumber = ""
+    @FocusState private var isFieldFocused: Bool
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Text("Go to line (of \(totalLines)):")
+                .font(.headline)
+            TextField("Line", text: $lineNumber)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 200)
+                .onSubmit(go)
+                .focused($isFieldFocused)
+                .onAppear {
+                    lineNumber = String(currentLine)
+                    isFieldFocused = true
+                }
+            HStack {
+                Button("Cancel") { isPresented = false }
+                    .keyboardShortcut(.cancelAction)
+                Button("Go") { go() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(Int(lineNumber) == nil)
+            }
+        }
+        .padding()
+        .frame(width: 280)
+        .onKeyPress(.escape) {
+            isPresented = false
+            return .handled
+        }
+    }
+
+    private func go() {
+        guard let line = Int(lineNumber), line >= 1 else { return }
+        let clamped = min(line, totalLines)
+        onJump(clamped)
+        isPresented = false
     }
 }

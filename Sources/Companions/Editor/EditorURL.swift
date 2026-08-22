@@ -118,6 +118,18 @@ public enum EditorURL {
         return "\(baseStr)#\(fragmentStr)"
     }
 
+    /// #237: Extracts `host:port` from a URL for the redacted toolbar
+    /// display. Handles IPv6 (`[::1]:9000`), IPv4 (`127.0.0.1:9000`),
+    /// and `localhost:9000`.
+    public static func hostPort(for url: URL) -> String {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return url.absoluteString
+        }
+        let host = components.host ?? "?"
+        let port = components.port.map { ":\($0)" } ?? ""
+        return "\(host)\(port)"
+    }
+
     // MARK: - Fragment (URLSearchParams)
 
     private static func fragmentItems(_ fragment: String?) -> [URLQueryItem] {

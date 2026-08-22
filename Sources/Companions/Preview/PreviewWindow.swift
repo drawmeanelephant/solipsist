@@ -12,6 +12,10 @@ import WebKit
 /// page owns the iframe + SSE auto-reload. Closing this window does not
 /// stop the watch — Play's reading pane reuses it. The toolbar keeps the
 /// manual loopback-paste escape hatch.
+///
+/// #234: Pinch-to-zoom (trackpad) and ⌘+/-/0 zoom controls are supported.
+/// Zoom level is persisted per-source in UserDefaults and restored when
+/// switching between sources.
 struct PreviewWindow: View {
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
@@ -33,6 +37,7 @@ struct PreviewWindow: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .task(id: source.id) {
+                    model.setSource(id: source.id.raw.uuidString)
                     startPreview(for: source)
                 }
             } else {
@@ -50,6 +55,9 @@ struct PreviewWindow: View {
             } else {
                 model.loadBlank()
             }
+        }
+        .onChange(of: model.zoomLevel) { _, _ in
+            model.persistZoom()
         }
     }
 
@@ -138,6 +146,41 @@ struct PreviewWindow: View {
                 .accessibilityAddTraits(.isButton)
                 .help("Open in Browser")
                 .disabled(!model.canOpenInBrowser)
+
+                Divider().frame(height: 16)
+
+                Button {
+                    model.zoomOut()
+                } label: {
+                    Image(systemName: "minus.magnifyingglass")
+                }
+                .accessibilityLabel("Zoom Out")
+                .accessibilityAddTraits(.isButton)
+                .help("Zoom Out (⌘-)")
+
+                Text("\(Int(model.zoomLevel * 100))%")
+                    .font(.caption.monospacedDigit())
+                    .frame(minWidth: 40)
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.numericText())
+
+                Button {
+                    model.zoomIn()
+                } label: {
+                    Image(systemName: "plus.magnifyingglass")
+                }
+                .accessibilityLabel("Zoom In")
+                .accessibilityAddTraits(.isButton)
+                .help("Zoom In (⌘+)")
+
+                Button {
+                    model.zoomReset()
+                } label: {
+                    Image(systemName: "1.magnifyingglass")
+                }
+                .accessibilityLabel("Reset Zoom")
+                .accessibilityAddTraits(.isButton)
+                .help("Reset Zoom (⌘0)")
             }
             if let rejection = model.rejection {
                 Text(rejection)
@@ -149,6 +192,21 @@ struct PreviewWindow: View {
                 .foregroundStyle(session.isFailure ? Color.red : .secondary)
         }
         .padding(8)
+        .onKeyPress("+") {
+            guard NSEvent.modifierFlags.contains(.command) else { return .ignored }
+            model.zoomIn()
+            return .handled
+        }
+        .onKeyPress("-") {
+            guard NSEvent.modifierFlags.contains(.command) else { return .ignored }
+            model.zoomOut()
+            return .handled
+        }
+        .onKeyPress("0") {
+            guard NSEvent.modifierFlags.contains(.command) else { return .ignored }
+            model.zoomReset()
+            return .handled
+        }
     }
 
     private func submit() {
@@ -163,6 +221,10 @@ struct PreviewWindow: View {
 
 /// Owns the `WKWebView` and the tiny bit of navigation state the toolbar
 /// needs. Main-actor confined; the view is its only client.
+///
+/// #234: Pinch-to-zoom is enabled on the WKWebView; ⌘+/-/0 shortcuts
+/// drive `zoomIn()` / `zoomOut()` / `zoomReset()`. Zoom level is
+/// persisted per-source in UserDefaults.
 @MainActor
 @Observable
 final class PreviewWebModel {
@@ -171,6 +233,36 @@ final class PreviewWebModel {
     private(set) var currentURL: URL?
     private(set) var rejection: String?
 
+    /// #234: Current zoom level (1.0 = 100%). Published so the toolbar
+    /// percentage label can observe it. Synced from the WKWebView's
+    /// `magnification` via KVO.
+    private(set) var zoomLevel: CGFloat = 1.0
+
+    /// #234: Source ID for per-source zoom persistence in UserDefaults.
+    private var sourceID: String?
+
+    private static let minZoom: CGFloat = 0.25
+    private static let maxZoom: CGFloat = 4.0
+    private static let zoomStep: CGFloat = 1.25
+
+    /// KVO observation token for `webView.magnification`. Stored so the
+    /// observation survives across method calls and is cleaned up on
+    /// deinit. `nonisolated(unsafe)` so `deinit` can invalidate it.
+    private nonisolated(unsafe) var magnificationObservation: NSKeyValueObservation?
+
+    init() {
+        webView.allowsMagnification = true
+        magnificationObservation = webView.observe(\.magnification) { [weak self] webView, _ in
+            Task { @MainActor [weak self] in
+                self?.zoomLevel = webView.magnification
+            }
+        }
+    }
+
+    deinit {
+        magnificationObservation?.invalidate()
+    }
+
     var canReload: Bool {
         currentURL != nil || webView.url != nil
     }
@@ -178,6 +270,12 @@ final class PreviewWebModel {
     var canOpenInBrowser: Bool {
         guard let url = currentURL else { return false }
         return Self.isLoopback(url)
+    }
+
+    /// #234: Bind the source ID for per-source zoom persistence.
+    func setSource(id: String) {
+        sourceID = id
+        restoreZoom()
     }
 
     func loadBlank() {
@@ -214,6 +312,46 @@ final class PreviewWebModel {
         guard let url = currentURL, Self.isLoopback(url) else { return }
         NSWorkspace.shared.open(url)
     }
+
+    // MARK: - Zoom (#234)
+
+    /// Zoom in by 1.25× (matching trackpad feel), clamped to `maxZoom`.
+    func zoomIn() {
+        webView.magnification = min(webView.magnification * Self.zoomStep, Self.maxZoom)
+    }
+
+    /// Zoom out by 1/1.25×, clamped to `minZoom`.
+    func zoomOut() {
+        webView.magnification = max(webView.magnification / Self.zoomStep, Self.minZoom)
+    }
+
+    /// Reset zoom to 100%.
+    func zoomReset() {
+        webView.magnification = 1.0
+    }
+
+    /// #234: Restore the persisted zoom level for the current source.
+    /// Called from `setSource(id:)` and after the page finishes loading
+    /// to override any magnification reset that the navigation causes.
+    func restoreZoom() {
+        guard let sourceID else { return }
+        let stored = UserDefaults.standard.double(forKey: zoomKey(sourceID))
+        let level = stored > 0 ? stored : 1.0
+        webView.magnification = level
+    }
+
+    /// Called from the view's `onChange(of: zoomLevel)` to persist the
+    /// user's zoom preference per-source.
+    func persistZoom() {
+        guard let sourceID else { return }
+        UserDefaults.standard.set(Double(zoomLevel), forKey: zoomKey(sourceID))
+    }
+
+    private func zoomKey(_ sourceID: String) -> String {
+        "preview.zoom.\(sourceID)"
+    }
+
+    // MARK: - URL helpers
 
     private static func isAllowed(_ url: URL) -> Bool {
         PreviewURL.isAllowed(url)

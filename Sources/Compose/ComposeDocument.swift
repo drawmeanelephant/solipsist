@@ -43,10 +43,13 @@ final class ComposeDocument {
     /// Whether the buffer differs from the last save/load.
     private(set) var isDirty = false
 
-    /// Cursor position for the status bar (#228). Updated by
-    /// `ComposeTextView.Coordinator` on every selection change.
+    /// Cursor position for the status bar (#228) and Go to Line (#238).
+    /// Updated by `ComposeTextView.Coordinator` on every selection change.
     var cursorLine: Int = 1
     var cursorColumn: Int = 1
+    /// #238: Total line count, updated alongside cursorLine for the Go to
+    /// Line dialog.
+    var totalLines: Int = 1
     /// Length of the current selection (0 = no selection). Used to show
     /// "42 selected" in place of the total character count.
     var selectedLength: Int = 0
@@ -92,6 +95,8 @@ final class ComposeDocument {
         let length = nsText.length
         let location = min(max(range.location, 0), length)
         selectedLength = min(max(range.length, 0), length - location)
+        // #238: Keep totalLines in sync for the Go to Line dialog.
+        totalLines = max(1, nsText.components(separatedBy: "\n").count)
 
         if length == 0 {
             cursorLine = 1
