@@ -225,6 +225,62 @@ struct SolipsistCommands: Commands {
             ))
         }
 
+        /// #276: sidebar navigation verbs — mailbox jumps for the selected
+        /// source and next/previous source cycling.
+        CommandGroup(after: .sidebar) {
+            Divider()
+
+            Button("Pages") {
+                store.select(mailbox: WorkspaceMailbox.pages)
+            }
+            .keyboardShortcut("1", modifiers: .command)
+            .disabled(!hasSource)
+
+            Button("Outputs") {
+                store.select(mailbox: WorkspaceMailbox.outputs)
+            }
+            .keyboardShortcut("2", modifiers: .command)
+            .disabled(!hasSource)
+
+            Button("Publish") {
+                store.select(mailbox: WorkspaceMailbox.publish)
+            }
+            .keyboardShortcut("3", modifiers: .command)
+            .disabled(!hasSource)
+
+            Button("Plan") {
+                store.select(mailbox: WorkspaceMailbox.plan)
+            }
+            .keyboardShortcut("4", modifiers: .command)
+            .disabled(!hasSource)
+
+            Button("Activity") {
+                store.select(mailbox: WorkspaceMailbox.activity)
+            }
+            .keyboardShortcut("5", modifiers: .command)
+            .disabled(!hasSource)
+
+            Button("Content Audit") {
+                store.select(mailbox: WorkspaceMailbox.contentAudit)
+            }
+            .keyboardShortcut("6", modifiers: .command)
+            .disabled(!hasSource)
+
+            Divider()
+
+            Button("Select Next Source") {
+                cycleSource(forward: true)
+            }
+            .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
+            .disabled(store.sources.count < 2)
+
+            Button("Select Previous Source") {
+                cycleSource(forward: false)
+            }
+            .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
+            .disabled(store.sources.count < 2)
+        }
+
         CommandGroup(replacing: .help) {
             Button("Solipsist Help") {
                 openWindow(id: "help")
@@ -246,5 +302,16 @@ struct SolipsistCommands: Commands {
     private var hasOutput: Bool {
         let kind = store.selection.noun?.kind
         return kind == "target" || kind == "edition"
+    }
+
+    /// #276: walk the sidebar's source order one step, wrapping.
+    private func cycleSource(forward: Bool) {
+        let next = SidebarNavigation.cycledSource(
+            current: store.selection.sourceID,
+            ids: store.sourceIDs,
+            forward: forward
+        )
+        guard let next else { return }
+        store.select(next)
     }
 }

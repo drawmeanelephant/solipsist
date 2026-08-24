@@ -74,6 +74,16 @@ Every menu verb and keyboard shortcut:
 | Preview | `⌘⇧P` | Open the Preview companion window (live preview via `watch --serve` with loopback URL validation and SSE reload). |
 | Editor | `⌘⇧E` | Open the Editor companion window (token-isolated host for `boris-editor`). |
 | Compose | `⌘⇧C` | Open the Compose window (native Markdown / Textile / Cooklang editor for the selected page; Oliver-powered preview; Save flows into the coordinator's validate gate). |
+| Pages | `⌘1` | Jump the selected source's sidebar to the Pages mailbox. |
+| Outputs | `⌘2` | Jump the selected source's sidebar to the Outputs mailbox. |
+| Publish | `⌘3` | Jump the selected source's sidebar to the Publish mailbox. |
+| Plan | `⌘4` | Jump the selected source's sidebar to the Plan mailbox. |
+| Activity | `⌘5` | Jump the selected source's sidebar to the Activity mailbox. |
+| Content Audit | `⌘6` | Jump the selected source's sidebar to the Content Audit mailbox. |
+| Select Next Source | `⌘⌥→` | Cycle the sidebar selection to the next source (wraps). |
+| Select Previous Source | `⌘⌥←` | Cycle the sidebar selection to the previous source (wraps). |
+
+The sidebar also carries a **Filter folders** search field: it narrows trunk folders under Pages by title (case-insensitive) while typed, and resets when cleared. Right-clicking a source offers Reveal in Finder, Copy Path, and Sync Now (GitHub sources).
 
 ### Format
 

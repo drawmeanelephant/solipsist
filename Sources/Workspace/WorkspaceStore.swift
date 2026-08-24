@@ -525,6 +525,27 @@ final class WorkspaceStore {
         }
     }
 
+    // MARK: - Sidebar conveniences (#276)
+
+    /// Reveal the source's folder in Finder (selected).
+    func revealInFinder(_ id: SourceID) {
+        guard let url = resolvedURL(for: id) else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    /// Copy the source's folder path to the general pasteboard.
+    func copyPath(_ id: SourceID) {
+        guard let url = resolvedURL(for: id) else { return }
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(url.path, forType: .string)
+    }
+
+    /// The source ids in sidebar order (source cycling, #276).
+    var sourceIDs: [SourceID] {
+        sources.map(\.id)
+    }
+
     func addLocal(url: URL) {
         lastError = nil
         let standardized = url.standardizedFileURL
