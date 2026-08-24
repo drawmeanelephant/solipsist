@@ -146,6 +146,21 @@ final class CompanionURLTests: XCTestCase {
         XCTAssertTrue(masked.contains("open=content/index.md"))
     }
 
+    func testEditorURLHostPortIPv4() throws {
+        let url = try EditorURL.parse("http://127.0.0.1:49152/#token=abcd")
+        XCTAssertEqual(EditorURL.hostPort(for: url), "127.0.0.1:49152")
+    }
+
+    func testEditorURLHostPortIPv6() throws {
+        let url = try EditorURL.parse("http://[::1]:9000/#token=abcd")
+        XCTAssertEqual(EditorURL.hostPort(for: url), "[::1]:9000")
+    }
+
+    func testEditorURLHostPortLocalhost() throws {
+        let url = try EditorURL.parse("http://localhost:8080/#token=abcd")
+        XCTAssertEqual(EditorURL.hostPort(for: url), "localhost:8080")
+    }
+
     // MARK: - PreviewURL Tests
 
     func testPreviewURLLoopbackRules() throws {

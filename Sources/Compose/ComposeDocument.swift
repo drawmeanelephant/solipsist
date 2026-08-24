@@ -16,6 +16,7 @@ final class ComposeDocument {
         didSet {
             if text != oldValue {
                 isDirty = true
+                wordCount = Self.computeWordCount(for: text)
                 // Auto-detect only until the language is pinned (by the
                 // initial load or an explicit picker choice); never override
                 // the user's selection mid-session.
@@ -55,7 +56,10 @@ final class ComposeDocument {
     var selectedLength: Int = 0
 
     /// Word count via `NSString` `.byWords` (handles hyphens, contractions).
-    var wordCount: Int {
+    /// Cached in `text.didSet` to avoid O(n) recomputation per keystroke.
+    private(set) var wordCount: Int = 0
+
+    private static func computeWordCount(for text: String) -> Int {
         let nsText = text as NSString
         var count = 0
         nsText.enumerateSubstrings(
@@ -203,6 +207,7 @@ final class ComposeDocument {
         self.cursorLine = 1
         self.cursorColumn = 1
         self.selectedLength = 0
+        self.wordCount = Self.computeWordCount(for: text)
     }
 
     /// The frontmatter dialect, mirroring Oliver's shared pre-pass

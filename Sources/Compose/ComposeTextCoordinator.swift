@@ -56,7 +56,7 @@ extension ComposeTextView {
             // Keep gutter height in sync with textView's content height
             if let gutter {
                 var gutterFrame = gutter.frame
-                gutterFrame.size.height = max(textView.bounds.height, scrollView?.contentSize.height ?? 0)
+                gutterFrame.size.height = textView.bounds.height
                 gutter.frame = gutterFrame
             }
         }
