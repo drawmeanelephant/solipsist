@@ -21,7 +21,12 @@ struct ComposeWindow: View {
     @State private var currentNoun: WorkspaceNoun?
     @State private var pendingSwitch: WorkspaceNoun?
     @State private var loadError: String?
-    @State private var saveStatus: String?
+    /// #265: typed save signal from `ComposeSaveFlow.run` — no more
+    /// string-matching "Saved" in rendered text.
+    @State private var saveSignal: ComposeSaveFlow.Signal?
+    /// #265: Ln/Col + char counts live behind this chevron, collapsed by
+    /// default; survives page switches in-session (in-memory only).
+    @State private var showDetailStats = false
     @State private var externalJump: Int?
     /// Cooklang completion vocabulary (LATER-3.4): re-decoded from the
     /// source's `.boris/` artifacts whenever a page is loaded, so a fresh
@@ -44,7 +49,13 @@ struct ComposeWindow: View {
                     externalJump: externalJump
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    statusBar
+                    ComposeStatusBar(
+                        loadError: loadError,
+                        document: document,
+                        coordinatorSummary: runtime.coordinator.summary,
+                        saveSignal: saveSignal,
+                        showDetailStats: $showDetailStats
+                    )
                 }
             } else {
                 emptyState
@@ -131,7 +142,7 @@ struct ComposeWindow: View {
             cookCompletion = ComposeCookCompletion.load(workspaceRoot: workspaceRoot)
             themeCSS = resolveThemeCSS(workspaceRoot: workspaceRoot)
             loadError = nil
-            saveStatus = nil
+            saveSignal = nil
             if let jump = runtime.pendingComposeJump, jump.pageID == noun.id {
                 if let offset = characterOffset(for: jump.line, column: jump.column, in: document.text) {
                     externalJump = offset
@@ -181,21 +192,17 @@ struct ComposeWindow: View {
     /// #231: the write happens inside `ComposeSaveFlow`'s tree-write window,
     /// so the preview watch can never observe a partially-written file.
     private func save() {
-        saveStatus = nil
+        saveSignal = nil
         let outcome = ComposeSaveFlow.run(
             beginTreeWrite: { runtime.coordinator.beginTreeWrite() },
             endTreeWrite: { runtime.coordinator.endTreeWrite() },
             noteSave: { runtime.coordinator.noteSave() },
             save: { try document.save() }
         )
-        switch outcome {
-        case .saved:
-            saveStatus = "Saved · queued validate"
-        case .notDirty:
-            break
-        case .failed(let message):
-            saveStatus = message
-        }
+        saveSignal = ComposeSaveFlow.Signal(
+            outcome: outcome,
+            savedMessage: "Saved"
+        )
     }
 
     // MARK: - Chrome
@@ -222,53 +229,118 @@ struct ComposeWindow: View {
             + "Select a page in the Pages mailbox, then open it from "
             + "View → Compose (⌘⇧C), the letter header, or the toolbar."
     }
+}
 
-    private var statusBar: some View {
+/// The compose status bar (#265): word count leads the right-hand
+/// cluster; cursor position, char count, and the coordinator token live
+/// behind a chevron, collapsed by default. Save state is a typed signal
+/// (icon + color), never a substring match. #228's stats stay reachable
+/// in the expanded strip.
+private struct ComposeStatusBar: View {
+    let loadError: String?
+    @Bindable var document: ComposeDocument
+    let coordinatorSummary: String
+    let saveSignal: ComposeSaveFlow.Signal?
+    @Binding var showDetailStats: Bool
+
+    /// #265: word count leads the right-hand cluster; cursor position, char
+    /// count, and the coordinator token live behind a chevron, collapsed by
+    /// default. Save state is a typed signal (icon + color), never a
+    /// substring match. #228's stats stay reachable in the expanded strip.
+    var body: some View {
         VStack(spacing: 0) {
             Divider()
             HStack(spacing: 8) {
-                if let loadError {
-                    Text(loadError)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .lineLimit(2)
-                        .truncationMode(.middle)
-                } else {
-                    Text(document.statusText)
-                        .font(.caption)
+                leftCluster
+                Spacer(minLength: 12)
+                HStack(spacing: 10) {
+                    Text(document.wordCountText)
+                        .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                        .layoutPriority(1)
+                        .help("Word count")
+                    if showDetailStats {
+                        detailStats
+                    }
+                    if let signal = saveSignal {
+                        saveSignalView(signal)
+                    }
                 }
-                Spacer()
-                // #228 Cursor + word/char counts — right-aligned, Xcode-style
-                Text(document.cursorText)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .help("Cursor position")
-                    .accessibilityLabel("Cursor \(document.cursorText)")
-                Text(document.wordCountText)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .help("Word count")
-                    .accessibilityLabel(document.wordCountText)
-                Text(document.characterCountText)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .help(document.selectedLength > 0 ? "Selected characters" : "Character count")
-                    .accessibilityLabel(document.characterCountText)
-                if let saveStatus {
-                    Text(saveStatus)
-                        .font(.caption)
-                        .foregroundStyle(saveStatus.contains("Saved") ? Color.secondary : Color.red)
-                }
-                Text(runtime.coordinator.summary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                .accessibilityElement(children: .combine)
+                detailStatsToggle
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
         }
+    }
+
+    @ViewBuilder
+    private var leftCluster: some View {
+        if let loadError {
+            Text(loadError)
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(2)
+                .truncationMode(.middle)
+        } else {
+            Text(document.statusText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+    }
+
+    /// Secondary strip (#265): cursor position, chars/selection, and the
+    /// coordinator token demoted out of the primary bar.
+    private var detailStats: some View {
+        HStack(spacing: 10) {
+            Text(document.cursorText)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .help("Cursor position")
+            Text(document.characterCountText)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .help(document.selectedLength > 0 ? "Selected characters" : "Character count")
+            Text(coordinatorSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .help("Save → validate coordinator activity")
+        }
+    }
+
+    /// ✓ Saved in secondary / ✗ + message in red — driven by the outcome
+    /// enum, not text matching.
+    private func saveSignalView(_ signal: ComposeSaveFlow.Signal) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: signal.symbolName)
+                .imageScale(.small)
+            Text(signal.message)
+        }
+        .font(.caption)
+        .foregroundStyle(signal.isError ? Color.red : Color.secondary)
+        .help(signal.isError ? signal.message : "Buffer written to disk")
+        .accessibilityLabel(
+            signal.isError ? "Save failed: \(signal.message)" : "Saved"
+        )
+    }
+
+    private var detailStatsToggle: some View {
+        Button {
+            showDetailStats.toggle()
+        } label: {
+            Image(systemName: showDetailStats ? "chevron.left" : "chevron.right")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 9, height: 9)
+                .padding(3)
+        }
+        .buttonStyle(.borderless)
+        .help(showDetailStats ? "Hide detailed statistics" : "Show detailed statistics")
+        .accessibilityLabel("Detailed statistics")
+        .accessibilityHint("Show or hide cursor position and character counts")
+        .accessibilityAddTraits(showDetailStats ? [.isSelected] : [])
     }
 }
