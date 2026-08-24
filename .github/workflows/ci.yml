@@ -42,7 +42,7 @@ jobs:
           version: 0.16.0
 
       - name: Cache Zig build artifacts
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: boris/zig-cache
           key: zig-${{ runner.os }}-bf464a0-${{ hashFiles('boris/build.zig.zon') }}
