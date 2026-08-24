@@ -134,6 +134,8 @@ targets:
       - path: Sources/Compose/ComposeLineGutter.swift
       - path: Sources/Compose/ComposeTabIndent.swift
       - path: Sources/Compose/ComposeTextView.swift
+      - path: Sources/Compose/ComposeFormat.swift
+      - path: Sources/Compose/ComposeFormatToolbar.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.drawmeanelephant.solipsist.contracttests

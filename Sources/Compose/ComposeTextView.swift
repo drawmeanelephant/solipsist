@@ -19,6 +19,9 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
     var completion: ComposeCookCompletion = .empty
     /// #238: Go to Line — 1-based line number to jump to; nil = no pending jump.
     var jumpToLine: Int?
+    /// #263: toolbar-to-coordinator seam; the editor view owns the bus and
+    /// the coordinator registers its applier on it.
+    var formatApplier: ComposeFormatApplier?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(document: document, completion: completion)
@@ -56,16 +59,7 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
         textView.usesFindPanel = false
         textView.isIncrementalSearchingEnabled = true
 
-        // #226 Line numbers gutter: lightweight overlay as subview of the
-        // textView so it scrolls vertically with the buffer but stays fixed
-        // horizontally (widthTracksTextView disables horizontal scroll).
-        let gutter = ComposeLineGutter()
-        gutter.textView = textView
-        gutter.frame = NSRect(x: 0, y: 0, width: 36, height: textView.bounds.height)
-        gutter.autoresizingMask = [.height]
-        gutter.wantsLayer = true
-        // Reserve 36pt for the gutter + keep 10pt original inset as gap.
-        textView.textContainer?.lineFragmentPadding = 36
+        let gutter = makeGutter(for: textView)
         textView.addSubview(gutter)
         context.coordinator.gutter = gutter
 
@@ -73,6 +67,7 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
         context.coordinator.textView = textView
         context.coordinator.hostedTextView = textView
         context.coordinator.scrollView = scrollView
+        registerFormatApplier(context.coordinator)
 
         context.coordinator.applyHighlight(
             textView,
@@ -87,12 +82,27 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
         return scrollView
     }
 
+    /// #226 Line numbers gutter: lightweight overlay as subview of the
+    /// textView so it scrolls vertically with the buffer but stays fixed
+    /// horizontally (widthTracksTextView disables horizontal scroll).
+    private func makeGutter(for textView: NSTextView) -> ComposeLineGutter {
+        let gutter = ComposeLineGutter()
+        gutter.textView = textView
+        gutter.frame = NSRect(x: 0, y: 0, width: 36, height: textView.bounds.height)
+        gutter.autoresizingMask = [.height]
+        gutter.wantsLayer = true
+        // Reserve 36pt for the gutter + keep 10pt original inset as gap.
+        textView.textContainer?.lineFragmentPadding = 36
+        return gutter
+    }
+
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
         context.coordinator.document = document
         context.coordinator.completion = completion
         context.coordinator.textView = textView
         context.coordinator.scrollView = scrollView
+        registerFormatApplier(context.coordinator)
         // Re-bind gutter if view was recreated (SwiftUI .id)
         if let gutter = context.coordinator.gutter, gutter.superview !== textView {
             gutter.textView = textView
@@ -134,6 +144,15 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
 
     private var baseFont: NSFont {
         NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+    }
+
+    /// #263: point the toolbar bus at this coordinator (weakly — the bus is
+    /// owned by the SwiftUI view and outlives view rebuilds).
+    private func registerFormatApplier(_ coordinator: Coordinator) {
+        guard let formatApplier else { return }
+        formatApplier.handler = { [weak coordinator] format in
+            coordinator?.apply(format)
+        }
     }
 
     @MainActor
@@ -339,6 +358,35 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
             let range = NSRange(location: targetLocation, length: 0)
             textView.setSelectedRange(range)
             textView.scrollRangeToVisible(range)
+        }
+
+        /// #263: applies a toolbar format at the current selection. The
+        /// mutation flows through `shouldChangeText` / `didChangeText` so the
+        /// undo stack records one group per press and the ordinary
+        /// `textDidChange` delegate path (buffer sync + repaint) runs
+        /// unchanged.
+        func apply(_ format: ComposeFormat) {
+            guard let textView, document.language.supportsFormatting else { return }
+            guard
+                let edit = ComposeFormat.apply(
+                    format,
+                    to: textView.string,
+                    selectedRange: textView.selectedRange(),
+                    language: document.language
+                )
+            else { return }
+            let undoManager = textView.undoManager
+            undoManager?.beginUndoGrouping()
+            defer { undoManager?.endUndoGrouping() }
+            undoManager?.setActionName(format.actionName)
+            if textView.shouldChangeText(in: edit.replacedRange, replacementString: edit.replacement) {
+                textView.textStorage?.replaceCharacters(
+                    in: edit.replacedRange,
+                    with: edit.replacement
+                )
+                textView.didChangeText()
+                textView.setSelectedRange(edit.selection)
+            }
         }
 
         private var baseFont: NSFont {

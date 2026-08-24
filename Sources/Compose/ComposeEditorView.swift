@@ -38,6 +38,9 @@ struct ComposeEditorView: View {
     /// LATER-3.3: leading pane editing the closed front-matter key set.
     @State private var showFrontmatter = false
     @State private var previewOptions = MarkupRenderOptions()
+    /// #263: toolbar-to-text-view seam for formatting verbs.
+    @State private var formatApplier = ComposeFormatApplier()
+    @State private var showPreviewOptions = false
 
     private var autosaveName: String {
         "ComposeSplit-\(document.language.rawValue)"
@@ -61,7 +64,8 @@ struct ComposeEditorView: View {
                     document: document,
                     jumpToCharacter: jumpToCharacter,
                     completion: cookCompletion,
-                    jumpToLine: goToLineTarget
+                    jumpToLine: goToLineTarget,
+                    formatApplier: formatApplier
                 )
                 .id(document.fileURL)
                 .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)
@@ -157,10 +161,11 @@ struct ComposeEditorView: View {
             .accessibilityLabel("Language, currently \(document.language.displayName)")
             .accessibilityHint("Select the authoring frontend")
 
-            Text(document.language.conformanceNote)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            // #263: formatting up front; hidden for Cooklang (recipes are
+            // not prose).
+            if document.language.supportsFormatting {
+                ComposeFormatToolbar(applier: formatApplier)
+            }
 
             Spacer()
 
@@ -182,14 +187,17 @@ struct ComposeEditorView: View {
             .accessibilityHint("Show or hide the front matter editor.")
             .accessibilityAddTraits(showFrontmatter ? .isSelected : [])
 
-            Menu {
-                previewOptionsContent
+            Button {
+                showPreviewOptions = true
             } label: {
-                Label("Render Options", systemImage: "slider.horizontal.3")
+                Label("Preview Options", systemImage: "slider.horizontal.3")
             }
             .help("Oliver ParseOptions — every extension is off by default.")
-            .accessibilityLabel("Render Options")
+            .accessibilityLabel("Preview Options")
             .accessibilityHint("Configure Oliver's parse extensions.")
+            .popover(isPresented: $showPreviewOptions, arrowEdge: .bottom) {
+                previewOptionsPopover
+            }
 
             Button {
                 // #231: never write here. The host's save flow wraps the
@@ -207,6 +215,25 @@ struct ComposeEditorView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+    }
+
+    /// #263: today's Render Options content verbatim (values and defaults
+    /// unchanged — all-off stays the Oliver contract default), plus a
+    /// reset-to-defaults button and the conformance note as footnote.
+    private var previewOptionsPopover: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            previewOptionsContent
+            Divider()
+            Button("Reset to Defaults") {
+                previewOptions = MarkupRenderOptions()
+            }
+            .help("Restore every option to its off-by-default value")
+            Text(document.language.conformanceNote)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(12)
+        .frame(width: 280, alignment: .leading)
     }
 
     /// Author-facing extension surface, mirroring Oliver's `ParseOptions`:
