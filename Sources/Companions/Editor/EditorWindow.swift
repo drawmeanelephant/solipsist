@@ -116,7 +116,9 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
                         .foregroundStyle(.secondary)
                 } else {
                     Text("The Boris editor connects when the host process is running.")
-                    Text("File → Edit Page opens the editor, or paste a BORIS_EDITOR_URL line to connect manually.")
+                    // #267: lead with the action; manual connect is the
+                    // last-resort sentence, matching #237's collapsed field.
+                    Text(EditorIdleCopy.description)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -217,9 +219,11 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
 
     private var toolbar: some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Row 1: Nav + phase indicator + actions (always visible)
+            // Row 1: phase indicator + actions (always visible). #267:
+            // Back/Forward removed — the shell loads one tokenized SPA URL
+            // per session and never navigates cross-page by design.
             HStack(spacing: 8) {
-                EditorNavButtons(model: model)
+                ReloadButton(model: model)
 
                 if model.isLoading {
                     ProgressView()
@@ -264,14 +268,14 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
             }
 
             // #232: one-shot confirmation after an automatic reconnect.
-            if let notice = session.transientNotice {
-                Text(notice)
+            if session.transientNotice != nil {
+                Label("Reconnected", systemImage: "checkmark.circle.fill")
                     .font(.caption)
                     .foregroundStyle(.green)
             }
 
             if let rejection = model.rejection {
-                Text(rejection)
+                Label(rejection, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.red)
             }
@@ -360,42 +364,22 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
     }
 }
 
-private struct EditorNavButtons: View {
+/// #267: the only navigation control left — Reload. Back/Forward are gone:
+/// the web view never navigates cross-page by design, and dead controls
+/// read as broken.
+private struct ReloadButton: View {
     let model: EditorWebModel
 
     var body: some View {
-        HStack(spacing: 2) {
-            Button {
-                model.goBack()
-            } label: {
-                Image(systemName: "chevron.left")
-            }
-            .accessibilityLabel("Back")
-            .accessibilityAddTraits(.isButton)
-            .help("Back")
-            .disabled(!model.canGoBack)
-
-            Button {
-                model.goForward()
-            } label: {
-                Image(systemName: "chevron.right")
-            }
-            .accessibilityLabel("Forward")
-            .accessibilityAddTraits(.isButton)
-            .help("Forward")
-            .disabled(!model.canGoForward)
-
-            Button {
-                model.reload()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
-            .accessibilityLabel("Reload")
-            .accessibilityAddTraits(.isButton)
-            .help("Reload")
-            .disabled(!model.canReload)
+        Button {
+            model.reload()
+        } label: {
+            Image(systemName: "arrow.clockwise")
         }
-        .buttonStyle(.borderless)
+        .accessibilityLabel("Reload")
+        .accessibilityAddTraits(.isButton)
+        .help("Reload")
+        .disabled(!model.canReload)
     }
 }
 
@@ -406,14 +390,14 @@ private struct EditorPhaseIndicator: View {
     var body: some View {
         HStack(spacing: 5) {
             phaseIcon
-            Text(phaseLabel)
+            Text(EditorPhaseCopy.label(for: phase))
                 .font(.caption)
                 .foregroundStyle(isFailure ? Color.red : Color.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityPhaseLabel)
+        .accessibilityLabel(EditorPhaseCopy.accessibilityLabel(for: phase))
         .accessibilityAddTraits(.isStaticText)
     }
 
@@ -431,39 +415,6 @@ private struct EditorPhaseIndicator: View {
         case .failed:
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-        }
-    }
-
-    private var phaseLabel: String {
-        switch phase {
-        case .idle:
-            return "Not connected"
-        case .starting:
-            return "Starting boris-editor…"
-        case .connected(let url):
-            return "Connected · \(url.host ?? "loopback")"
-        case .reconnecting(let attempt):
-            return "Reconnecting · attempt \(attempt) of \(EditorAutoReconnect.maxAttempts)"
-        case .failed(let message):
-            return message
-        }
-    }
-
-    /// A11Y-4 (#242): a VoiceOver-readable label for every phase value the
-    /// indicator can render. Enumerates all five `Phase` cases so a new one
-    /// won't ship unlabeled.
-    private var accessibilityPhaseLabel: String {
-        switch phase {
-        case .idle:
-            return "Engine idle"
-        case .starting:
-            return "Engine starting"
-        case .connected:
-            return "Engine running"
-        case .reconnecting:
-            return "Engine reconnecting"
-        case .failed:
-            return "Engine error"
         }
     }
 }

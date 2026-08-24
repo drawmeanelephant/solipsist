@@ -116,6 +116,7 @@ targets:
       - path: Sources/Companions/CompanionID.swift
       - path: Sources/Companions/Editor/EditorURL.swift
       - path: Sources/Companions/Editor/EditorSession.swift
+      - path: Sources/Companions/Editor/EditorCopy.swift
       - path: Sources/Companions/Editor/EditorServerFactory.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
       - path: Sources/Compose/ComposeLanguage.swift

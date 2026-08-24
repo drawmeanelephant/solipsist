@@ -12,8 +12,6 @@ final class EditorWebModel: NSObject {
     private(set) var currentURL: URL?
     private(set) var rejection: String?
     private(set) var isLoading = false
-    private(set) var canGoBack = false
-    private(set) var canGoForward = false
 
     @ObservationIgnored
     private var observations: [NSKeyValueObservation] = []
@@ -56,18 +54,6 @@ final class EditorWebModel: NSObject {
         }
     }
 
-    func goBack() {
-        if webView.canGoBack {
-            webView.goBack()
-        }
-    }
-
-    func goForward() {
-        if webView.canGoForward {
-            webView.goForward()
-        }
-    }
-
     func openInBrowser() {
         guard let url = currentURL, Self.isLoopback(url) else { return }
         NSWorkspace.shared.open(url)
@@ -80,16 +66,6 @@ final class EditorWebModel: NSObject {
             webView.observe(\.isLoading, options: [.initial, .new]) { [weak self] _, change in
                 MainActor.assumeIsolated {
                     self?.isLoading = change.newValue ?? false
-                }
-            },
-            webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] _, change in
-                MainActor.assumeIsolated {
-                    self?.canGoBack = change.newValue ?? false
-                }
-            },
-            webView.observe(\.canGoForward, options: [.initial, .new]) { [weak self] _, change in
-                MainActor.assumeIsolated {
-                    self?.canGoForward = change.newValue ?? false
                 }
             },
         ]
