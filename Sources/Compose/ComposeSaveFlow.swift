@@ -37,4 +37,38 @@ enum ComposeSaveFlow {
         noteSave()
         return .saved
     }
+
+    /// #265: the status-bar save signal, derived from the typed outcome
+    /// instead of string-matching rendered text ("contains(\"Saved\")").
+    enum Signal: Equatable {
+        case saved(message: String)
+        case failed(message: String)
+
+        /// `.notDirty` (clean-and-idle) produces no signal at all.
+        init?(outcome: Outcome, savedMessage: String) {
+            switch outcome {
+            case .saved:
+                self = .saved(message: savedMessage)
+            case .notDirty:
+                return nil
+            case .failed(let message):
+                self = .failed(message: message)
+            }
+        }
+
+        var message: String {
+            switch self {
+            case .saved(let message), .failed(let message): return message
+            }
+        }
+
+        var isError: Bool {
+            if case .failed = self { return true }
+            return false
+        }
+
+        var symbolName: String {
+            isError ? "xmark.octagon.fill" : "checkmark"
+        }
+    }
 }
