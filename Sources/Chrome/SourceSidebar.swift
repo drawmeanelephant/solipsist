@@ -7,6 +7,9 @@ struct SourceSidebar: View {
     @Environment(WorkspaceStore.self) private var store
 
     @State private var toolbarBand: CGFloat = 0
+    /// #276: sidebar filter — case-insensitive trunk-title substring,
+    /// in-session only (never persisted).
+    @State private var folderFilter = ""
 
     var body: some View {
         List(selection: selectedRow) {
@@ -14,11 +17,17 @@ struct SourceSidebar: View {
                 SourceSection(
                     item: item,
                     isExpanded: isExpanded(for: item.id),
-                    store: store
+                    store: store,
+                    folderFilter: folderFilter
                 )
             }
         }
         .listStyle(.sidebar)
+        .searchable(
+            text: $folderFilter,
+            placement: .sidebar,
+            prompt: "Filter folders"
+        )
         .navigationTitle("Mailboxes")
         .safeAreaPadding(.top, max(toolbarBand, 62))
         .background(ToolbarBandReader { toolbarBand = $0 })
@@ -74,6 +83,8 @@ private struct SourceSection: View {
     let item: SourceItem
     @Binding var isExpanded: Bool
     let store: WorkspaceStore
+    /// #276: trunk-title filter handed down from the sidebar search field.
+    var folderFilter: String = ""
     /// The github source awaiting a sign-out confirmation, when any.
     @State private var signOutItem: SourceItem?
 
@@ -84,7 +95,7 @@ private struct SourceSection: View {
                     // Pages grows trunk-folder children from the decoded
                     // graph (M13-1). No graph yet → no children, not an
                     // error; Chrome never parses JSON.
-                    PagesGroup(item: item, store: store)
+                    PagesGroup(item: item, store: store, folderFilter: folderFilter)
                 } else {
                     MailboxRow(item: item, box: box)
                         .tag(MailboxRowID(sourceID: item.id, mailbox: box))
@@ -137,6 +148,8 @@ private struct SourceSection: View {
 private struct PagesGroup: View {
     let item: SourceItem
     let store: WorkspaceStore
+    /// #276: trunk-title filter; empty passes everything through.
+    var folderFilter: String = ""
 
     private var pagesRowID: MailboxRowID {
         MailboxRowID(sourceID: item.id, mailbox: WorkspaceMailbox.pages)
@@ -155,10 +168,14 @@ private struct PagesGroup: View {
         store.cachedGraph(for: item.id).map(LocalPlayGraph.snapshot) ?? .empty
     }
 
+    private var visibleTrunks: [PlayPage] {
+        snapshot.trunks.filter { SidebarNavigation.matches(filter: folderFilter, title: $0.title) }
+    }
+
     var body: some View {
         let snap = snapshot
         Group {
-            if snap.trunks.isEmpty {
+            if visibleTrunks.isEmpty {
                 MailboxRow(
                     item: item,
                     box: WorkspaceMailbox.pages,
@@ -168,7 +185,7 @@ private struct PagesGroup: View {
                 .contextMenu { sourceMenu(item, store: store) }
             } else {
                 DisclosureGroup(isExpanded: isExpanded) {
-                    ForEach(snap.trunks, id: \.id) { trunk in
+                    ForEach(visibleTrunks, id: \.id) { trunk in
                         TrunkRow(item: item, trunk: trunk, count: snap.countsByTrunk[trunk.id] ?? 0)
                             .tag(MailboxRowID(sourceID: item.id, mailbox: trunk.id))
                             .contextMenu { sourceMenu(item, store: store) }
@@ -229,13 +246,32 @@ private struct TrunkRow: View {
     }
 }
 
+/// #276: Reveal / Copy Path / Sync Now join Relocate and Remove — every
+/// action rides an existing store API.
 @ViewBuilder
 fileprivate func sourceMenu(_ item: SourceItem, store: WorkspaceStore) -> some View {
     if !item.isAvailable {
         Button("Relocate…") {
             store.presentRelocatePanel(for: item.id)
         }
+    } else {
+        Button("Reveal in Finder") {
+            store.revealInFinder(item.id)
+        }
+        Button("Copy Path") {
+            store.copyPath(item.id)
+        }
+        if case .github = item, item.isSyncing {
+            Button("Cancel Sync") {
+                store.cancelSyncGithub(item.id)
+            }
+        } else if case .github = item {
+            Button("Sync Now") {
+                Task { await store.syncGithub(item.id) }
+            }
+        }
     }
+    Divider()
     Button("Remove from Sidebar", role: .destructive) {
         store.remove(item.id)
     }
