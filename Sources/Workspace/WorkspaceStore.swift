@@ -25,9 +25,37 @@ final class WorkspaceStore {
     /// lookups are never cached, so a later build can make it appear.
     private(set) var graphs: [SourceID: Graph] = [:]
 
+    /// #274: the sidebar's persisted tree shape. Rules + codec live in
+    /// `SidebarExpansionState` (test-target friendly); the store owns the
+    /// UserDefaults round-trip.
+    private(set) var expansion = SidebarExpansionState.Payload()
+
+    /// #274: collapses or expands a source section, persisting immediately.
+    func setSourceExpanded(_ id: SourceID, expanded: Bool) {
+        let next = expanded
+            ? SidebarExpansionState.expanding(expansion, id: id)
+            : SidebarExpansionState.collapsing(expansion, id: id)
+        guard next != expansion else { return }
+        expansion = next
+        saveExpansion()
+    }
+
+    /// #274: sets one source's Pages-disclosure openness, persisting.
+    func setPagesExpanded(_ id: SourceID, expanded: Bool) {
+        let next = SidebarExpansionState.settingPages(expansion, id: id, expanded: expanded)
+        guard next != expansion else { return }
+        expansion = next
+        saveExpansion()
+    }
+
+    private func saveExpansion() {
+        SidebarExpansionState.save(expansion, defaults: defaults)
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         load()
+        expansion = SidebarExpansionState.load(defaults: defaults)
         refreshRecentFolders()
     }
 
