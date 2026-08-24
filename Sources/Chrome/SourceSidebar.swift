@@ -149,46 +149,44 @@ private struct PagesGroup: View {
         )
     }
 
-    private var graph: Graph? {
-        store.graph(for: item.id)
-    }
-
-    private var allPages: [PlayPage] {
-        guard let graph else { return [] }
-        return LocalPlayGraph.pages(from: graph)
-    }
-
-    private var trunks: [PlayPage] {
-        guard let graph else { return [] }
-        return LocalPlayGraph.trunks(from: graph)
+    /// #275: cached-only read + one-pass snapshot. The async seed below
+    /// fills the cache without ever decoding during body evaluation.
+    private var snapshot: LocalPlayGraph.SidebarSnapshot {
+        store.cachedGraph(for: item.id).map(LocalPlayGraph.snapshot) ?? .empty
     }
 
     var body: some View {
-        if trunks.isEmpty {
-            MailboxRow(
-                item: item,
-                box: WorkspaceMailbox.pages,
-                count: allPages.isEmpty ? nil : allPages.count
-            )
-            .tag(pagesRowID)
-            .contextMenu { sourceMenu(item, store: store) }
-        } else {
-            DisclosureGroup(isExpanded: isExpanded) {
-                ForEach(trunks, id: \.id) { trunk in
-                    let trunkCount = LocalPlayGraph.pages(in: allPages, trunkID: trunk.id).count
-                    TrunkRow(item: item, trunk: trunk, count: trunkCount)
-                        .tag(MailboxRowID(sourceID: item.id, mailbox: trunk.id))
-                        .contextMenu { sourceMenu(item, store: store) }
-                }
-            } label: {
+        let snap = snapshot
+        Group {
+            if snap.trunks.isEmpty {
                 MailboxRow(
                     item: item,
                     box: WorkspaceMailbox.pages,
-                    count: allPages.isEmpty ? nil : allPages.count
+                    count: snap.pageCount == 0 ? nil : snap.pageCount
                 )
                 .tag(pagesRowID)
                 .contextMenu { sourceMenu(item, store: store) }
+            } else {
+                DisclosureGroup(isExpanded: isExpanded) {
+                    ForEach(snap.trunks, id: \.id) { trunk in
+                        TrunkRow(item: item, trunk: trunk, count: snap.countsByTrunk[trunk.id] ?? 0)
+                            .tag(MailboxRowID(sourceID: item.id, mailbox: trunk.id))
+                            .contextMenu { sourceMenu(item, store: store) }
+                    }
+                } label: {
+                    MailboxRow(
+                        item: item,
+                        box: WorkspaceMailbox.pages,
+                        count: snap.pageCount == 0 ? nil : snap.pageCount
+                    )
+                    .tag(pagesRowID)
+                    .contextMenu { sourceMenu(item, store: store) }
+                }
             }
+        }
+        // #275: seed the cache off-main when this section first appears.
+        .task(id: item.id) {
+            store.requestGraph(for: item.id)
         }
     }
 }

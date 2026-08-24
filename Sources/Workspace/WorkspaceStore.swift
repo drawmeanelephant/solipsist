@@ -438,6 +438,80 @@ final class WorkspaceStore {
         graphs[id] = graph
     }
 
+    // MARK: - Live sidebar (#275)
+
+    /// Sidebar-only read: returns whatever is cached, nil otherwise. Never
+    /// touches disk synchronously — seeding happens through `requestGraph`,
+    /// so a big first decode cannot hitch body evaluation. Other surfaces
+    /// (ReadingPane) keep the lazy synchronous `graph(for:)`.
+    func cachedGraph(for id: SourceID) -> Graph? {
+        graphs[id]
+    }
+
+    /// Sources with an async decode in flight, so concurrent requests
+    /// (watch burst + task seed) coalesce into one decode.
+    private var inFlightGraphDecodes: Set<SourceID> = []
+    private var sidebarWatcher: ContentTreeWatcher?
+    private var sidebarDebounceTask: Task<Void, Never>?
+
+    /// Fire-and-forget refresh: decodes `<root>/.boris/graph.json` off the
+    /// main actor and pushes through `updateGraph`. A missing file clears
+    /// nothing — a stale cache outlives a vanished artifact until a real
+    /// rebuild writes a new one.
+    func requestGraph(for id: SourceID) {
+        guard !inFlightGraphDecodes.contains(id) else { return }
+        guard let url = resolvedURL(for: id) else { return }
+        inFlightGraphDecodes.insert(id)
+        let fileURL = url
+            .appendingPathComponent(".boris", isDirectory: true)
+            .appendingPathComponent("graph.json")
+        Task.detached { [weak self] in
+            let decoded = try? JSONDecoder().decode(
+                Graph.self,
+                from: Data(contentsOf: fileURL)
+            )
+            await MainActor.run {
+                guard let self else { return }
+                if let decoded {
+                    self.updateGraph(decoded, for: id)
+                }
+                self.inFlightGraphDecodes.remove(id)
+            }
+        }
+    }
+
+    /// Watches the selected source's content root so the sidebar tracks
+    /// `graph.json` live (#275). Call on selection change; no-op without an
+    /// available source. Debounced — FSEvents bursts coalesce into one
+    /// refresh ~300 ms after the last event.
+    func startSidebarWatch(for id: SourceID?) {
+        sidebarWatcher?.stop()
+        sidebarWatcher = nil
+        sidebarDebounceTask?.cancel()
+        sidebarDebounceTask = nil
+
+        guard let id, let url = resolvedURL(for: id) else { return }
+        requestGraph(for: id)
+
+        let watcher = ContentTreeWatcher()
+        watcher.handler = { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.debouncedRefresh(id: id)
+            }
+        }
+        watcher.start(path: url.path)
+        sidebarWatcher = watcher
+    }
+
+    private func debouncedRefresh(id: SourceID) {
+        sidebarDebounceTask?.cancel()
+        sidebarDebounceTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            self?.requestGraph(for: id)
+        }
+    }
+
     private func resolvedURL(for id: SourceID) -> URL? {
         if let url = scopedURLs[id] { return url }
         guard let item = sources.first(where: { $0.id == id }) else { return nil }

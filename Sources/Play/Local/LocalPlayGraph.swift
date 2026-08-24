@@ -88,6 +88,34 @@ enum LocalPlayGraph {
         pages.filter { $0.trunkID == trunkID }
     }
 
+    /// One-pass sidebar snapshot (#275): pages, trunks, and per-trunk
+    /// counts derived together so a render never walks the graph twice
+    /// and never recounts O(trunks × pages) per body evaluation.
+    struct SidebarSnapshot: Equatable, Sendable {
+        var allPages: [PlayPage] = []
+        var trunks: [PlayPage] = []
+        /// trunk id → number of pages inside that trunk.
+        var countsByTrunk: [String: Int] = [:]
+
+        var pageCount: Int { allPages.count }
+        static let empty = SidebarSnapshot()
+    }
+
+    static func snapshot(from graph: Graph) -> SidebarSnapshot {
+        let allPages = pages(from: graph)
+        var counts: [String: Int] = [:]
+        for page in allPages {
+            if let trunkID = page.trunkID {
+                counts[trunkID, default: 0] += 1
+            }
+        }
+        return SidebarSnapshot(
+            allPages: allPages,
+            trunks: allPages.filter { $0.depth == 0 && $0.role == .trunk },
+            countsByTrunk: counts
+        )
+    }
+
     /// The sidebar's folder rows under Pages (M13-1): roots whose role
     /// is `trunk`. Satellites and non-trunk roots are not folders.
     static func trunks(from graph: Graph) -> [PlayPage] {
