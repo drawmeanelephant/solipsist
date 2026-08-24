@@ -127,6 +127,12 @@ public enum EditorURL {
         }
         let host = components.host ?? "?"
         let port = components.port.map { ":\($0)" } ?? ""
+        if host.contains(":") {
+            if host.hasPrefix("[") {
+                return "\(host)\(port)"
+            }
+            return "[\(host)]\(port)"
+        }
         return "\(host)\(port)"
     }
 

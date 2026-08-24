@@ -347,7 +347,7 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
     }
 
     private func submit() {
-        if urlText.contains("••••"), let current = session.editorURL ?? model.currentURL {
+        if session.isConnected, let current = session.editorURL ?? model.currentURL {
             let targeted = EditorURL.opening(current, sourcePath: pageSourcePath)
             model.load(url: targeted)
             return

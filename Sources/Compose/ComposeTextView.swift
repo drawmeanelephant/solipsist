@@ -149,7 +149,7 @@ struct ComposeTextView: NSViewRepresentable {
         // Keep gutter height in sync with textView content height
         if let gutter = context.coordinator.gutter {
             var gutterFrame = gutter.frame
-            gutterFrame.size.height = max(textView.bounds.height, scrollView.contentSize.height)
+            gutterFrame.size.height = textView.bounds.height
             gutter.frame = gutterFrame
             gutter.needsDisplay = true
         }
