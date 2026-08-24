@@ -36,7 +36,10 @@ struct ComposeEditorView: View {
     @State private var jumpToCharacter: Int?
     @State private var showPreview = true
     /// LATER-3.3: leading pane editing the closed front-matter key set.
+    /// #266: seeded per page load — a page carrying front matter shows the
+    /// pane without a click; an explicit toggle wins until the next page.
     @State private var showFrontmatter = false
+    @State private var userToggledFrontmatter = false
     @State private var previewOptions = MarkupRenderOptions()
     /// #263: toolbar-to-text-view seam for formatting verbs.
     @State private var formatApplier = ComposeFormatApplier()
@@ -45,6 +48,22 @@ struct ComposeEditorView: View {
     private var autosaveName: String {
         "ComposeSplit-\(document.language.rawValue)"
     }
+
+    /// #266: the author's own toggle routes through here so auto-show never
+    /// overrides an explicit choice while the page stays loaded.
+    private var frontmatterBinding: Binding<Bool> {
+        Binding(
+            get: { showFrontmatter },
+            set: { newValue in
+                userToggledFrontmatter = true
+                showFrontmatter = newValue
+            }
+        )
+    }
+
+    // #266: pane visibility — seeded from presence on page load; once the
+    // author toggles, their choice wins until the next page. The rule
+    // itself lives on `ComposeFrontmatter.paneVisibility`.
 
     @State private var saveError: String?
     /// #238: Go to Line — when set, the editor jumps to this line number.
@@ -104,6 +123,16 @@ struct ComposeEditorView: View {
         }
         .task(id: externalJump) {
             if let externalJump { jumpToCharacter = externalJump }
+        }
+        // #266: seed the pane per page load. The preference resets with the
+        // page — a fresh document that carries front matter shows the form.
+        .task(id: document.fileURL) {
+            userToggledFrontmatter = false
+            showFrontmatter = ComposeFrontmatter.paneVisibility(
+                current: showFrontmatter,
+                present: document.frontmatter != nil,
+                userToggled: userToggledFrontmatter
+            )
         }
         // #238: Go to Line — ⌘L opens the dialog via a hidden button
         // (onKeyPress overload resolution is ambiguous in macOS 26).
@@ -178,7 +207,7 @@ struct ComposeEditorView: View {
             .accessibilityHint("Toggle the Oliver preview pane")
             .accessibilityAddTraits(showPreview ? .isSelected : [])
 
-            Toggle(isOn: $showFrontmatter) {
+            Toggle(isOn: frontmatterBinding) {
                 Label("Front Matter", systemImage: "doc.text.magnifyingglass")
             }
             .toggleStyle(.button)
