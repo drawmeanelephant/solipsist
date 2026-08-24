@@ -199,6 +199,32 @@ struct SolipsistCommands: Commands {
             .keyboardShortcut("c", modifiers: [.command, .shift])
         }
 
+        /// #264: reading comfort for the compose buffer — type ladder and
+        /// gutter toggle, persisted as machine state (UserDefaults).
+        CommandGroup(after: .textFormatting) {
+            Button("Zoom In") {
+                runtime.composeTypography.zoomIn()
+            }
+            .keyboardShortcut("+", modifiers: .command)
+
+            Button("Zoom Out") {
+                runtime.composeTypography.zoomOut()
+            }
+            .keyboardShortcut("-", modifiers: .command)
+
+            Button("Actual Size") {
+                runtime.composeTypography.resetToActualSize()
+            }
+            .keyboardShortcut("0", modifiers: .command)
+
+            Divider()
+
+            Toggle("Line Numbers", isOn: Binding(
+                get: { runtime.composeTypography.showsLineNumbers },
+                set: { runtime.composeTypography.setLineNumbers($0) }
+            ))
+        }
+
         CommandGroup(replacing: .help) {
             Button("Solipsist Help") {
                 openWindow(id: "help")

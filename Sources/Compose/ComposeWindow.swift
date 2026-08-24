@@ -46,7 +46,8 @@ struct ComposeWindow: View {
                     themeCSS: themeCSS,
                     cookCompletion: cookCompletion,
                     onSave: save,
-                    externalJump: externalJump
+                    externalJump: externalJump,
+                    typography: runtime.composeTypography
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     ComposeStatusBar(

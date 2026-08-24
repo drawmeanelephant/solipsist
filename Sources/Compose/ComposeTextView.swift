@@ -10,7 +10,7 @@ import SwiftUI
 /// `NSScrollView` (which conforms to `NSTextFinderBarContainer`). This gives
 /// ⌘F / ⌘⌥F / ⌘G / ⇧⌘G, wrap-around, case-insensitive and regex toggles for
 /// free — no custom UI.
-struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_body_length
+struct ComposeTextView: NSViewRepresentable {
     @Bindable var document: ComposeDocument
     /// Click-to-line target (LATER-3.1); nil = no pending jump.
     var jumpToCharacter: Int?
@@ -22,6 +22,11 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
     /// #263: toolbar-to-coordinator seam; the editor view owns the bus and
     /// the coordinator registers its applier on it.
     var formatApplier: ComposeFormatApplier?
+    /// #264: reading-comfort ladder size (11…21, default 13). The editor
+    /// view reads the observable's scalars so SwiftUI re-syncs on change.
+    var fontSize: CGFloat = 13
+    /// #264: gutter visibility from `ComposeTypography`.
+    var showsLineNumbers: Bool = true
 
     func makeCoordinator() -> Coordinator {
         Coordinator(document: document, completion: completion)
@@ -44,8 +49,11 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
         textView.isContinuousSpellCheckingEnabled = false
-        textView.font = baseFont
-        textView.textContainerInset = NSSize(width: 10, height: 10)
+        context.coordinator.fontSize = fontSize
+        textView.font = context.coordinator.currentFont
+        // #264: breathing room — vertical inset + paragraph line spacing.
+        textView.textContainerInset = NSSize(width: 10, height: 14)
+        textView.defaultParagraphStyle = context.coordinator.paragraphStyle
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
@@ -77,6 +85,7 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
         )
         // Gutter width tracks line count; update after initial paint.
         context.coordinator.updateGutterWidth()
+        context.coordinator.applyGutterVisibility()
         gutter.needsDisplay = true
         document.updateCursor(textView.selectedRange())
         return scrollView
@@ -103,6 +112,9 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
         context.coordinator.textView = textView
         context.coordinator.scrollView = scrollView
         registerFormatApplier(context.coordinator)
+        // #264: reading-comfort syncs (font ladder + gutter visibility).
+        context.coordinator.setFontSize(fontSize)
+        context.coordinator.showsLineNumbers = showsLineNumbers
         // Re-bind gutter if view was recreated (SwiftUI .id)
         if let gutter = context.coordinator.gutter, gutter.superview !== textView {
             gutter.textView = textView
@@ -133,6 +145,7 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
         }
         document.updateCursor(textView.selectedRange())
         context.coordinator.updateGutterWidth()
+        context.coordinator.applyGutterVisibility()
         // Keep gutter height in sync with textView content height
         if let gutter = context.coordinator.gutter {
             var gutterFrame = gutter.frame
@@ -142,255 +155,12 @@ struct ComposeTextView: NSViewRepresentable { // swiftlint:disable:this type_bod
         }
     }
 
-    private var baseFont: NSFont {
-        NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-    }
-
     /// #263: point the toolbar bus at this coordinator (weakly — the bus is
     /// owned by the SwiftUI view and outlives view rebuilds).
     private func registerFormatApplier(_ coordinator: Coordinator) {
         guard let formatApplier else { return }
         formatApplier.handler = { [weak coordinator] format in
             coordinator?.apply(format)
-        }
-    }
-
-    @MainActor
-    final class Coordinator: NSObject, NSTextViewDelegate {
-        var document: ComposeDocument
-        /// Cooklang completion vocabulary, updated on view syncs so a
-        /// freshly-built `.boris/` index reaches the popup without a reload.
-        var completion: ComposeCookCompletion = .empty
-        weak var textView: NSTextView?
-        weak var scrollView: NSScrollView?
-        weak var gutter: ComposeLineGutter?
-        private var isApplying = false
-        /// Last click-to-line offset we applied, so re-syncs do not re-jump.
-        private var lastJumpedCharacter: Int?
-        /// #238: Weak reference to the hosted NSTextView, set once during
-        /// `makeNSView` so `jumpToLine` can register undo and scroll.
-        weak var hostedTextView: NSTextView?
-
-        /// Last state we painted, so programmatic syncs (which fire on every
-        /// `document` change) do not re-paint an unchanged buffer.
-        private var lastHighlightedText: String?
-        private var lastHighlightedLanguage: ComposeLanguage?
-
-        init(document: ComposeDocument, completion: ComposeCookCompletion = .empty) {
-            self.document = document
-            self.completion = completion
-        }
-
-        func textDidChange(_ notification: Notification) {
-            guard
-                !isApplying,
-                let textView = notification.object as? NSTextView
-            else { return }
-            isApplying = true
-            defer { isApplying = false }
-
-            let oldText = document.text
-            let newText = textView.string
-            document.text = newText
-            repaintChanged(oldText: oldText, newText: newText, textView: textView, language: document.language)
-            maybeOpenCompletion(in: textView, previousText: oldText)
-            updateGutterWidth()
-            gutter?.needsDisplay = true
-            document.updateCursor(textView.selectedRange())
-            // Keep gutter height in sync with textView's content height
-            if let gutter {
-                var gutterFrame = gutter.frame
-                gutterFrame.size.height = max(textView.bounds.height, scrollView?.contentSize.height ?? 0)
-                gutter.frame = gutterFrame
-            }
-        }
-
-        func textViewDidChangeSelection(_ notification: Notification) {
-            guard let textView = notification.object as? NSTextView else {
-                gutter?.needsDisplay = true
-                return
-            }
-            gutter?.needsDisplay = true
-            document.updateCursor(textView.selectedRange())
-        }
-
-        /// Update gutter width and text container padding when line count grows
-        /// beyond 4 digits. Minimum 36pt.
-        func updateGutterWidth() {
-            guard let gutter, let textView else { return }
-            let newWidth = gutter.gutterWidth
-            if abs(gutter.frame.width - newWidth) > 0.5 {
-                var gutterFrame = gutter.frame
-                gutterFrame.size.width = newWidth
-                gutter.frame = gutterFrame
-                textView.textContainer?.lineFragmentPadding = newWidth
-                textView.needsLayout = true
-                gutter.needsDisplay = true
-            }
-        }
-
-        /// LATER-3.4: when the author types a Cooklang token marker (`@`,
-        /// `#`, `~`) in a Cooklang buffer with a corpus vocabulary, open the
-        /// native completion popup. The popup is fed by
-        /// `textView(_:completions:forPartialWordRange:indexOfSelectedItem:)`
-        /// below; everything stays inside the single NSTextView surface.
-        private func maybeOpenCompletion(in textView: NSTextView, previousText: String) {
-            guard
-                document.language == .cooklang,
-                !completion.isEmpty,
-                let inserted = CookMarkerScanner.insertedMarker(
-                    from: previousText,
-                    to: textView.string
-                ),
-                CookMarkerScanner.markers.contains(inserted)
-            else { return }
-            textView.complete(nil)
-        }
-
-        // MARK: NSTextView completion (LATER-3.4)
-
-        func textView(
-            _ textView: NSTextView,
-            completions words: [String],
-            forPartialWordRange charRange: NSRange,
-            indexOfSelectedItem index: UnsafeMutablePointer<Int>?
-        ) -> [String] {
-            guard document.language == .cooklang, !completion.isEmpty else { return words }
-            let text = textView.string as NSString
-            guard
-                charRange.location > 0,
-                let marker = CookMarkerScanner.marker(
-                    before: charRange.location,
-                    in: text
-                )
-            else { return words }
-            let prefix = text.substring(with: charRange)
-            let suggestions = completion.suggestions(marker: marker, prefix: prefix)
-            index?.pointee = 0
-            return suggestions
-        }
-
-        /// Incremental repaint (LATER-3.2): restyle only the changed line(s)
-        /// in place instead of replacing the whole storage, so a keystroke in
-        /// a large buffer no longer repaints (and re-lays-out) off-screen
-        /// text. Full paint still runs on load / language change / program-
-        /// matic sync (`applyHighlight`).
-        private func repaintChanged(
-            oldText: String,
-            newText: String,
-            textView: NSTextView,
-            language: ComposeLanguage
-        ) {
-            let change = ComposeHighlighter.changedRange(old: oldText, new: newText)
-            let nsNew = newText as NSString
-            let clampedLocation = min(max(change.location, 0), nsNew.length)
-            let clampedLength = min(max(change.length, 1), nsNew.length - clampedLocation)
-            // Expand to the full containing line(s) so `^`-anchored rules and
-            // delimiters on the edited line restyle together.
-            let target = nsNew.lineRange(
-                for: NSRange(location: clampedLocation, length: clampedLength)
-            )
-            guard target.length > 0, let storage = textView.textStorage as? NSMutableAttributedString else {
-                lastHighlightedText = newText
-                lastHighlightedLanguage = language
-                return
-            }
-            storage.beginEditing()
-            ComposeHighlighter.repaint(newText, language: language, in: target, storage: storage)
-            storage.endEditing()
-            lastHighlightedText = newText
-            lastHighlightedLanguage = language
-        }
-
-        func applyHighlight(_ textView: NSTextView, text: String, language: ComposeLanguage, force: Bool = false) {
-            guard force || text != lastHighlightedText || language != lastHighlightedLanguage else { return }
-            lastHighlightedText = text
-            lastHighlightedLanguage = language
-
-            let highlighted = ComposeHighlighter.highlight(text, language: language)
-            textView.textStorage?.beginEditing()
-            textView.textStorage?.setAttributedString(highlighted)
-            textView.textStorage?.endEditing()
-            textView.typingAttributes = [.font: baseFont, .foregroundColor: NSColor.labelColor]
-        }
-
-        /// Moves the selection to a character offset (click-to-line).
-        /// Runs after highlight so the storage is current; clamps so a
-        /// stale span can never exceed the buffer.
-        func jump(to character: Int?, in textView: NSTextView) {
-            guard let character, character != lastJumpedCharacter else { return }
-            lastJumpedCharacter = character
-            let nsString = textView.string as NSString
-            let clamped = min(max(character, 0), nsString.length)
-            let range = NSRange(location: clamped, length: 0)
-            textView.setSelectedRange(range)
-            textView.scrollRangeToVisible(range)
-        }
-
-        /// #238: Jump to a 1-based line number. Registers the current cursor
-        /// position in the undo stack so ⌘Z restores it. Clamps to the
-        /// buffer range; empty buffers jump to offset 0.
-        func jumpToLine(_ line: Int) {
-            guard let textView = hostedTextView else { return }
-            let nsString = textView.string as NSString
-            guard nsString.length > 0 else { return }
-            let currentRange = textView.selectedRange()
-            let undoManager = textView.undoManager
-            undoManager?.registerUndo(withTarget: textView) { target in
-                target.setSelectedRange(currentRange)
-                target.scrollRangeToVisible(currentRange)
-            }
-            undoManager?.setActionName("Go to Line")
-            let totalLines = max(1, nsString.components(separatedBy: "\n").count)
-            let clamped = max(1, min(line, totalLines))
-            var foundLine = 1
-            var targetLocation = 0
-            nsString.enumerateSubstrings(
-                in: NSRange(location: 0, length: nsString.length),
-                options: [.byLines, .substringNotRequired]
-            ) { _, range, _, stop in
-                if foundLine == clamped {
-                    targetLocation = range.location
-                    stop.pointee = true
-                }
-                foundLine += 1
-            }
-            let range = NSRange(location: targetLocation, length: 0)
-            textView.setSelectedRange(range)
-            textView.scrollRangeToVisible(range)
-        }
-
-        /// #263: applies a toolbar format at the current selection. The
-        /// mutation flows through `shouldChangeText` / `didChangeText` so the
-        /// undo stack records one group per press and the ordinary
-        /// `textDidChange` delegate path (buffer sync + repaint) runs
-        /// unchanged.
-        func apply(_ format: ComposeFormat) {
-            guard let textView, document.language.supportsFormatting else { return }
-            guard
-                let edit = ComposeFormat.apply(
-                    format,
-                    to: textView.string,
-                    selectedRange: textView.selectedRange(),
-                    language: document.language
-                )
-            else { return }
-            let undoManager = textView.undoManager
-            undoManager?.beginUndoGrouping()
-            defer { undoManager?.endUndoGrouping() }
-            undoManager?.setActionName(format.actionName)
-            if textView.shouldChangeText(in: edit.replacedRange, replacementString: edit.replacement) {
-                textView.textStorage?.replaceCharacters(
-                    in: edit.replacedRange,
-                    with: edit.replacement
-                )
-                textView.didChangeText()
-                textView.setSelectedRange(edit.selection)
-            }
-        }
-
-        private var baseFont: NSFont {
-            NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         }
     }
 }

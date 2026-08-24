@@ -28,6 +28,9 @@ struct ComposeEditorView: View {
     /// External line-jump from ProblemsPane (M11 #207): when set, the editor
     /// jumps to this absolute character offset.
     var externalJump: Int?
+    /// #264: reading-comfort state (type ladder + gutter toggle). The host
+    /// passes the shared instance so View-menu commands drive this window.
+    var typography: ComposeTypography = .init()
 
     /// Problems from the live preview render (LATER-3.1). Computed from the
     /// render, not injected by the host.
@@ -65,7 +68,11 @@ struct ComposeEditorView: View {
                     jumpToCharacter: jumpToCharacter,
                     completion: cookCompletion,
                     jumpToLine: goToLineTarget,
-                    formatApplier: formatApplier
+                    formatApplier: formatApplier,
+                    // Reading the scalars here registers observation so a
+                    // View-menu zoom re-syncs the AppKit host (#264).
+                    fontSize: typography.size,
+                    showsLineNumbers: typography.showsLineNumbers
                 )
                 .id(document.fileURL)
                 .frame(minWidth: 280, maxWidth: .infinity, maxHeight: .infinity)

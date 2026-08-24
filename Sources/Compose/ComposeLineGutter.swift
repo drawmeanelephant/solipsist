@@ -16,13 +16,26 @@ final class ComposeLineGutter: NSView {
         guard let textView else { return 36 }
         let lines = max(1, lineCount(in: textView.string))
         let digits = max(3, "\(lines)".count)
-        let charWidth: CGFloat = 7.8 // ~13pt ui-monospace average
+        let charWidth: CGFloat = fontSize * 0.6 // ~monospace average
         let computed = CGFloat(digits) * charWidth + 12
         return max(36, computed)
     }
 
-    private let baseFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-    private let boldFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .semibold)
+    /// #264: the gutter digits ride the reading-comfort type ladder.
+    var fontSize: CGFloat = 13 {
+        didSet {
+            guard oldValue != fontSize else { return }
+            needsDisplay = true
+        }
+    }
+
+    private var baseFont: NSFont {
+        NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+    }
+
+    private var boldFont: NSFont {
+        NSFont.monospacedSystemFont(ofSize: fontSize, weight: .semibold)
+    }
 
     override var isOpaque: Bool { false }
 
