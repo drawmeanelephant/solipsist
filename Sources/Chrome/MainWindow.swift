@@ -34,10 +34,13 @@ struct MainWindow: View {
         .onAppear {
             runtime.coordinator.syncSaveWatch(store: store, runtime: runtime)
             runtime.coordinator.syncValidateWatch(store: store, runtime: runtime)
+            store.startSidebarWatch(for: store.selection.sourceID)
         }
         .onChange(of: store.selection.sourceID) {
             runtime.coordinator.syncSaveWatch(store: store, runtime: runtime)
             runtime.coordinator.syncValidateWatch(store: store, runtime: runtime)
+            // #275: the sidebar's live graph watch follows the selection.
+            store.startSidebarWatch(for: store.selection.sourceID)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             statusBar
