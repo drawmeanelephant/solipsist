@@ -28,6 +28,13 @@ enum ComposeFrontmatter {
         static let empty = Fields()
     }
 
+    /// #266: front-matter pane visibility rule — seeded from presence on
+    /// page load; once the author toggles the pane, their choice wins until
+    /// the next page.
+    static func paneVisibility(current: Bool, present: Bool, userToggled: Bool) -> Bool {
+        userToggled ? current : present
+    }
+
     // MARK: - Parse (minimal YAML subset for the closed keys)
 
     /// Reads the closed keys out of a front-matter payload. Unknown keys are
