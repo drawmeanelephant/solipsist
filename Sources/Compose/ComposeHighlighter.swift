@@ -31,10 +31,19 @@ struct ComposeHighlightRule {
 enum ComposeHighlighter {
     // MARK: - Public API
 
-    static func highlight(_ text: String, language: ComposeLanguage) -> NSAttributedString {
+    /// `fontSize` (#264): the reading-comfort ladder resizes the whole
+    /// paint; defaults keep every existing caller compiling.
+    static func highlight(
+        _ text: String,
+        language: ComposeLanguage,
+        fontSize: CGFloat = 13
+    ) -> NSAttributedString {
         let result = NSMutableAttributedString(
             string: text,
-            attributes: [.font: baseFont, .foregroundColor: NSColor.labelColor]
+            attributes: [
+                .font: font(ofSize: fontSize),
+                .foregroundColor: NSColor.labelColor,
+            ]
         )
 
         for rule in rules(for: language) {
@@ -44,14 +53,14 @@ enum ComposeHighlighter {
             let full = NSRange(location: 0, length: (text as NSString).length)
             regex.enumerateMatches(in: text, range: full) { match, _, _ in
                 guard let match else { return }
-                paint(rule.style, over: match.range, in: result)
+                paint(rule.style, over: match.range, in: result, fontSize: fontSize)
             }
         }
 
         // #235: Autolink post-processing — paint the angle brackets of
         // autolinks back to plain text so the URL is easier to read.
         if language == .markdown {
-            paintAutolinkBrackets(text, in: result)
+            paintAutolinkBrackets(text, in: result, fontSize: fontSize)
         }
 
         // Front matter is data, not content: paint it last so no inner rule
@@ -62,7 +71,8 @@ enum ComposeHighlighter {
             paint(
                 ComposeHighlightStyle(color: .systemGray, italic: true),
                 over: NSRange(location: lower, length: upper - lower),
-                in: result
+                in: result,
+                fontSize: fontSize
             )
         }
 
@@ -111,14 +121,15 @@ enum ComposeHighlighter {
         _ text: String,
         language: ComposeLanguage,
         in range: NSRange,
-        storage: NSMutableAttributedString
+        storage: NSMutableAttributedString,
+        fontSize: CGFloat = 13
     ) {
         guard range.location != NSNotFound, range.length > 0,
               range.upperBound <= (text as NSString).length
         else { return }
 
         storage.addAttributes(
-            [.font: baseFont, .foregroundColor: NSColor.labelColor],
+            [.font: font(ofSize: fontSize), .foregroundColor: NSColor.labelColor],
             range: range
         )
 
@@ -131,7 +142,7 @@ enum ComposeHighlighter {
                 guard let match else { return }
                 let hit = NSIntersectionRange(match.range, range)
                 guard hit.length > 0 else { return }
-                paint(rule.style, over: hit, in: storage)
+                paint(rule.style, over: hit, in: storage, fontSize: fontSize)
             }
         }
 
@@ -146,14 +157,15 @@ enum ComposeHighlighter {
                 paint(
                     ComposeHighlightStyle(color: .systemGray, italic: true),
                     over: hit,
-                    in: storage
+                    in: storage,
+                    fontSize: fontSize
                 )
             }
         }
 
         // #235: Autolink bracket post-processing for the repainted range.
         if language == .markdown {
-            repaintAutolinkBrackets(text, in: range, storage: storage)
+            repaintAutolinkBrackets(text, in: range, storage: storage, fontSize: fontSize)
         }
     }
 
@@ -163,7 +175,8 @@ enum ComposeHighlighter {
     private static func repaintAutolinkBrackets(
         _ text: String,
         in range: NSRange,
-        storage: NSMutableAttributedString
+        storage: NSMutableAttributedString,
+        fontSize: CGFloat
     ) {
         let nsText = text as NSString
         guard let regex = try? NSRegularExpression(pattern: "<[^<>\\s]+>", options: []) else { return }
@@ -177,9 +190,13 @@ enum ComposeHighlighter {
                 length: 1
             )
             let hitLead = NSIntersectionRange(leadingBracket, range)
-            if hitLead.length > 0 { paint(plain, over: hitLead, in: storage) }
+            if hitLead.length > 0 {
+                paint(plain, over: hitLead, in: storage, fontSize: fontSize)
+            }
             let hitTrail = NSIntersectionRange(trailingBracket, range)
-            if hitTrail.length > 0 { paint(plain, over: hitTrail, in: storage) }
+            if hitTrail.length > 0 {
+                paint(plain, over: hitTrail, in: storage, fontSize: fontSize)
+            }
         }
     }
 
@@ -202,12 +219,8 @@ enum ComposeHighlighter {
     private static let note = ComposeHighlightStyle(color: .systemTeal)
     private static let comment = ComposeHighlightStyle(color: .secondaryLabelColor, italic: true)
 
-    private static var baseFont: NSFont {
-        NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-    }
-
-    private static var boldFont: NSFont {
-        NSFont.monospacedSystemFont(ofSize: 13, weight: .bold)
+    private static func font(ofSize fontSize: CGFloat) -> NSFont {
+        NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
     }
 
     // MARK: - Markdown (CommonMark 0.31.2 + Oliver's opt-in extensions)
@@ -320,26 +333,44 @@ enum ComposeHighlighter {
     private static func paint(
         _ style: ComposeHighlightStyle,
         over range: NSRange,
-        in attributed: NSMutableAttributedString
+        in attributed: NSMutableAttributedString,
+        fontSize: CGFloat
     ) {
         guard range.location != NSNotFound, range.length > 0 else { return }
         attributed.addAttribute(.foregroundColor, value: style.color, range: range)
         if style.bold {
-            attributed.addAttribute(.font, value: boldFont, range: range)
+            attributed.addAttribute(
+                .font,
+                value: NSFont.monospacedSystemFont(ofSize: fontSize, weight: .bold),
+                range: range
+            )
         } else if style.italic {
-            let italic = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+            let italic = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
                 .withTraits(.italic)
             attributed.addAttribute(.font, value: italic, range: range)
         }
     }
+}
 
-    // MARK: - #235 Autolink post-processing
+extension NSFont {
+    func withTraits(_ traits: NSFontDescriptor.SymbolicTraits) -> NSFont {
+        let descriptor = fontDescriptor.withSymbolicTraits(traits)
+        return NSFont(descriptor: descriptor, size: pointSize) ?? self
+    }
+}
 
+// MARK: - #235 Autolink bracket post-processing
+
+private extension ComposeHighlighter {
     /// #235: Paints the angle brackets of autolinks (`<url>`) back to plain
     /// text so the URL itself is easier to read. Runs after all rules have
     /// been applied. Only fires for Markdown (autolinks are a CommonMark
     /// feature; Cooklang and Textile use different link syntax).
-    private static func paintAutolinkBrackets(_ text: String, in attributed: NSMutableAttributedString) {
+    static func paintAutolinkBrackets(
+        _ text: String,
+        in attributed: NSMutableAttributedString,
+        fontSize: CGFloat
+    ) {
         let nsText = text as NSString
         let full = NSRange(location: 0, length: nsText.length)
         // Match autolinks: <scheme:path> or <user@host>
@@ -355,15 +386,8 @@ enum ComposeHighlighter {
                 location: match.range.location + match.range.length - 1,
                 length: 1
             )
-            paint(plain, over: leadingBracket, in: attributed)
-            paint(plain, over: trailingBracket, in: attributed)
+            paint(plain, over: leadingBracket, in: attributed, fontSize: fontSize)
+            paint(plain, over: trailingBracket, in: attributed, fontSize: fontSize)
         }
-    }
-}
-
-extension NSFont {
-    func withTraits(_ traits: NSFontDescriptor.SymbolicTraits) -> NSFont {
-        let descriptor = fontDescriptor.withSymbolicTraits(traits)
-        return NSFont(descriptor: descriptor, size: pointSize) ?? self
     }
 }

@@ -75,6 +75,15 @@ Every menu verb and keyboard shortcut:
 | Editor | `⌘⇧E` | Open the Editor companion window (token-isolated host for `boris-editor`). |
 | Compose | `⌘⇧C` | Open the Compose window (native Markdown / Textile / Cooklang editor for the selected page; Oliver-powered preview; Save flows into the coordinator's validate gate). |
 
+### Format
+
+| Verb | Shortcut | Description |
+| --- | --- | --- |
+| Zoom In | `⌘+` | Grow the Compose buffer type one step (11–21 pt ladder). Applies to the buffer, typing attributes, and the gutter digits. |
+| Zoom Out | `⌘-` | Shrink the Compose buffer type one step (11–21 pt ladder). |
+| Actual Size | `⌘0` | Restore the Compose buffer's default 13 pt type. |
+| Line Numbers | — | Toggle the Compose line-number gutter (checked by default). Hiding it collapses its reserved padding. |
+
 ### Help
 
 | Verb | Shortcut | Description |

@@ -130,4 +130,8 @@ final class AppRuntime {
     }
 
     var pendingComposeJump: ComposeJumpRequest?
+
+    /// #264: reading-comfort state for the compose buffer — the View-menu
+    /// zoom / gutter commands and the editor window share this instance.
+    var composeTypography = ComposeTypography()
 }
