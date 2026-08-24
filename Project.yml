@@ -108,6 +108,7 @@ targets:
       - path: Sources/App/CoordinatorPolicy.swift
       - path: Sources/App/SaveValidateGate.swift
       - path: Sources/Workspace/Source.swift
+      - path: Sources/Workspace/SidebarExpansionState.swift
       - path: Sources/Workspace/WorkspacePersistence.swift
       - path: Sources/Workspace/WorkspaceSelection.swift
       - path: Sources/Workspace/Local/LocalSource.swift

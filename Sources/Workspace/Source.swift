@@ -137,4 +137,10 @@ enum SourceItem: Identifiable, Hashable, Sendable {
         case .github(let source): return source.branch
         }
     }
+
+    /// True while a git sync is in flight (GitHub sources only, M15).
+    var isSyncing: Bool {
+        if case .github(let github) = self { return github.isSyncing }
+        return false
+    }
 }

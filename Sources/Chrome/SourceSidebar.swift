@@ -1,11 +1,12 @@
 import SwiftUI
 
 /// Left column. Each source is an account header; mailboxes are the folders.
+/// The tree shape (collapsed sources, Pages disclosures) persists across
+/// launches via `WorkspaceStore.expansion` (#274).
 struct SourceSidebar: View {
     @Environment(WorkspaceStore.self) private var store
 
     @State private var toolbarBand: CGFloat = 0
-    @State private var collapsedSources: Set<SourceID> = []
 
     var body: some View {
         List(selection: selectedRow) {
@@ -44,14 +45,8 @@ struct SourceSidebar: View {
 
     private func isExpanded(for sourceID: SourceID) -> Binding<Bool> {
         Binding(
-            get: { !collapsedSources.contains(sourceID) },
-            set: { expanded in
-                if expanded {
-                    collapsedSources.remove(sourceID)
-                } else {
-                    collapsedSources.insert(sourceID)
-                }
-            }
+            get: { !store.expansion.collapsedSources.contains(sourceID.raw.uuidString) },
+            set: { store.setSourceExpanded(sourceID, expanded: $0) }
         )
     }
 
@@ -137,15 +132,21 @@ private struct SourceSection: View {
 
 /// Pages plus its trunk-folder children. One child row per trunk;
 /// the selection value is the trunk **id**. Clicking Pages writes
-/// `pages`; clicking a trunk writes its raw id. Expansion is not
-/// persisted (resets to expanded each launch).
+/// `pages`; clicking a trunk writes its raw id. Expansion persists
+/// per source via the store (#274).
 private struct PagesGroup: View {
     let item: SourceItem
     let store: WorkspaceStore
-    @State private var expanded = true
 
     private var pagesRowID: MailboxRowID {
         MailboxRowID(sourceID: item.id, mailbox: WorkspaceMailbox.pages)
+    }
+
+    private var isExpanded: Binding<Bool> {
+        Binding(
+            get: { SidebarExpansionState.pagesExpanded(store.expansion, id: item.id) },
+            set: { store.setPagesExpanded(item.id, expanded: $0) }
+        )
     }
 
     private var graph: Graph? {
@@ -172,7 +173,7 @@ private struct PagesGroup: View {
             .tag(pagesRowID)
             .contextMenu { sourceMenu(item, store: store) }
         } else {
-            DisclosureGroup(isExpanded: $expanded) {
+            DisclosureGroup(isExpanded: isExpanded) {
                 ForEach(trunks, id: \.id) { trunk in
                     let trunkCount = LocalPlayGraph.pages(in: allPages, trunkID: trunk.id).count
                     TrunkRow(item: item, trunk: trunk, count: trunkCount)
@@ -301,6 +302,14 @@ private struct SourceAccountHeader: View {
                     .font(.system(size: 13.5, weight: .bold))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
+                // #274: the checkout branch is known at add/load time —
+                // surface it instead of hiding it in the Remote mailbox.
+                if let branch = item.branch, !branch.isEmpty, item.isAvailable {
+                    Label(branch, systemImage: "arrow.triangle.branch")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 if !item.isAvailable {
                     Text("Unreachable — Relocate / Remove")
                         .font(.caption2)
@@ -309,6 +318,13 @@ private struct SourceAccountHeader: View {
                 }
             }
             Spacer()
+            // #274: git work in flight is visible at a glance.
+            if item.isSyncing {
+                ProgressView()
+                    .controlSize(.small)
+                    .help("Syncing…")
+                    .accessibilityLabel("Syncing")
+            }
         }
         .padding(.vertical, 3)
         .help(
@@ -326,5 +342,7 @@ private struct SourceAccountHeader: View {
                 ? "Select this account"
                 : "Unreachable. Relocate or remove this source."
         )
+        // #274: source headers are VoiceOver rotor landmarks.
+        .accessibilityAddTraits(.isHeader)
     }
 }
