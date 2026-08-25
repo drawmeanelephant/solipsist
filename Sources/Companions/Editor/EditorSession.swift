@@ -45,6 +45,58 @@ enum EditorAutoReconnect {
     static let windowDescription = "\(window.components.seconds)s"
 }
 
+/// #280: typed reasons an editor host lifecycle fails. `Phase.failed`
+/// carries one of these instead of a raw message, so chrome mapping is
+/// compiler-checked (`EditorFailureGuidance`) rather than substring
+/// matching against wording that can drift.
+enum EditorSessionError: Equatable {
+    /// No engine binary is available to host the editor from.
+    case engineUnavailable
+    /// The `boris-editor` binary could not be located — a permanent
+    /// configuration error, never a crash-reconnect candidate (#232).
+    case binaryNotFound
+    /// The host started but never reported a token URL within
+    /// `EditorSession.connectTimeout`.
+    case timeout
+    /// The host crashed more than `EditorAutoReconnect.maxAttempts` times
+    /// inside the reconnect window; manual restart required. Carries the
+    /// trimmed stderr tail for the status line.
+    case crashLoop(stderrTail: String)
+    /// The host factory threw something other than a launch-configuration error.
+    case launchFailed(String)
+    /// The selected source's content/project folders could not be resolved.
+    case folderUnresolved(String)
+
+    /// Maps permanent factory configuration errors onto their typed cases;
+    /// exhaustive over `EditorHostLaunchError`, so a new case cannot be
+    /// added without deciding its session-level meaning.
+    init(_ launchError: EditorHostLaunchError) {
+        switch launchError {
+        case .editorBinaryNotFound:
+            self = .binaryNotFound
+        }
+    }
+
+    /// Human-readable status line, surfaced verbatim by the chrome.
+    var message: String {
+        switch self {
+        case .engineUnavailable:
+            return "Boris engine not available."
+        case .binaryNotFound:
+            return EditorHostLaunchError.editorBinaryNotFound.errorDescription ?? "boris-editor binary not found."
+        case .timeout:
+            return "Editor host did not report a token URL within \(EditorSession.connectTimeoutDescription)."
+        case .crashLoop(let stderrTail):
+            let suffix = stderrTail.isEmpty ? "" : " — \(stderrTail.suffix(200))"
+            return "Editor host crashed \(EditorAutoReconnect.maxAttempts) times within \(EditorAutoReconnect.windowDescription). Manual restart required.\(suffix)"
+        case .launchFailed(let underlying):
+            return "Could not start editor host: \(underlying)"
+        case .folderUnresolved(let title):
+            return "Could not resolve project folder for '\(title)'"
+        }
+    }
+}
+
 /// Drives the M6 author companion surface (A14 / #75): owns the `boris-editor`
 /// subprocess host lifetime and hands the tokenized session URL to the editor web view.
 ///
@@ -65,11 +117,18 @@ final class EditorSession {
         case connected(URL)
         /// Spontaneous exit; an automatic restart is pending (attempt N).
         case reconnecting(attempt: Int)
-        case failed(String)
+        case failed(EditorSessionError)
     }
 
     /// Builds a host. Always invoked on the main actor (`start()`'s context).
     typealias HostFactory = @MainActor (_ engine: BorisEngine, _ workingDirectory: URL) throws -> any EditorHost
+
+    /// How long the host gets to report its token URL before the start
+    /// attempt is failed as `.timeout`.
+    nonisolated static let connectTimeout: Duration = .seconds(15)
+
+    /// Human form of `connectTimeout` for status copy ("15s").
+    nonisolated static var connectTimeoutDescription: String { "\(connectTimeout.components.seconds)s" }
 
     private(set) var phase: Phase = .idle
 
@@ -106,8 +165,8 @@ final class EditorSession {
             return "Connected to \(url.host ?? "loopback")"
         case .reconnecting(let attempt):
             return "boris-editor exited unexpectedly — restarting automatically (attempt \(attempt) of \(EditorAutoReconnect.maxAttempts))…"
-        case .failed(let message):
-            return message
+        case .failed(let error):
+            return error.message
         }
     }
 
@@ -168,7 +227,7 @@ final class EditorSession {
         rootPath = root
 
         guard let engine else {
-            setPhase(.failed("Boris engine not available."))
+            setPhase(.failed(.engineUnavailable))
             return
         }
 
@@ -183,16 +242,16 @@ final class EditorSession {
             server.onExit = { [weak self] exit in
                 Task { @MainActor in self?.handleExit(exit) }
             }
+        } catch let error as EditorHostLaunchError {
+            timeoutTask?.cancel()
+            timeoutTask = nil
+            // Permanent configuration error — surface verbatim through the
+            // typed case, never a crash-reconnect candidate (#232).
+            setPhase(.failed(EditorSessionError(error)))
         } catch {
             timeoutTask?.cancel()
             timeoutTask = nil
-            if error is EditorHostLaunchError {
-                // Permanent configuration error — surface verbatim, no
-                // prefix, and never a crash-reconnect candidate (#232).
-                setPhase(.failed(error.localizedDescription))
-            } else {
-                setPhase(.failed("Could not start editor host: \(error)"))
-            }
+            setPhase(.failed(.launchFailed("\(error)")))
         }
     }
 
@@ -226,10 +285,10 @@ final class EditorSession {
         )
     }
 
-    func fail(_ message: String) {
+    func fail(_ error: EditorSessionError) {
         cancelAutoReconnect()
         teardown()
-        setPhase(.failed(message))
+        setPhase(.failed(error))
     }
 
     func stop() {
@@ -291,13 +350,7 @@ final class EditorSession {
             setPhase(.reconnecting(attempt: attempt))
             scheduleAutoReconnect(after: reconnectBaseDelay * attempt)
         case .giveUp:
-            let tail = exit.stderrTail.trimmingCharacters(in: .whitespacesAndNewlines)
-            let suffix = tail.isEmpty ? "" : " — \(tail.suffix(200))"
-            setPhase(
-                .failed(
-                    "Editor host crashed \(EditorAutoReconnect.maxAttempts) times within \(EditorAutoReconnect.windowDescription). Manual restart required.\(suffix)"
-                )
-            )
+            setPhase(.failed(.crashLoop(stderrTail: exit.stderrTail.trimmingCharacters(in: .whitespacesAndNewlines))))
         }
     }
 
@@ -312,7 +365,7 @@ final class EditorSession {
 
     private func scheduleTimeout() {
         timeoutTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(15))
+            try? await Task.sleep(for: EditorSession.connectTimeout)
             guard !Task.isCancelled else { return }
             guard let self else { return }
             self.failTimeout()
@@ -324,7 +377,7 @@ final class EditorSession {
         server = nil
         timeoutTask = nil
         rootPath = nil
-        setPhase(.failed("Editor host did not report a token URL within 15s."))
+        setPhase(.failed(.timeout))
     }
 
     /// Phase transitions leave the connected state, so any transient

@@ -163,7 +163,7 @@ final class EditorSessionReconnectTests: XCTestCase {
 
         // No engine: permanent configuration error, not a crash (#232).
         session.start(contentRoot: root, projectRoot: project, engine: nil)
-        XCTAssertEqual(session.phase, .failed("Boris engine not available."))
+        XCTAssertEqual(session.phase, .failed(.engineUnavailable))
         XCTAssertTrue(recorder.hosts.isEmpty)
     }
 
@@ -201,11 +201,12 @@ final class EditorSessionReconnectTests: XCTestCase {
         // Fourth crash within the window: cap reached, manual restart required.
         recorder.last?.crash(exitCode: 1)
         await settle()
-        guard case .failed(let message) = session.phase else {
+        guard case .failed(let error) = session.phase else {
             return XCTFail("expected failed phase, got \(session.phase)")
         }
-        XCTAssertTrue(message.contains("Manual restart required"), message)
-        XCTAssertTrue(message.contains("3 times"), message)
+        XCTAssertEqual(error, .crashLoop(stderrTail: ""))
+        XCTAssertTrue(error.message.contains("Manual restart required"), error.message)
+        XCTAssertTrue(error.message.contains("3 times"), error.message)
 
         await settle(milliseconds: 120)
         XCTAssertEqual(recorder.hosts.count, 4, "no fifth host may spawn after the cap")

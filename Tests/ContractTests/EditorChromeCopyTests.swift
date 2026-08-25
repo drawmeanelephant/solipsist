@@ -14,7 +14,7 @@ final class EditorChromeCopyTests: XCTestCase {
             EditorPhaseCopy.label(for: .reconnecting(attempt: 2)),
             "Connection lost — retrying (2 of \(EditorAutoReconnect.maxAttempts))"
         )
-        XCTAssertEqual(EditorPhaseCopy.label(for: .failed("host exited")), "host exited")
+        XCTAssertEqual(EditorPhaseCopy.label(for: .failed(.engineUnavailable)), "Boris engine not available.")
     }
 
     func testPhaseAccessibilityLabelsEnumerateAllCases() {
@@ -24,7 +24,7 @@ final class EditorChromeCopyTests: XCTestCase {
             .starting,
             .connected(url),
             .reconnecting(attempt: 1),
-            .failed("boom"),
+            .failed(.launchFailed("boom")),
         ]
         for phase in phases {
             XCTAssertFalse(EditorPhaseCopy.accessibilityLabel(for: phase).isEmpty)
