@@ -9,10 +9,15 @@ on the left, a reading place in the middle, inspector drawer on the
 right. Preview and the Svelte editor are companion windows we host.
 We do not invent a second compiler.
 
-**Status:** M0–M8 gates plus depth. Next ship is M9
-([#78](https://github.com/drawmeanelephant/solipsist/issues/78)).
-Next product cut is M10 Mail body
-([#98](https://github.com/drawmeanelephant/solipsist/issues/98)).
+**Status:** M0–M17 landed — Mail body
+([#98](https://github.com/drawmeanelephant/solipsist/issues/98)),
+clone, graph folders, watch contract, GitHub source + write verbs,
+Pull Requests mailbox — plus post-ship polish: accessibility
+([#239](https://github.com/drawmeanelephant/solipsist/issues/239)–[#243](https://github.com/drawmeanelephant/solipsist/issues/243)),
+editor/compose depth, live sidebar. Notarized release
+is parked on a paid Apple Developer ID; [#110](https://github.com/drawmeanelephant/solipsist/issues/110)/[#111](https://github.com/drawmeanelephant/solipsist/issues/111)
+closed not-planned — unpark steps in
+[#110](https://github.com/drawmeanelephant/solipsist/issues/110).
 File → Open… a folder under [`Stunts/`](Stunts/) (start with
 `happy/`). `make test` decodes checked-in fixtures (no boris binary).
 
