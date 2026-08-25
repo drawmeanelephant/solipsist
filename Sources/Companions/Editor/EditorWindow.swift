@@ -3,8 +3,6 @@ import Observation
 import SwiftUI
 import WebKit
 
-// swiftlint:disable file_length
-
 /// Companion host for `boris-editor` (Svelte). Chassis registers the window
 /// and leaves it closed; the editor opens against the selected page.
 ///
@@ -71,7 +69,7 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
               let projectRoot = try? folder.workspaceRoot(),
               let contentRoot = try? folder.contentRoot()
         else {
-            session.fail("Could not resolve project folder for '\(source.title)'")
+            session.fail(.folderUnresolved(source.title))
             return
         }
         session.start(
@@ -142,34 +140,12 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
         }
     }
 
-    /// #237: Maps raw error messages from the session to actionable guidance.
-    private var errorGuidance: (headline: String, detail: String)? {
-        guard case .failed(let message) = session.phase else { return nil }
-        if message.contains("binary not found") {
-            return (
-                "boris-editor binary not found",
-                "Install boris-editor or set SOLIPSIST_BORIS_EDITOR_BIN in your environment."
-            )
-        }
-        if message.contains("did not report a token URL") {
-            return (
-                "Editor host did not report a token URL within 15s",
-                "The editor host may be slow to start. Try again or check the boris-editor logs."
-            )
-        }
-        if message.contains("exited (") {
-            return (
-                message,
-                "The editor host crashed. Check the boris-editor logs for details."
-            )
-        }
-        if message.contains("not available") {
-            return (
-                message,
-                "Ensure Boris is built and the engine binary is accessible."
-            )
-        }
-        return nil
+    /// #280: Maps typed failures from the session to actionable guidance;
+    /// the case-to-copy switch lives in `EditorFailureGuidance` where it is
+    /// compiler-checked against `EditorSessionError`.
+    private var errorGuidance: EditorFailureGuidance.Guidance? {
+        guard case .failed(let error) = session.phase else { return nil }
+        return EditorFailureGuidance.guidance(for: error)
     }
 
     private func header(for source: SourceItem) -> some View {
