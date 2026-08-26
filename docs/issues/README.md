@@ -55,5 +55,12 @@ Status (2026-08-21): all five accessibility children merged — #243 (PR
 #244), #239 (PR #247), #240 (PR #249), #241 (PR #251), #242 (PR #252).
 #236 tracker closed.
 
+Post-M17 ship-posture draft (the bundling half of banal#209 already
+landed as M9/#78; this is the residual honesty half):
+
+| Draft | Issue | Lane |
+|-------|-------|------|
+| [Engine settings tell the truth](engine-settings-truth.md) | [#292](https://github.com/drawmeanelephant/solipsist/issues/292) | `Sources/App/Settings/EngineSettingsPane.swift` + `Sources/Engine/*Binary.swift` + release gate |
+
 Do not ask: unifying `compiler` field names, library mode, relaxing
 editor token/CSP, shipping `boris-editor` in the agent-pack.

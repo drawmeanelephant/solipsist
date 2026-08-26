@@ -38,6 +38,14 @@ Solipsist.app/
 2. `Bundle.main.resourceURL.appendingPathComponent("boris")` (production bundled path).
 3. Relative developer checkout paths (`SUPPORT-NOT-FOR-GITHUB/`, `zig-out/`).
 
+There are **no user-facing binary pickers** (#292): App Sandbox denies
+exec of any binary outside our own bundle, so a user-selected engine can
+never work in a signed build. Settings → Engine is status-only
+(version, resolved path, origin); the locators no longer read the legacy
+`customBorisBinaryPath` / `customOliverBinaryPath` /
+`customBorisEditorBinaryPath` defaults, and `EngineBinaryDefaults`
+removes any stale values on launch.
+
 ### Universal Slicing (`scripts/embed-boris.sh`)
 When building release packages:
 - If discrete `arm64` and `x86_64` Mach-O binaries are found, `scripts/embed-boris.sh` invokes `lipo -create -output` to assemble a universal Mach-O fat binary.
@@ -90,7 +98,11 @@ feeds the discrete binaries to `scripts/embed-boris.sh` via
 phase lipo-merges a fat engine (no `GITHUB_ACTIONS` skip — that opt-out is
 now explicit `SKIP_EMBED_BORIS=1`, set by the PR compile job only), pins
 `ARCHS="arm64 x86_64"` for the app build, and **fails** if
-`Contents/Resources/boris` is missing from the release bundle. Signing and
+`Contents/Resources/boris`, `Contents/Resources/oliver`, or any companion
+tool (`boris-editor`, `boris-package`, `boris-source-rag`,
+`boris-content-audit`) is missing from the release bundle or not a
+universal fat binary (#292 — under sandbox there is no env-var fallback,
+so a bundle shipped without one of these is silently broken). Signing and
 notarization steps are gated on **job-level** `env.*` mapped from
 `secrets.*` (`secrets` is illegal in `steps.if` and GitHub rejects the
 workflow at startup; step-level `env.*` is invisible to that step's

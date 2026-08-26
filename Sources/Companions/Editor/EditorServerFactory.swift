@@ -30,11 +30,6 @@ enum EditorServerFactory {
     }
 
     static func findEditorBinary(relativeTo engineBinary: URL) -> URL? {
-        if let custom = UserDefaults.standard.string(forKey: "customBorisEditorBinaryPath"), !custom.isEmpty {
-            let url = URL(fileURLWithPath: custom)
-            if FileManager.default.isExecutableFile(atPath: url.path) { return url }
-        }
-
         let env = ProcessInfo.processInfo.environment["SOLIPSIST_BORIS_EDITOR_BIN"]
         if let env, !env.isEmpty, FileManager.default.isExecutableFile(atPath: env) {
             return URL(fileURLWithPath: env)

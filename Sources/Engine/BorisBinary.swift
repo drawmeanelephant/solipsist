@@ -17,11 +17,6 @@ public enum BorisBinary {
             fm.isExecutableFile(atPath: url.path)
         }
 
-        if let custom = UserDefaults.standard.string(forKey: "customBorisBinaryPath"), !custom.isEmpty {
-            let url = URL(fileURLWithPath: custom)
-            if isExecutable(url) { return url }
-        }
-
         if let override = environment["SOLIPSIST_BORIS_BIN"], !override.isEmpty {
             let url = URL(fileURLWithPath: override)
             if isExecutable(url) { return url }
