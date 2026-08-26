@@ -84,6 +84,10 @@ targets:
   spike:
     type: tool
     platform: macOS
+    # CI hosts may run macOS 26; the spike harness uses nothing newer.
+    # Only the shipped app requires 27.
+    deploymentTarget:
+      macOS: "26.0"
     sources:
       - path: Sources/Models
       - path: Sources/Engine
@@ -92,12 +96,18 @@ targets:
       - path: Spike
     settings:
       base:
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         PRODUCT_NAME: boris-spike
         GENERATE_INFOPLIST_FILE: YES
 
   ContractTests:
     type: bundle.unit-test
     platform: macOS
+    # Host-agnostic like spike: every API these tests touch is ≤26
+    # (FoundationModels included). The 27-only surface (supportedModes)
+    # lives in the app target only.
+    deploymentTarget:
+      macOS: "26.0"
     sources:
       - path: Tests/ContractTests
       - path: Tests/Fixtures
@@ -153,6 +163,7 @@ targets:
       - path: Sources/Compose/ComposeTypography.swift
     settings:
       base:
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         PRODUCT_BUNDLE_IDENTIFIER: dev.drawmeanelephant.solipsist.contracttests
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_NAME: ContractTests

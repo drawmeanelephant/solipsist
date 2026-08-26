@@ -9,11 +9,6 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# Solipsist's deployment target is macOS 27.0, so every job that builds
-# or executes project targets must land on a macOS 27 host. The shared
-# `xcode-27` label may span hosts on older OSes — fail fast there with
-# the reason instead of an opaque xcodebuild destination error.
-
 jobs:
   lint:
     name: lint
@@ -32,15 +27,6 @@ jobs:
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
-      - name: Require macOS 27 host
-        run: |
-          set -euo pipefail
-          version="$(sw_vers -productVersion)"
-          major="$(echo "$version" | cut -d. -f1)"
-          if [ "$major" -lt 27 ]; then
-            echo "::error::Runner is macOS $version; Solipsist requires macOS 27 (deployment target 27.0). Upgrade or relabel this xcode-27 host." >&2
-            exit 1
-          fi
       - uses: actions/checkout@v7
 
       # Same pin as #116 / release-notarize.yml (afterparty, boris#648).
@@ -87,15 +73,6 @@ jobs:
       SKIP_EMBED_BORIS: "1"
     steps:
       - uses: actions/checkout@v7
-      - name: Require macOS 27 host
-        run: |
-          set -euo pipefail
-          version="$(sw_vers -productVersion)"
-          major="$(echo "$version" | cut -d. -f1)"
-          if [ "$major" -lt 27 ]; then
-            echo "::error::Runner is macOS $version; Solipsist requires macOS 27 (deployment target 27.0). Upgrade or relabel this xcode-27 host." >&2
-            exit 1
-          fi
       - uses: actions/checkout@v7
       - name: Generate project and compile the app
         run: make build
@@ -117,15 +94,6 @@ jobs:
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
-      - name: Require macOS 27 host
-        run: |
-          set -euo pipefail
-          version="$(sw_vers -productVersion)"
-          major="$(echo "$version" | cut -d. -f1)"
-          if [ "$major" -lt 27 ]; then
-            echo "::error::Runner is macOS $version; Solipsist requires macOS 27 (deployment target 27.0). Upgrade or relabel this xcode-27 host." >&2
-            exit 1
-          fi
       - uses: actions/checkout@v7
       - name: Decode checked-in contract fixtures
         run: make test
