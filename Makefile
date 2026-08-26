@@ -8,7 +8,7 @@ PROJECT  := Solipsist.xcodeproj
 # Empty SPIKE_CONTENT = spike default ../boris/content.
 SPIKE_CONTENT ?=
 
-.PHONY: tools generate build spike run-spike test lint harvest-fixtures site check-site clean fart
+.PHONY: tools generate build install-app spike run-spike test lint harvest-fixtures site check-site clean fart
 
 tools:
 	@mkdir -p .tools
@@ -28,6 +28,21 @@ generate: tools
 build: generate
 	xcodebuild -project $(PROJECT) -scheme Solipsist -configuration Debug \
 		-derivedDataPath build build
+
+# Siri / Spotlight only register App Intents for apps they index — the
+# Xcode build folder is not it. Install into /Applications and launch
+# once so siriactionsd picks up Metadata.appintents.
+#
+# The product is deleted BEFORE building: the embed phase writes into
+# Resources on every build, and an incremental xcodebuild will happily
+# leave those files outside the code signature ("file added" seal
+# errors). A fresh product directory forces a complete signing pass.
+install-app:
+	rm -rf /Applications/Solipsist.app
+	rm -rf build/Build/Products/Debug/Solipsist.app
+	$(MAKE) build
+	ditto build/Build/Products/Debug/Solipsist.app /Applications/Solipsist.app
+	open /Applications/Solipsist.app
 
 spike: generate
 	xcodebuild -project $(PROJECT) -scheme spike -configuration Debug \
