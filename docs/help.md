@@ -37,6 +37,7 @@ Every menu verb and keyboard shortcut:
 | New Project… | `⌘N` | Initialize a new Boris project in a folder (`boris init`) and add it as a source. |
 | Open… | `⌘O` | Open a Boris publication folder as a source. Same store as Settings → Sources. |
 | Clone Repository… | — | Clone a git URL into a chosen folder and add the result as a Local source. Also in Settings → Sources. |
+| New Draft with Apple Intelligence… | — | Ask for a topic, draft title / summary / tags / body with the on-device model, and stage the result as an untitled buffer in Compose. Nothing is written until you Save (⌘S), which asks where to put the file. Requires Apple Intelligence; failures surface as an alert. Also from Siri (typed or voice): “Draft a post in Solipsist about …” or “Create an entry in Solipsist …”. |
 | Open Recent | — | Re-open a folder from the system recent-documents list. Shows No Recent Folders when empty. Clear Menu wipes the list. |
 | Relocate Source… | — | Point an unreachable source at its new folder (enabled when the selected source is stale). Also in Settings → Sources. |
 | Remove Source | — | Remove the currently selected source from the workspace (enabled when a source is selected). Also in Settings → Sources. |
@@ -105,5 +106,6 @@ The sidebar also carries a **Filter folders** search field: it narrows trunk fol
 - **Preview Companion (`⌘⇧P`)**: Live preview of the full site, powered by Boris engine A1 `--watch-json` / `serve-started` stream with loopback URL validation and Server-Sent Events (SSE `event: reload`). The reading pane reuses this same watch stream for the selected page without starting a duplicate subprocess.
 - **Editor Companion (`⌘⇧E`)**: Token-isolated companion host for `boris-editor`. File → Edit Page opens it against the selected page with `open=` parameter targeting the page's source path.
 - **Compose Window (`⌘⇧C`)**: Native compose surface for the selected page's source file — Markdown / Textile / Cooklang editing with heuristic highlighting, an Oliver-rendered preview split (live, debounced; Render Options mirror Oliver's `ParseOptions` — wikilinks, callouts, smart typography, footnotes, task lists, frontmatter policy, raw-HTML policy, XHTML profile), and save-triggered validate through the coordinator. The renderer binary is located via `SOLIPSIST_OLIVER_BIN` → app bundle → sibling of `boris` → dev checkouts. Language is auto-detected from the file; the picker overrides it per session.
+- **Staged drafts**: A draft from Siri or `File → New Draft with Apple Intelligence…` opens Compose as an untitled buffer with canonical frontmatter (title / summary / tags only — trunk and status stay yours to set in the front-matter pane). The buffer is memory-only until an explicit Save; ⌘S asks for a destination inside your publication.
 
 For architecture and roadmap details, see [ROADMAP.md](https://github.com/drawmeanelephant/solipsist/blob/main/docs/ROADMAP.md).

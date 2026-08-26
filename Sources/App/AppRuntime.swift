@@ -131,6 +131,11 @@ final class AppRuntime {
 
     var pendingComposeJump: ComposeJumpRequest?
 
+    /// M18: a staged AI draft (Siri or File menu) waiting for the compose
+    /// window to accept it into the untitled buffer. Memory-only — it
+    /// becomes content through compose's explicit save, never before.
+    var pendingComposeDraft: StagedPostDraft?
+
     /// #264: reading-comfort state for the compose buffer — the View-menu
     /// zoom / gutter commands and the editor window share this instance.
     var composeTypography = ComposeTypography()

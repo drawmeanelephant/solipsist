@@ -23,6 +23,10 @@ struct SolipsistCommands: Commands {
                 store.presentClonePanel()
             }
 
+            Button("New Draft with Apple Intelligence…") {
+                PostDraftPrompt.runAndStage()
+            }
+
             Menu("Open Recent") {
                 if store.recentFolderURLs.isEmpty {
                     Button("No Recent Folders") {}
