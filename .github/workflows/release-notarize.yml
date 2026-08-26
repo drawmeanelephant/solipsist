@@ -181,7 +181,18 @@ jobs:
             exit 1
           fi
 
-          # Companion tools: verify universal binary and --version where supported.
+          # Oliver renderer: must be present and universal — a sandboxed
+          # app cannot fall back to SOLIPSIST_OLIVER_BIN (#292).
+          OLIVER_PATH="$APP_PATH/Contents/Resources/oliver"
+          if [ -f "$OLIVER_PATH" ]; then
+            echo "==> oliver:"
+            lipo -info "$OLIVER_PATH"
+          else
+            echo "FAIL: Contents/Resources/oliver missing from the release bundle (sandboxed apps cannot exec outside the bundle)" >&2
+            exit 1
+          fi
+
+          # Companion tools: must be present and universal.
           COMPANIONS="boris-editor boris-package boris-source-rag boris-content-audit"
           for comp in $COMPANIONS; do
             COMP_PATH="$APP_PATH/Contents/Resources/$comp"
@@ -189,7 +200,8 @@ jobs:
               echo "==> $comp:"
               lipo -info "$COMP_PATH"
             else
-              echo "WARNING: $comp missing from release bundle" >&2
+              echo "FAIL: Contents/Resources/$comp missing from the release bundle" >&2
+              exit 1
             fi
           done
 

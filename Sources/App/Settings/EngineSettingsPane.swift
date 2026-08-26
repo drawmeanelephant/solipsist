@@ -1,46 +1,24 @@
-import AppKit
 import SwiftUI
 
-/// Settings pane displaying the Boris compiler and Oliver renderer binary status,
-/// active paths, detected versions, custom path selection, and search-order guidance.
+/// Settings pane displaying the Boris compiler, Oliver renderer, and
+/// boris-editor host status: resolved paths, detected versions, origin,
+/// and search-order guidance (#292). There are no binary pickers — under
+/// App Sandbox only the embedded engines can execute; developers override
+/// via `SOLIPSIST_BORIS_BIN` / `SOLIPSIST_OLIVER_BIN` /
+/// `SOLIPSIST_BORIS_EDITOR_BIN`.
 struct EngineSettingsPane: View {
     @Environment(AppRuntime.self) private var runtime
-    @State private var refreshTrigger = UUID()
-
-    @AppStorage("customBorisBinaryPath") private var customBorisPath: String = ""
-    @AppStorage("customOliverBinaryPath") private var customOliverPath: String = ""
-    @AppStorage("customBorisEditorBinaryPath") private var customEditorPath: String = ""
 
     private var borisURL: URL? {
-        _ = refreshTrigger
-        return BorisBinary.locate()
+        runtime.enginePath.map(URL.init(fileURLWithPath:)) ?? BorisBinary.locate()
     }
 
     private var oliverURL: URL? {
-        _ = refreshTrigger
-        return OliverBinary.locate(borisBinary: borisURL)
+        OliverBinary.locate(borisBinary: borisURL)
     }
 
     private var editorURL: URL? {
-        _ = refreshTrigger
-        if !customEditorPath.isEmpty, FileManager.default.isExecutableFile(atPath: customEditorPath) {
-            return URL(fileURLWithPath: customEditorPath)
-        }
-        if let env = ProcessInfo.processInfo.environment["SOLIPSIST_BORIS_EDITOR_BIN"],
-           !env.isEmpty, FileManager.default.isExecutableFile(atPath: env)
-        {
-            return URL(fileURLWithPath: env)
-        }
-        if let boris = borisURL {
-            let sibling = boris.deletingLastPathComponent().appendingPathComponent("boris-editor")
-            if FileManager.default.isExecutableFile(atPath: sibling.path) { return sibling }
-        }
-        if let bundled = Bundle.main.url(forResource: "boris-editor", withExtension: nil),
-           FileManager.default.isExecutableFile(atPath: bundled.path)
-        {
-            return bundled
-        }
-        return nil
+        borisURL.flatMap { EditorServerFactory.findEditorBinary(relativeTo: $0) }
     }
 
     var body: some View {
@@ -76,25 +54,6 @@ struct EngineSettingsPane: View {
                             .foregroundStyle(.red)
                     }
                 }
-
-                LabeledContent("Custom Binary") {
-                    HStack(spacing: 8) {
-                        Button("Choose Custom Boris…") {
-                            chooseBinary(prompt: "Select Boris executable") { path in
-                                customBorisPath = path
-                                runtime.reloadEngine()
-                                refreshTrigger = UUID()
-                            }
-                        }
-                        if !customBorisPath.isEmpty {
-                            Button("Reset to Embedded") {
-                                customBorisPath = ""
-                                runtime.reloadEngine()
-                                refreshTrigger = UUID()
-                            }
-                        }
-                    }
-                }
             } header: {
                 Text("Boris Compiler")
             }
@@ -117,23 +76,6 @@ struct EngineSettingsPane: View {
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                             .lineLimit(2)
-                    }
-                }
-
-                LabeledContent("Custom Binary") {
-                    HStack(spacing: 8) {
-                        Button("Choose Custom Oliver…") {
-                            chooseBinary(prompt: "Select Oliver executable") { path in
-                                customOliverPath = path
-                                refreshTrigger = UUID()
-                            }
-                        }
-                        if !customOliverPath.isEmpty {
-                            Button("Reset to Default") {
-                                customOliverPath = ""
-                                refreshTrigger = UUID()
-                            }
-                        }
                     }
                 }
             } header: {
@@ -160,23 +102,6 @@ struct EngineSettingsPane: View {
                             .lineLimit(2)
                     }
                 }
-
-                LabeledContent("Custom Binary") {
-                    HStack(spacing: 8) {
-                        Button("Choose Custom Editor…") {
-                            chooseBinary(prompt: "Select boris-editor executable") { path in
-                                customEditorPath = path
-                                refreshTrigger = UUID()
-                            }
-                        }
-                        if !customEditorPath.isEmpty {
-                            Button("Reset to Default") {
-                                customEditorPath = ""
-                                refreshTrigger = UUID()
-                            }
-                        }
-                    }
-                }
             } header: {
                 Text("Boris Editor Host")
             }
@@ -190,26 +115,25 @@ struct EngineSettingsPane: View {
                     VStack(alignment: .leading, spacing: 4) {
                         searchStep(
                             index: "1",
-                            title: "Settings Custom Preference",
-                            detail: "User-selected path saved in Preferences"
-                        )
-                        searchStep(
-                            index: "2",
                             title: "Environment Variables",
                             detail: "SOLIPSIST_BORIS_BIN / SOLIPSIST_OLIVER_BIN / SOLIPSIST_BORIS_EDITOR_BIN"
                         )
                         searchStep(
-                            index: "3",
+                            index: "2",
                             title: "App Bundle (Embedded)",
                             detail: "Solipsist.app/Contents/Resources/…"
                         )
                         searchStep(
-                            index: "4",
+                            index: "3",
                             title: "Sibling Repository / Kits",
                             detail: "SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/… or ../boris/zig-out/bin/…"
                         )
                     }
                     .padding(.top, 2)
+
+                    Text("App Sandbox can only execute binaries inside our own bundle, so there is no user-selected engine setting. Developer overrides use the environment variables above.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             } header: {
                 Text("Binary Discovery & Sourcing")
@@ -217,18 +141,6 @@ struct EngineSettingsPane: View {
         }
         .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func chooseBinary(prompt: String, onSelect: @escaping (String) -> Void) {
-        let panel = NSOpenPanel()
-        panel.title = prompt
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.resolvesAliases = true
-        if panel.runModal() == .OK, let url = panel.url {
-            onSelect(url.path)
-        }
     }
 
     private func searchStep(index: String, title: String, detail: String) -> some View {
@@ -248,9 +160,7 @@ struct EngineSettingsPane: View {
     }
 
     private func originDescription(for path: String) -> String {
-        if !customBorisPath.isEmpty, path == customBorisPath {
-            return "User-selected custom binary"
-        } else if path.contains(".app/Contents/Resources") {
+        if path.contains(".app/Contents/Resources") {
             return "Embedded in Solipsist.app bundle"
         } else if let env = ProcessInfo.processInfo.environment["SOLIPSIST_BORIS_BIN"], !env.isEmpty, path == env {
             return "Custom override via SOLIPSIST_BORIS_BIN"

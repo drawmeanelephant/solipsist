@@ -50,6 +50,7 @@ struct SolipsistApp: App {
         if CommandLine.arguments.contains(GitCredentialHelper.flag) {
             GitCredentialHelper.runAndExit()
         }
+        EngineBinaryDefaults.removeLegacyCustomPaths()
         _appDelegate = NSApplicationDelegateAdaptor(AppDelegate.self)
         _store = State(initialValue: WorkspaceStore())
         _runtime = State(initialValue: AppRuntime())
