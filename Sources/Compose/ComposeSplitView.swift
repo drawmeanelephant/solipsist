@@ -4,8 +4,12 @@ import SwiftUI
 /// Helper that configures the underlying `NSSplitView` backing a SwiftUI
 /// `HSplitView` (#227). It sets a visible divider (`dividerStyle = .thin`),
 /// an `autosaveName` so the split ratio persists, and enforces minimum pane
-/// widths (frontmatter 230, editor 280, preview 240). It also keeps the
-/// divider keyboard-accessible (NSSplitView does this natively).
+/// widths (frontmatter 230, editor 280, preview 240).
+///
+/// macOS 27 note: the backing split view is managed by an internal
+/// SplitViewController, whose delegate can no longer be modified — AppKit
+/// throws `NSInternalInconsistencyException`. Minimums are therefore
+/// enforced with per-pane width constraints, not delegate callbacks.
 ///
 /// Usage: attach as a background to any pane inside the `HSplitView`:
 ///
@@ -35,7 +39,7 @@ struct SplitViewAutosave: NSViewRepresentable {
         nsView.configureIfNeeded()
     }
 
-    final class AutosaveHelperView: NSView, NSSplitViewDelegate {
+    final class AutosaveHelperView: NSView {
         var autosaveName: String = "" {
             didSet { configureIfNeeded() }
         }
@@ -49,6 +53,7 @@ struct SplitViewAutosave: NSViewRepresentable {
         }
 
         private weak var splitView: NSSplitView?
+        private var widthConstraints: [NSLayoutConstraint] = []
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
@@ -69,10 +74,28 @@ struct SplitViewAutosave: NSViewRepresentable {
             if splitView.dividerStyle != .thin {
                 splitView.dividerStyle = .thin
             }
-            if splitView.delegate !== self {
-                splitView.delegate = self
-            }
+            applyMinimumWidths(to: splitView)
             self.splitView = splitView
+        }
+
+        /// Same minimums the old delegate callbacks enforced, expressed as
+        /// layout constraints. Sub-999 priority so a window narrower than
+        /// the sum of minimums degrades gracefully instead of throwing
+        /// unsatisfiable-constraint diagnostics.
+        private func applyMinimumWidths(to splitView: NSSplitView) {
+            for constraint in widthConstraints {
+                constraint.isActive = false
+            }
+            widthConstraints.removeAll()
+            let mins = minWidths(for: splitView)
+            for (pane, minimum) in zip(splitView.subviews, mins) {
+                let constraint = pane.widthAnchor.constraint(
+                    greaterThanOrEqualToConstant: minimum
+                )
+                constraint.priority = NSLayoutConstraint.Priority(999)
+                constraint.isActive = true
+                widthConstraints.append(constraint)
+            }
         }
 
         private func findSplitView() -> NSSplitView? {
@@ -96,63 +119,6 @@ struct SplitViewAutosave: NSViewRepresentable {
                 if let found = searchSplitView(in: subview) { return found }
             }
             return nil
-        }
-
-        // MARK: NSSplitViewDelegate — enforce minimum widths
-
-        func splitView(_ splitView: NSSplitView, canCollapseSubview subview: NSView) -> Bool {
-            false
-        }
-
-        func splitView(
-            _ splitView: NSSplitView,
-            constrainMinCoordinate proposedMinimumPosition: CGFloat,
-            ofSubviewAt dividerIndex: Int
-        ) -> CGFloat {
-            let mins = minWidths(for: splitView)
-            let thickness = splitView.dividerThickness
-            let totalWidth = splitView.bounds.width
-            let count = splitView.subviews.count
-            guard dividerIndex < count - 1, mins.count == count else { return proposedMinimumPosition }
-
-            // Minimum for this divider = sum of mins up to dividerIndex + thickness * dividerIndex
-            var minPos: CGFloat = 0
-            for idx in 0...dividerIndex {
-                minPos += mins[idx]
-                if idx < dividerIndex { minPos += thickness }
-            }
-            // Also need to include thickness for the divider itself? The
-            // divider's coordinate is its origin, so min is sum of previous pane widths + thicknesses
-            // For divider 0, min = mins[0]
-            // For divider 1, min = mins[0] + thickness + mins[1]
-            // Our loop above already does that if we include thickness for idx < dividerIndex
-            // For divider 0, loop 0...0 => min = mins[0]
-            // For divider 1, loop 0...1 => min = mins[0] + mins[1] + thickness
-            return max(proposedMinimumPosition, minPos)
-        }
-
-        func splitView(
-            _ splitView: NSSplitView,
-            constrainMaxCoordinate proposedMaximumPosition: CGFloat,
-            ofSubviewAt dividerIndex: Int
-        ) -> CGFloat {
-            let mins = minWidths(for: splitView)
-            let thickness = splitView.dividerThickness
-            let totalWidth = splitView.bounds.width
-            let count = splitView.subviews.count
-            guard dividerIndex < count - 1, mins.count == count else { return proposedMaximumPosition }
-
-            // Maximum for this divider = totalWidth - sum of mins after divider - thickness for remaining dividers
-            var remainingMins: CGFloat = 0
-            for idx in (dividerIndex + 1)..<count {
-                remainingMins += mins[idx]
-            }
-            let remainingDividers = count - dividerIndex - 2 // dividers after this one
-            let maxPos = totalWidth - remainingMins - CGFloat(max(0, remainingDividers)) * thickness - thickness
-            // For divider 0 with 3 panes: max = total - mins[1] - mins[2] - 2*thickness
-            // For divider 1 with 3 panes: max = total - mins[2] - thickness
-            // For divider 0 with 2 panes: max = total - mins[1] - thickness
-            return min(proposedMaximumPosition, maxPos)
         }
 
         private func minWidths(for splitView: NSSplitView) -> [CGFloat] {

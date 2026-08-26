@@ -20,6 +20,9 @@ struct ComposeWindow: View {
     @State private var document = ComposeDocument()
     @State private var currentNoun: WorkspaceNoun?
     @State private var pendingSwitch: WorkspaceNoun?
+    /// M18: a staged draft that arrived while the buffer held unsaved
+    /// work — it waits behind the same discard-confirm as a page switch.
+    @State private var pendingStagedDraft: StagedPostDraft?
     @State private var loadError: String?
     /// #265: typed save signal from `ComposeSaveFlow.run` — no more
     /// string-matching "Saved" in rendered text.
@@ -39,7 +42,7 @@ struct ComposeWindow: View {
 
     var body: some View {
         Group {
-            if let source = selectedLocalSource, pageNoun != nil {
+            if showsEditor {
                 ComposeEditorView(
                     document: document,
                     renderService: OliverRenderService(),
@@ -67,6 +70,18 @@ struct ComposeWindow: View {
         .task(id: store.selection.noun) {
             handleSelection()
         }
+        // M18: accept a staged AI draft (Siri or File menu) into the
+        // untitled buffer. Memory-only until an explicit Save; a dirty
+        // buffer gets the same discard-confirm as a page switch.
+        .task(id: runtime.pendingComposeDraft) {
+            guard let draft = runtime.pendingComposeDraft else { return }
+            runtime.pendingComposeDraft = nil
+            if !document.isDirty {
+                stage(draft)
+            } else {
+                pendingStagedDraft = draft
+            }
+        }
         .task(id: runtime.pendingComposeJump) {
             if let jump = runtime.pendingComposeJump, jump.pageID == pageNoun?.id {
                 if let offset = characterOffset(for: jump.line, column: jump.column, in: document.text) {
@@ -80,8 +95,13 @@ struct ComposeWindow: View {
         .confirmationDialog(
             "Discard unsaved changes?",
             isPresented: Binding(
-                get: { pendingSwitch != nil },
-                set: { if !$0 { pendingSwitch = nil } }
+                get: { pendingSwitch != nil || pendingStagedDraft != nil },
+                set: {
+                    if !$0 {
+                        pendingSwitch = nil
+                        pendingStagedDraft = nil
+                    }
+                }
             ),
             titleVisibility: .visible
         ) {
@@ -89,23 +109,50 @@ struct ComposeWindow: View {
                 if let source = selectedLocalSource, let noun = pendingSwitch {
                     switchTo(noun, source: source)
                 }
+                if let draft = pendingStagedDraft {
+                    stage(draft)
+                }
                 pendingSwitch = nil
+                pendingStagedDraft = nil
             }
             Button("Cancel", role: .cancel) {
                 // Snap the selection back so the compose window keeps the
-                // buffer the author is mid-edit on.
+                // buffer the author is mid-edit on; a discarded staged
+                // draft simply drops (Siri can stage it again).
                 if let noun = currentNoun {
                     store.select(noun: noun)
                 }
                 pendingSwitch = nil
+                pendingStagedDraft = nil
             }
         } message: {
-            Text(currentNoun.map { "“\($0.title)” has unsaved changes." }
-                ?? "The current page has unsaved changes.")
+            Text(discardMessage)
         }
     }
 
+    /// Names what is at stake in the discard dialog: the page being left,
+    /// or the staged draft that would replace the current work.
+    private var discardMessage: String {
+        if let draft = pendingStagedDraft {
+            let title = draft.title.isEmpty ? "an untitled draft" : "“\(draft.title)”"
+            return "The staged draft \(title) replaces your unsaved changes."
+        }
+        return currentNoun.map { "“\($0.title)” has unsaved changes." }
+            ?? "The current page has unsaved changes."
+    }
+
     // MARK: - Selection
+
+    /// The editor shows for a selected page (the M10 rule) or while an
+    /// untitled AI draft is staged / already in the buffer (M18).
+    private var showsEditor: Bool {
+        pageNoun != nil || runtime.pendingComposeDraft != nil || isUntitledDraft
+    }
+
+    /// An unsaved buffer with no backing file — only a staged draft gets here.
+    private var isUntitledDraft: Bool {
+        document.fileURL == nil && !document.text.isEmpty
+    }
 
     private var pageNoun: WorkspaceNoun? {
         guard let noun = store.selection.noun, noun.kind == "page" else { return nil }
@@ -192,8 +239,17 @@ struct ComposeWindow: View {
     /// The single save entry point — toolbar Save, ⌘S, every host verb.
     /// #231: the write happens inside `ComposeSaveFlow`'s tree-write window,
     /// so the preview watch can never observe a partially-written file.
+    /// M18: an untitled draft asks for a destination first; cancelling
+    /// keeps the buffer staged and writes nothing.
     private func save() {
         saveSignal = nil
+        if document.fileURL == nil {
+            guard let destination = ComposeStagedDraft.runSavePanel(
+                directoryURL: selectedLocalSource.map { try? $0.contentRoot() } ?? nil,
+                frontmatterPayload: document.frontmatter?.payloadString ?? ""
+            ) else { return }
+            document.fileURL = destination
+        }
         let outcome = ComposeSaveFlow.run(
             beginTreeWrite: { runtime.coordinator.beginTreeWrite() },
             endTreeWrite: { runtime.coordinator.endTreeWrite() },
@@ -204,6 +260,28 @@ struct ComposeWindow: View {
             outcome: outcome,
             savedMessage: "Saved"
         )
+    }
+
+    // MARK: - Staged AI drafts (M18)
+
+    /// Accept a staged draft into the untitled buffer. Frontmatter comes
+    /// from the repo's canonical closed-key emitter; the buffer starts
+    /// dirty — review is mandatory, saving is explicit.
+    private func stage(_ draft: StagedPostDraft) {
+        document = ComposeDocument(
+            text: PostDraftAssembly.markdown(for: draft),
+            fileURL: nil,
+            language: .markdown
+        )
+        currentNoun = nil
+        loadError = nil
+        saveSignal = nil
+        externalJump = nil
+        if let source = selectedLocalSource, let workspaceRoot = try? source.workspaceRoot() {
+            themeCSS = resolveThemeCSS(workspaceRoot: workspaceRoot)
+        } else {
+            themeCSS = nil
+        }
     }
 
     // MARK: - Chrome
@@ -224,124 +302,12 @@ struct ComposeWindow: View {
         if store.selectedSource == nil {
             return intro
                 + "Add a source first: File → Open… or Settings → Sources "
-                + "(try Stunts/happy), then select a page in the Pages mailbox."
+                + "(try Stunts/happy), then select a page in the Pages mailbox. "
+                + "You can also draft from scratch: File → New Draft with Apple Intelligence…"
         }
         return intro
             + "Select a page in the Pages mailbox, then open it from "
-            + "View → Compose (⌘⇧C), the letter header, or the toolbar."
-    }
-}
-
-/// The compose status bar (#265): word count leads the right-hand
-/// cluster; cursor position, char count, and the coordinator token live
-/// behind a chevron, collapsed by default. Save state is a typed signal
-/// (icon + color), never a substring match. #228's stats stay reachable
-/// in the expanded strip.
-private struct ComposeStatusBar: View {
-    let loadError: String?
-    @Bindable var document: ComposeDocument
-    let coordinatorSummary: String
-    let saveSignal: ComposeSaveFlow.Signal?
-    @Binding var showDetailStats: Bool
-
-    /// #265: word count leads the right-hand cluster; cursor position, char
-    /// count, and the coordinator token live behind a chevron, collapsed by
-    /// default. Save state is a typed signal (icon + color), never a
-    /// substring match. #228's stats stay reachable in the expanded strip.
-    var body: some View {
-        VStack(spacing: 0) {
-            Divider()
-            HStack(spacing: 8) {
-                leftCluster
-                Spacer(minLength: 12)
-                HStack(spacing: 10) {
-                    Text(document.wordCountText)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .layoutPriority(1)
-                        .help("Word count")
-                    if showDetailStats {
-                        detailStats
-                    }
-                    if let signal = saveSignal {
-                        saveSignalView(signal)
-                    }
-                }
-                .accessibilityElement(children: .combine)
-                detailStatsToggle
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-        }
-    }
-
-    @ViewBuilder
-    private var leftCluster: some View {
-        if let loadError {
-            Text(loadError)
-                .font(.caption)
-                .foregroundStyle(.red)
-                .lineLimit(2)
-                .truncationMode(.middle)
-        } else {
-            Text(document.statusText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-        }
-    }
-
-    /// Secondary strip (#265): cursor position, chars/selection, and the
-    /// coordinator token demoted out of the primary bar.
-    private var detailStats: some View {
-        HStack(spacing: 10) {
-            Text(document.cursorText)
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .help("Cursor position")
-            Text(document.characterCountText)
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-                .help(document.selectedLength > 0 ? "Selected characters" : "Character count")
-            Text(coordinatorSummary)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .help("Save → validate coordinator activity")
-        }
-    }
-
-    /// ✓ Saved in secondary / ✗ + message in red — driven by the outcome
-    /// enum, not text matching.
-    private func saveSignalView(_ signal: ComposeSaveFlow.Signal) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: signal.symbolName)
-                .imageScale(.small)
-            Text(signal.message)
-        }
-        .font(.caption)
-        .foregroundStyle(signal.isError ? Color.red : Color.secondary)
-        .help(signal.isError ? signal.message : "Buffer written to disk")
-        .accessibilityLabel(
-            signal.isError ? "Save failed: \(signal.message)" : "Saved"
-        )
-    }
-
-    private var detailStatsToggle: some View {
-        Button {
-            showDetailStats.toggle()
-        } label: {
-            Image(systemName: showDetailStats ? "chevron.left" : "chevron.right")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 9, height: 9)
-                .padding(3)
-        }
-        .buttonStyle(.borderless)
-        .help(showDetailStats ? "Hide detailed statistics" : "Show detailed statistics")
-        .accessibilityLabel("Detailed statistics")
-        .accessibilityHint("Show or hide cursor position and character counts")
-        .accessibilityAddTraits(showDetailStats ? [.isSelected] : [])
+            + "View → Compose (⌘⇧C), the letter header, or the toolbar. "
+            + "Or start fresh: File → New Draft with Apple Intelligence…"
     }
 }

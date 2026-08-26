@@ -35,6 +35,15 @@ struct MainWindow: View {
             runtime.coordinator.syncSaveWatch(store: store, runtime: runtime)
             runtime.coordinator.syncValidateWatch(store: store, runtime: runtime)
             store.startSidebarWatch(for: store.selection.sourceID)
+            // M18: drafts staged by Siri / the File menu land in compose.
+            let runtime = self.runtime
+            let openWindow = self.openWindow
+            DraftRouter.shared.register { draft in
+                Task { @MainActor in
+                    runtime.pendingComposeDraft = draft
+                    openWindow(id: CompanionID.compose)
+                }
+            }
         }
         .onChange(of: store.selection.sourceID) {
             runtime.coordinator.syncSaveWatch(store: store, runtime: runtime)

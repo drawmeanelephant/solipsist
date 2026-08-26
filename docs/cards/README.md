@@ -158,6 +158,18 @@ entry). Do not pick.
 | [M17-2 PR mailbox](M17-pr-mailbox.md) | #192 | ✅ |
 | [M17-3 Authoring entry](M17-pr-authoring.md) | #192 | ✅ |
 
+## M18 — Siri drafts posts (pickable)
+
+The new Siri speaks App Intents only; the on-device FoundationModels
+session drafts. Compose stays the review surface; nothing touches the
+content tree until an explicit ⌘S. macOS-27-only: deployment target
+moves to 27.0 in the same PR.
+
+| Card | Issue | Lane | Gate |
+|------|-------|------|------|
+| [Siri drafts posts](M18-siri-drafts.md) | — (file on pick) | `Sources/Intents/` + compose save seam | “Draft a post in Solipsist …” stages an untitled buffer; ⌘S asks where; Apple Intelligence off surfaces an alert |
+
+
 ## Editor accessibility — milestone 10 polish (pickable)
 
 VoiceOver across the editor surfaces, cut into five disjoint lanes from

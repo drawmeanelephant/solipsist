@@ -27,6 +27,7 @@ jobs:
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
 
       # Same pin as #116 / release-notarize.yml (afterparty, boris#648).
       - name: Checkout pinned Boris engine
@@ -72,6 +73,7 @@ jobs:
       SKIP_EMBED_BORIS: "1"
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
       - name: Generate project and compile the app
         run: make build
 
@@ -91,6 +93,7 @@ jobs:
     name: fixtures
     runs-on: xcode-27
     steps:
+      - uses: actions/checkout@v7
       - uses: actions/checkout@v7
       - name: Decode checked-in contract fixtures
         run: make test

@@ -109,11 +109,14 @@ bundle_and_sign() {
   fi
 
   # Embed companion binaries (boris-editor, boris-package, boris-source-rag,
-  # boris-content-audit) from kit bin dirs when available.
+  # boris-content-audit) from kit bin dirs when available. A source-built
+  # checkout (the documented reproduction path) produces some of them in
+  # its zig-out — same trust level as the engine we already take there.
   local comp_candidates=(
     "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/boris-agent-kit/bin"
     "$SRCROOT/SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin"
     "$SRCROOT/../boris-agent-kit/bin"
+    "${BORIS_REPO_DIR:-$SRCROOT/../boris}/zig-out/bin"
   )
   local search_index_found=0
   for cdir in "${comp_candidates[@]}"; do

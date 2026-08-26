@@ -7,7 +7,7 @@ name: Solipsist
 options:
   bundleIdPrefix: dev.drawmeanelephant
   deploymentTarget:
-    macOS: "26.0"
+    macOS: "27.0"
   createIntermediateGroups: true
 
 settings:
@@ -16,7 +16,7 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
-    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    MACOSX_DEPLOYMENT_TARGET: "27.0"
     # Local dev builds: ad-hoc sign to run locally (no team required).
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "-"
@@ -36,6 +36,7 @@ targets:
       - path: Sources/Inspector
       - path: Sources/Companions
       - path: Sources/Compose
+      - path: Sources/Intents
       - path: Sources/Models
       - path: Sources/Engine
       - path: Sources/Security
@@ -65,6 +66,11 @@ targets:
         com.apple.security.network.client: true
         # `boris watch --serve` (spawned by the app) binds a loopback port.
         com.apple.security.network.server: true
+        # NOTE: FoundationModels drafting (M18) runs without extra
+        # entitlements locally (probed: availability == .available under
+        # ad-hoc signing). App Store distribution will need
+        # com.apple.developer.foundation-model-access + provisioning —
+        # #110 territory.
     preBuildScripts:
       - name: Embed Boris engine binary
         basedOnDependencyAnalysis: false
@@ -78,6 +84,10 @@ targets:
   spike:
     type: tool
     platform: macOS
+    # CI hosts may run macOS 26; the spike harness uses nothing newer.
+    # Only the shipped app requires 27.
+    deploymentTarget:
+      macOS: "26.0"
     sources:
       - path: Sources/Models
       - path: Sources/Engine
@@ -86,12 +96,18 @@ targets:
       - path: Spike
     settings:
       base:
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         PRODUCT_NAME: boris-spike
         GENERATE_INFOPLIST_FILE: YES
 
   ContractTests:
     type: bundle.unit-test
     platform: macOS
+    # Host-agnostic like spike: every API these tests touch is ≤26
+    # (FoundationModels included). The 27-only surface (supportedModes)
+    # lives in the app target only.
+    deploymentTarget:
+      macOS: "26.0"
     sources:
       - path: Tests/ContractTests
       - path: Tests/Fixtures
@@ -139,10 +155,15 @@ targets:
       - path: Sources/Compose/ComposeTextView.swift
       - path: Sources/Compose/ComposeTextCoordinator.swift
       - path: Sources/Compose/ComposeFormat.swift
+      - path: Sources/Compose/ComposeStagedDraft.swift
+      - path: Sources/Intents/StagedPostDraft.swift
+      - path: Sources/Intents/DraftRouter.swift
+      - path: Sources/Intents/PostDraftEngine.swift
       - path: Sources/Compose/ComposeFormatToolbar.swift
       - path: Sources/Compose/ComposeTypography.swift
     settings:
       base:
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
         PRODUCT_BUNDLE_IDENTIFIER: dev.drawmeanelephant.solipsist.contracttests
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_NAME: ContractTests
