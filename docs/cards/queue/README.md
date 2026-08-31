@@ -70,9 +70,13 @@ lives in the issue tracker (#58–#61; briefs in
 queue cards.
 
 The depth batch (#88–#91) landed. M9 (#78), M10 (#98), M11
-(#123), M12 (#131), M13 (#142), and M14 (#143) all landed and
-closed. Remaining ship is Apple-account only (#110 / #111) — not
-this queue. The two pin-follow trackers are now shipped: [#160](https://github.com/drawmeanelephant/solipsist/issues/160)
+(#123), M12 (#131), M13 (#142), M14 (#143), M15 (#179), M16
+(#185), M17 (#192), and M18 (PR #294) all landed and closed. The
+milestone-10 editor polish batch (#225–#238) and the accessibility
+tracker (#236 + children #239–#243) are merged. The engine-settings-
+truth cleanup landed as #292 (PR #293). The Apple-account ship
+blockers #110 / #111 are closed — the tracker is empty. The two
+pin-follow trackers are now shipped: [#160](https://github.com/drawmeanelephant/solipsist/issues/160)
 (A15 `open=`, boris#649) and [#161](https://github.com/drawmeanelephant/solipsist/issues/161)
 (A5 `validate --watch`, boris#647). The queue stays empty unless
 someone cuts a docs-only or `Tests/`-only slice.

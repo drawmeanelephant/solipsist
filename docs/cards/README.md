@@ -20,12 +20,19 @@ with a dispatch comment — [#72 M3](https://github.com/drawmeanelephant/solipsi
 
 M3–M8 **gates** are closed (#72–#77). The #87 depth batch is closed
 (#88/#94 · #89/#96 · #90/#95 · #91/#93). **M9 ship** (#78), **M10
-Mail body** (#98), and **M11 prove** (#123) landed. Remaining ship
-is Apple-account only (#110 / #111). Pickable product: **M12
-clone** ([#131](https://github.com/drawmeanelephant/solipsist/issues/131)).
-M13 graph folders and M14 watch contract are filed below. The milestone-10
-editor-polish **accessibility cards** (five lanes, tracker #236) are pickable
-below.
+Mail body** (#98), **M11 prove** (#123), **M12 clone** (#131),
+**M13 graph folders** (#142), and **M14 watch contract** (#143) all
+landed. **M15** (GitHub source), **M16** (remote write verbs), and
+**M17** (Pull Requests mailbox) followed. The milestone-10 editor
+polish batch (#225–#238) and the accessibility tracker (#236 +
+children #239–#243) are merged. The engine-settings-truth cleanup
+(#292, PR #293) landed. **M18** (Siri drafts posts via App Intents +
+on-device FoundationModels, macOS 27) landed as PR #294. The
+Apple-account ship blockers #110 / #111 are closed. **The tracker is
+empty** — no pickable cards remain. The named-but-unscheduled items in
+ROADMAP §3 (Cooklang recipe-scale mailbox, width-adaptive
+list-left-of-letter split, theme authoring) are the honest next-layer
+candidates; cut an issue draft for one of those before picking up a card.
 
 **Legacy board (landed or withdrawn — do not pick):**
 
@@ -84,11 +91,11 @@ letter-URL contract tests pin the recut. Do not pick.
 | [M11-1 Chrome/Help audit](M11-chrome-audit.md) | [#124](https://github.com/drawmeanelephant/solipsist/issues/124) | ✅ PR [#126](https://github.com/drawmeanelephant/solipsist/pull/126) |
 | [M11-2 Test pass](M11-test-pass.md) | [#125](https://github.com/drawmeanelephant/solipsist/issues/125) | ✅ PRs [#127](https://github.com/drawmeanelephant/solipsist/pull/127), [#128](https://github.com/drawmeanelephant/solipsist/pull/128) |
 
-## M12 — Clone (pickable)
+## M12 — Clone ✅
 
 | Card | Issue | Lane | Parallel with | Gate |
 |------|-------|------|----------------|------|
-| [Add Git Repository…](GIT-CLONE.md) | [#131](https://github.com/drawmeanelephant/solipsist/issues/131) | Settings / workspace | #110 | clone URL → folder → Local source; branch in Settings |
+| [Add Git Repository…](GIT-CLONE.md) | [#131](https://github.com/drawmeanelephant/solipsist/issues/131) | Settings / workspace | #110 (closed) | clone URL → folder → Local source; branch in Settings |
 
 ## M13 — Graph folders (filed; pick after M12 or in a second worktree)
 
@@ -158,7 +165,7 @@ entry). Do not pick.
 | [M17-2 PR mailbox](M17-pr-mailbox.md) | #192 | ✅ |
 | [M17-3 Authoring entry](M17-pr-authoring.md) | #192 | ✅ |
 
-## M18 — Siri drafts posts (pickable)
+## M18 — Siri drafts posts ✅
 
 The new Siri speaks App Intents only; the on-device FoundationModels
 session drafts. Compose stays the review surface; nothing touches the
@@ -167,10 +174,10 @@ moves to 27.0 in the same PR.
 
 | Card | Issue | Lane | Gate |
 |------|-------|------|------|
-| [Siri drafts posts](M18-siri-drafts.md) | — (file on pick) | `Sources/Intents/` + compose save seam | “Draft a post in Solipsist …” stages an untitled buffer; ⌘S asks where; Apple Intelligence off surfaces an alert |
+| [Siri drafts posts](M18-siri-drafts.md) | — (PR [#294](https://github.com/drawmeanelephant/solipsist/pull/294)) | `Sources/Intents/` + compose save seam | “Draft a post in Solipsist …” stages an untitled buffer; ⌘S asks where; Apple Intelligence off surfaces an alert |
 
 
-## Editor accessibility — milestone 10 polish (pickable)
+## Editor accessibility — milestone 10 polish ✅
 
 VoiceOver across the editor surfaces, cut into five disjoint lanes from
 tracker [#236](https://github.com/drawmeanelephant/solipsist/issues/236).

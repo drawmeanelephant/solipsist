@@ -1,6 +1,6 @@
 # Solipsist — Roadmap
 
-**Date:** 2026-08-18
+**Date:** 2026-08-31
 **Status:** the goals document. Spatial model:
 [`HARNESS.md`](HARNESS.md). Boris surface:
 [`BORIS-CAPABILITIES.md`](BORIS-CAPABILITIES.md).
@@ -89,7 +89,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | Pages folders from the graph | Trunks as mailbox folders. From `graph.parent` only — never a disk walk. Dogfood gate is 7 trunks. |
 | Watch events from the A1 contract | Pin `6b930b7` contains `--watch-json` / `serve-started`. Preview and the letter take port / ready from the contract + SSE — no port regex. |
 | Sandboxed, bundled, pinned | D6, D7. Unknown `schemaVersion` degrades (D8). Pipeline ✅ (#78). |
-| Notarized DMG a stranger can download | Operator. First `v*` release + clean-Mac proof (#110 / #111). |
+| Notarized DMG a stranger can download | Operator. First `v*` release + clean-Mac proof (#110 / #111, both closed). |
 
 ### v1 must not
 
@@ -151,7 +151,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M6** Author | ✅ gate — `boris-editor` host + link-out (#75, #81) |
 | **M7** Outputs | ✅ gate — Build this / Build all fan-out (#76, #81) |
 | **M8** Publish | ✅ gate — stdin secrets, Standard.site / Nostr buttons (#77, #82/#84) |
-| **M9** Ship | ✅ release pipeline, testdata, pin bump (#78); notarized `v*` + clean-Mac proof are #110/#111 (Apple-account only) |
+| **M9** Ship | ✅ release pipeline, testdata, pin bump (#78); notarized `v*` + clean-Mac proof #110/#111 closed |
 | **M10** Mail body | ✅ Settings, mailboxes, reading pane, hosted Edit, native Compose ([#98](https://github.com/drawmeanelephant/solipsist/issues/98); children #99–#102, #106) |
 | **M11** Prove the Mail body | ✅ Help audit + test pass ([#123](https://github.com/drawmeanelephant/solipsist/issues/123); #124/#125 → PRs #126/#127/#128) |
 | **M12** Clone | ✅ Add Git Repository… → Local source ([#131](https://github.com/drawmeanelephant/solipsist/issues/131); PRs #152/#153) |
@@ -160,6 +160,7 @@ No scraped prose. No homegrown graph. No third settings store.
 | **M15** GitHub source | ✅ OAuth device flow + `SourceKind.github` payload, working copy, Remote mailbox Sync, sign-out ([#179](https://github.com/drawmeanelephant/solipsist/issues/179); PRs #180–#184) |
 | **M16** Write the remote | ✅ commit / push / PR authoring / issues mailbox ([#185](https://github.com/drawmeanelephant/solipsist/issues/185); PRs #187–#190) |
 | **M17** Pull Requests mailbox | ✅ `/pulls` list seam + github-only `pulls` mailbox + authoring entry ([#192](https://github.com/drawmeanelephant/solipsist/issues/192); PRs #194–#196) |
+| **M18** Siri drafts | ✅ App Intents + on-device FoundationModels drafting staged into Compose (PR [#294](https://github.com/drawmeanelephant/solipsist/pull/294)); macOS 27 target |
 
 **Gates plus depth.** M3–M8 closed as gates (#72–#77). The #87 depth
 batch then landed: first-run and problem→page (#88/#94), graph filter /
@@ -168,9 +169,14 @@ activity / plan document (#89/#96), profile 1:1 + execution knobs +
 proof (#91/#93). Then **M9 ship** (#78), the **M10 Mail-body cut**
 (#98 + #99–#102, #106), **M11 prove** (#123), **M12 clone**
 (#131), **M13 graph folders** (#142), and **M14 watch contract**
-(#143) all landed and closed. Remaining ship is Apple-account only
-(#110 notarized `v*` DMG, #111 clean-Mac proof) — operator,
-blocked on a paid team ID. Do not grow `MainWindow`.
+(#143) all landed and closed. **M15** (GitHub source), **M16** (remote
+write verbs), and **M17** (Pull Requests mailbox) followed. **M18**
+(Siri drafts posts via App Intents + on-device FoundationModels, macOS
+27) landed as PR #294. The milestone-10 editor polish batch (#225–#238)
+and the accessibility tracker (#236 + children #239–#243) all merged.
+The Apple-account ship blockers #110 (notarized `v*` DMG) and #111
+(clean-Mac proof) are closed. The tracker is empty. Do not grow
+`MainWindow`.
 
 ---
 
@@ -382,9 +388,11 @@ not block the local publish flows.
 **Gate.** Download the build on a machine without this repo, open a
 folder, plan, validate, build, preview.
 
-Landed 2026-08-18 (#78). Remaining ship is Apple-account only
-(#110 notarized `v*` DMG, #111 clean-Mac proof — operator, blocked on
-a paid team ID).
+Landed 2026-08-18 (#78). The Apple-account ship blockers — #110
+(notarized `v*` DMG) and #111 (clean-Mac proof) — are now closed.
+M18 (Siri drafts, macOS 27) carries the residual `com.apple.developer.
+foundation-model-access` entitlement review into the App Store posture.
+Do not grow #78 into the chrome.
 
 ### M10 — Mail body ✅
 
@@ -475,10 +483,12 @@ shows git’s exit / stderr. No live clone in CI.
 **Lane.** Settings / `Sources/Workspace/Git/`. Card:
 [`cards/GIT-CLONE.md`](cards/GIT-CLONE.md). Issue
 [#131](https://github.com/drawmeanelephant/solipsist/issues/131).
-Parallel with #110. Do not share files with M13 or M14.
+Parallel with the Apple-account ship track (#110, now closed). Do not
+share files with M13 or M14.
 
 **Not this milestone.** Commit / push / pull / fetch UI. GitHub
-app password or OAuth. Fake **Add GitHub…**. Expanding #110 / #111.
+app password or OAuth. Fake **Add GitHub…**. Expanding the
+Apple-account ship posture (#110 / #111, now closed).
 
 Landed 2026-08-18 (#131 → PRs #152/#153). The live gate also
 caught and fixed the sandboxed-git trap: `/usr/bin/git` is an
@@ -613,17 +623,26 @@ here, it is not a v1 promise.
 
 ## 8. Pickup (what to do next)
 
-M10–M14, the post-ship batch (#165/#166/#167), **M15** (GitHub
-source, PRs #180–#184), **M16** (remote write verbs — commit /
-push / PR authoring / issues mailbox, PRs #187–#190), and **M17**
-(the Pull Requests mailbox, PRs #194–#196) all landed. Remaining is
-**ship**, Apple-account only: notarization (#110) then the clean-Mac
-proof (#111).
+**The tracker is empty.** M10–M14, the post-ship batch
+(#165/#166/#167), **M15** (GitHub source, PRs #180–#184), **M16**
+(remote write verbs — commit / push / PR authoring / issues mailbox,
+PRs #187–#190), **M17** (the Pull Requests mailbox, PRs #194–#196),
+the milestone-10 editor polish batch (#225–#238), the accessibility
+tracker (#236 + children #239–#243), the engine-settings-truth
+cleanup (#292, PR #293), and **M18** (Siri drafts posts via App
+Intents + on-device FoundationModels, macOS 27 — PR #294) all landed.
+The Apple-account ship blockers #110 (notarized `v*` DMG) and #111
+(clean-Mac proof) are closed. There are no open issues and no open
+PRs on the tracker.
+
+Nothing is pre-flagged. The named-but-unscheduled items in §3
+(Cooklang recipe-scale mailbox, width-adaptive list-left-of-letter
+split, theme authoring) are the honest next-layer candidates — cut
+an issue draft for one of those before picking up a card.
 
 | Order | Track | Issue | Why this next |
 |------:|-------|-------|----------------|
-| 1 | Notarize | [#110](https://github.com/drawmeanelephant/solipsist/issues/110) | Apple secrets + first `v*` DMG. Operator. |
-| 2 | Proof | [#111](https://github.com/drawmeanelephant/solipsist/issues/111) | Clean-Mac; blocked on #110. |
+| — | (none open) | — | The tracker is clear. Cut a fresh issue for a §3 "Later" item or a dogfood-driven finding. |
 
 ### Landed depth (do not redo)
 
@@ -655,7 +674,13 @@ GitHub source is M15 (landed); its remote *write* verbs are M16
 (landed — commit / push / PR authoring / issues mailbox, PRs
 #187–#190). A Pull Requests mailbox is M17 (landed, PRs #194–#196).
 Compose **depth** (diagnostics, bundle `oliver`) landed as #167
-(PRs #173–#177); the M10 compose window is #106 / #108.
+(PRs #173–#177); the M10 compose window is #106 / #108. **M18** —
+Siri drafts posts via App Intents + on-device FoundationModels,
+macOS 27 — landed as PR #294. The milestone-10 editor polish batch
+(#225–#238) and the accessibility tracker (#236 + children
+#239–#243) are merged. The Apple-account ship blockers #110 / #111
+are closed; the engine-settings-truth cleanup landed as #292 (PR
+#293).
 
 #30 is a pr-cop dump, not a card.
 

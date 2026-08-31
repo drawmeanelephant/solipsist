@@ -74,10 +74,12 @@ the agent-pack, `plan --out`.
 
 New work lives in the [delegation queue](../queue/README.md) — batch 2
 is landed and the queue is empty. M12 clone (#131), M13 graph folders
-(#142), and M14 watch contract (#143) all landed and closed. Apple-
-account ship (#110 / #111) is operator, not this lane. The two
-pin-follow trackers are now shipped: #160 (A15 `open=`, boris#649)
-and #161 (A5 `validate --watch`, boris#647).
+(#142), M14 watch contract (#143), M15–M17, and M18 (PR #294) all
+landed and closed. The milestone-10 editor polish batch (#225–#238)
+and the accessibility tracker (#236 + children #239–#243) are
+merged. The Apple-account ship blockers #110 / #111 are closed — the
+tracker is empty. The two pin-follow trackers are now shipped: #160
+(A15 `open=`, boris#649) and #161 (A5 `validate --watch`, boris#647).
 
 Skip: fart app (`make fart` must keep failing). Skip GitHub-as-source.
 Skip publication flows. Skip Wasm in the app.

@@ -74,11 +74,13 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
   `recipe-scale`, ship pipeline (#78), Mail body
   ([#98](https://github.com/drawmeanelephant/solipsist/issues/98) —
   Settings, mailboxes, reading, compose #106), prove (#123).
-  Remaining **ship** is Apple-account only (#110 / #111).
-  Next **product cut:** M12 clone
-  ([#131](https://github.com/drawmeanelephant/solipsist/issues/131)).
-  Then M13 graph folders and M14 watch contract. Sequence:
-  [ROADMAP.md](ROADMAP.md) §8.
+  The Apple-account **ship** blockers (#110 / #111) are closed.
+  M12 clone, M13 graph folders, M14 watch contract, M15–M17, and
+  M18 (Siri drafts posts, macOS 27) all landed. The milestone-10
+  editor polish batch (#225–#238) and the accessibility tracker
+  (#236 + children #239–#243) are merged. The tracker is empty;
+  next-layer candidates are the named-but-unscheduled items in
+  [ROADMAP.md](ROADMAP.md) §3. Sequence: [ROADMAP.md](ROADMAP.md) §8.
 - **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `bf464a0`
   (contains A1/A14/A7 + A3/A4/A13 + A15 `open=` + A5 `validate --watch`).
 - Roadmap **P** is withdrawn — the public site ships via Cloudflare

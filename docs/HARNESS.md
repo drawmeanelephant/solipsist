@@ -340,11 +340,11 @@ mailbox sidebar, reading place, drawer, Preview / Editor companions,
 Compose window. Help and first-run / empty-state copy match that
 window.
 
-Do not expand Apple-account ship
+The Apple-account ship blockers
 ([#110](https://github.com/drawmeanelephant/solipsist/issues/110),
 [#111](https://github.com/drawmeanelephant/solipsist/issues/111))
-into this chrome. #78 is closed. Next product lanes: M12 clone
-(`Sources/Workspace/Git/` + Settings), M13 graph folders
-(sidebar + `Play/Local/` filter), M14 watch contract (`Engine/`
-`WatchServer` then the reading pane). Paths in [`ROADMAP.md`](ROADMAP.md)
-§5 / [`cards/README.md`](cards/README.md).
+are closed. M12 clone, M13 graph folders, M14 watch contract, M15–M17,
+and M18 (Siri drafts, macOS 27) all landed. The milestone-10 editor
+polish batch (#225–#238) and the accessibility tracker (#236 +
+children #239–#243) are merged. The tracker is empty. Paths for any
+next-layer work in [`ROADMAP.md`](ROADMAP.md) §3 / §5 / [`cards/README.md`](cards/README.md).
