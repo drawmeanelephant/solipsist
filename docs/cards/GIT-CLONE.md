@@ -65,7 +65,7 @@ source kind stays a follow-on.
 - Clone into `SUPPORT-NOT-FOR-GITHUB/` or any kit path.
 - Auto-open a default GitHub account.
 - Walk `content/` as Finder.
-- Expand #110 / #111.
+- Expand the Apple-account ship posture (#110 / #111, now closed).
 
 ## Gate
 

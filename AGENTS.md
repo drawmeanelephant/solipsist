@@ -75,5 +75,12 @@ Settings / File clone verb, sandbox-safe git)
 #144/#145/#146)
 · **M14** watch contract ✅
 ([#143](https://github.com/drawmeanelephant/solipsist/issues/143) —
-#147/#148).
-Remaining ship is Apple-account only (#110 / #111).
+#147/#148) · **M15** GitHub source ✅ (#179, PRs #180–#184) ·
+**M16** write the remote ✅ (#185, PRs #187–#190) · **M17** Pull
+Requests mailbox ✅ (#192, PRs #194–#196) · **M18** Siri drafts ✅
+(PR [#294](https://github.com/drawmeanelephant/solipsist/pull/294) —
+App Intents + on-device FoundationModels, macOS 27).
+The milestone-10 editor polish batch (#225–#238) and the
+accessibility tracker (#236 + children #239–#243) are merged.
+The Apple-account ship blockers #110 / #111 are closed. The
+tracker is empty.

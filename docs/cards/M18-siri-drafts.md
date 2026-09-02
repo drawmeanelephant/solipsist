@@ -1,7 +1,11 @@
-# Card — Siri drafts posts (App Intents + Foundation Models)
+# Card — Siri drafts posts (App Intents + Foundation Models) ✅
 
 **Milestone:** M18 · **Lane:** `Sources/Intents/` (+ compose save seam).
 macOS 27 only: deployment target moves to 27.0 in the same PR.
+
+**Landed** — PR [#294](https://github.com/drawmeanelephant/solipsist/pull/294).
+Journal-schema `DraftPostIntent` + on-device FoundationModels
+session; File → New Draft with Apple Intelligence…; macOS 27 target.
 
 The new Siri speaks App Intents — SiriKit is dead, so an intent is the
 only door. The on-device model drafts; **compose stays the review
