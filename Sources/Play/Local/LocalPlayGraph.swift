@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// One row in the local play list. Flattened from `Graph.nodes` so the
@@ -189,5 +190,41 @@ enum LocalPlayGraph {
         }
 
         return nil
+    }
+}
+
+/// #297 — width-adaptive Pages split geometry. Pure math so
+/// ContractTests can pin the branch + clamp rules without a window:
+/// the view (`LocalPlay.pagesSplit`) only turns these numbers into
+/// frames. Stacked bounds are the M10 values; wide bounds keep the
+/// list ≥ 220 and the letter ≥ 360.
+enum PagesSplitGeometry {
+    /// Width at which the split cuts from stacked to side-by-side.
+    static let wideBreakpoint: CGFloat = 720
+    static let minTopHeight: CGFloat = 90
+    static let minLetterHeight: CGFloat = 120
+    static let defaultTopHeight: CGFloat = 200
+    static let minListWidth: CGFloat = 220
+    static let minLetterWidth: CGFloat = 360
+    static let defaultLeftWidth: CGFloat = 280
+
+    /// `true` at or above the breakpoint — the wide cut does not
+    /// oscillate at exactly 720.
+    static func isWide(width: CGFloat) -> Bool {
+        width >= wideBreakpoint
+    }
+
+    /// Stacked-mode list height: M10 clamp, ≥ 90 and leaving the letter
+    /// ≥ 120 of `availableHeight`.
+    static func clampedTopHeight(_ raw: CGFloat, availableHeight: CGFloat) -> CGFloat {
+        min(max(raw, minTopHeight), max(availableHeight - minLetterHeight, minTopHeight))
+    }
+
+    /// Wide-mode list width: ≥ 220 and leaving the letter ≥ 360 of
+    /// `totalWidth`. When the window cannot honor both (between the
+    /// breakpoint and 220 + 360), the letter floor wins and the list
+    /// clamps to whatever remains, never below 220.
+    static func clampedLeftWidth(_ raw: CGFloat, totalWidth: CGFloat) -> CGFloat {
+        min(max(raw, minListWidth), max(totalWidth - minLetterWidth, minListWidth))
     }
 }
