@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// One row in the local play list. Flattened from `Graph.nodes` so the
@@ -15,6 +16,10 @@ struct PlayPage: Identifiable, Hashable, Sendable {
     /// whose `parent` chain this row reaches, or nil for non-trunk roots.
     /// Drives the trunk-mailbox filter; never the sidebar.
     let trunkID: String?
+    /// #296: ingredient count for the Recipes mailbox row, from the
+    /// node's `recipe` facet. nil on every other surface — the pages
+    /// list never carries it.
+    let ingredientCount: Int?
 
     init(
         id: String,
@@ -24,7 +29,8 @@ struct PlayPage: Identifiable, Hashable, Sendable {
         depth: Int = 0,
         tags: [String] = [],
         sourcePath: String = "",
-        trunkID: String? = nil
+        trunkID: String? = nil,
+        ingredientCount: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -34,6 +40,7 @@ struct PlayPage: Identifiable, Hashable, Sendable {
         self.tags = tags
         self.sourcePath = sourcePath
         self.trunkID = trunkID
+        self.ingredientCount = ingredientCount
     }
 }
 
@@ -122,6 +129,36 @@ enum LocalPlayGraph {
         pages(from: graph).filter { $0.depth == 0 && $0.role == .trunk }
     }
 
+    /// #296: the Recipes mailbox list — every graph node carrying a
+    /// non-nil `recipe` facet, in graph order, with its ingredient
+    /// count on the row. An empty-ingredient recipe still lists (the
+    /// row shows "0 ingredients"); a corpus whose graph is not built
+    /// yet lists nothing (never synthesized). Keys off
+    /// `GraphNode.recipe` presence only — never `profile.input_format`
+    /// (a mixed corpus is valid).
+    static func recipes(from pages: [PlayPage], graph: Graph?) -> [PlayPage] {
+        guard let graph else { return [] }
+        var recipeByPage: [String: CookRecipe] = [:]
+        for node in graph.nodes where node.recipe != nil {
+            recipeByPage[node.id] = node.recipe
+        }
+        guard !recipeByPage.isEmpty else { return [] }
+        return pages.compactMap { page in
+            guard let recipe = recipeByPage[page.id] else { return nil }
+            return PlayPage(
+                id: page.id,
+                title: page.title,
+                status: page.status,
+                role: page.role,
+                depth: page.depth,
+                tags: page.tags,
+                sourcePath: page.sourcePath,
+                trunkID: page.trunkID,
+                ingredientCount: recipe.ingredients.count
+            )
+        }
+    }
+
     /// Filter pages by query string matching title, id, tag, or status.
     /// Supports prefixes: `tag:`, `status:`, `id:`, `title:`.
     static func filter(pages: [PlayPage], query: String) -> [PlayPage] {
@@ -189,5 +226,41 @@ enum LocalPlayGraph {
         }
 
         return nil
+    }
+}
+
+/// #297 — width-adaptive Pages split geometry. Pure math so
+/// ContractTests can pin the branch + clamp rules without a window:
+/// the view (`LocalPlay.pagesSplit`) only turns these numbers into
+/// frames. Stacked bounds are the M10 values; wide bounds keep the
+/// list ≥ 220 and the letter ≥ 360.
+enum PagesSplitGeometry {
+    /// Width at which the split cuts from stacked to side-by-side.
+    static let wideBreakpoint: CGFloat = 720
+    static let minTopHeight: CGFloat = 90
+    static let minLetterHeight: CGFloat = 120
+    static let defaultTopHeight: CGFloat = 200
+    static let minListWidth: CGFloat = 220
+    static let minLetterWidth: CGFloat = 360
+    static let defaultLeftWidth: CGFloat = 280
+
+    /// `true` at or above the breakpoint — the wide cut does not
+    /// oscillate at exactly 720.
+    static func isWide(width: CGFloat) -> Bool {
+        width >= wideBreakpoint
+    }
+
+    /// Stacked-mode list height: M10 clamp, ≥ 90 and leaving the letter
+    /// ≥ 120 of `availableHeight`.
+    static func clampedTopHeight(_ raw: CGFloat, availableHeight: CGFloat) -> CGFloat {
+        min(max(raw, minTopHeight), max(availableHeight - minLetterHeight, minTopHeight))
+    }
+
+    /// Wide-mode list width: ≥ 220 and leaving the letter ≥ 360 of
+    /// `totalWidth`. When the window cannot honor both (between the
+    /// breakpoint and 220 + 360), the letter floor wins and the list
+    /// clamps to whatever remains, never below 220.
+    static func clampedLeftWidth(_ raw: CGFloat, totalWidth: CGFloat) -> CGFloat {
+        min(max(raw, minListWidth), max(totalWidth - minLetterWidth, minListWidth))
     }
 }

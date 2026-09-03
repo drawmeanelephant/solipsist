@@ -64,6 +64,12 @@ struct LocalPlay: PlaySurface {
                     // github sources. Honest fallback rather than a crash.
                     trunkMailbox
                 }
+            case WorkspaceMailbox.recipes:
+                // #296: the row only exists when the graph has recipe
+                // nodes, so the list is non-empty in practice. A stale
+                // stored mailbox on a rebuilt graph falls to the honest
+                // empty state inside.
+                recipesMailbox
             default:
                 // Unknown mailbox is a trunk id (M13): Pages means all;
                 // a trunk id means that folder and its descendants.
@@ -127,12 +133,36 @@ struct LocalPlay: PlaySurface {
         mailboxContent(pages: displayedPages, empty: .emptyFolder)
     }
 
+    /// #296: the Recipes mailbox — every graph node carrying a `recipe`
+    /// facet as a row (title, servings when present, ingredient count).
+    /// Selecting a row selects that page noun so the reading pane shows
+    /// the letter and the drawer keeps its Recipe Scale section. The
+    /// list reads the same graph the inspector reads — `recipe-scale`
+    /// still runs only on factor change, never for the list.
+    @ViewBuilder
+    private var recipesMailbox: some View {
+        let recipes = LocalPlayGraph.recipes(from: loadedPages, graph: currentGraph)
+        mailboxContent(pages: recipes, empty: .noRecipes)
+    }
+
+    /// The decoded graph for the current source, as pushed by `apply` —
+    /// `nil` before the first load/build. The Recipes list keys off
+    /// `GraphNode.recipe` facets, never `profile.input_format` (a mixed
+    /// corpus is valid).
+    private var currentGraph: Graph? {
+        store.cachedGraph(for: source.id)
+    }
+
     private enum MailboxEmptyKind {
         /// The source's graph has no pages at all.
         case noPages
         /// The trunk folder has no pages in the current graph (or its id
         /// is stale — the graph no longer contains it).
         case emptyFolder
+        /// #296: the graph (or this mailbox selection) has no recipe
+        /// nodes — e.g. a stale stored `recipes` value after the corpus
+        /// lost its last `.cook` page.
+        case noRecipes
     }
 
     @ViewBuilder
@@ -190,6 +220,15 @@ struct LocalPlay: PlaySurface {
                 Text("This folder has no pages in the current graph.")
             }
             .accessibilityLabel("No Pages in This Folder")
+        case .noRecipes:
+            ContentUnavailableView {
+                Label("No Recipes", systemImage: "fork.knife")
+            } description: {
+                Text("This source's graph has no Cooklang recipe pages.")
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("No Recipes")
+            .accessibilityHint("This source's graph has no Cooklang recipe pages.")
         }
     }
 
@@ -203,52 +242,128 @@ struct LocalPlay: PlaySurface {
         }
     }
 
-    @State private var topHeight: CGFloat = 200
+    /// Stacked-mode list height (M10 default). Independent of the
+    /// wide-mode `leftWidth` (#297): the two states never write each other.
+    @State private var topHeight: CGFloat = PagesSplitGeometry.defaultTopHeight
+    /// Wide-mode list width (#297). Default list width in side-by-side
+    /// layout; persisted by `@State` like `topHeight`, no plist, no
+    /// Settings pane (D2: view-local chrome).
+    @State private var leftWidth: CGFloat = PagesSplitGeometry.defaultLeftWidth
 
     @ViewBuilder
     private func pagesSplit(_ pages: [PlayPage]) -> some View {
         GeometryReader { proxy in
             let totalHeight = proxy.size.height
             let availableHeight = max(totalHeight - 10, 100)
-            let clampedTop = min(max(topHeight, 90), availableHeight - 120)
+            let clampedTop = PagesSplitGeometry.clampedTopHeight(topHeight, availableHeight: availableHeight)
 
-            VStack(spacing: 0) {
-                pageList(pages)
-                    .frame(height: clampedTop)
+            if PagesSplitGeometry.isWide(width: proxy.size.width) {
+                // #297: wide content column — list left of the letter,
+                // vertical drag handle between. Same two child views;
+                // only the container and the handle orientation change.
+                let clampedLeft = PagesSplitGeometry.clampedLeftWidth(leftWidth, totalWidth: proxy.size.width)
 
-                ZStack {
-                    Rectangle()
-                        .fill(Color(nsColor: .separatorColor))
-                        .frame(height: 1)
+                HStack(spacing: 0) {
+                    pageList(pages)
+                        .frame(width: clampedLeft)
 
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.4))
-                        .frame(width: 36, height: 4)
+                    verticalSeparator(totalWidth: proxy.size.width)
+
+                    ReadingPane(
+                        page: selectedPlayPage,
+                        source: source,
+                        loadGeneration: loadGeneration
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(height: 9)
-                .contentShape(Rectangle())
-                .onHover { inside in
-                    if inside {
-                        NSCursor.resizeUpDown.push()
-                    } else {
-                        NSCursor.pop()
-                    }
-                }
-                .gesture(
-                    DragGesture(minimumDistance: 1)
-                        .onChanged { value in
-                            topHeight = min(max(clampedTop + value.translation.height, 90), availableHeight - 120)
-                        }
-                )
+            } else {
+                VStack(spacing: 0) {
+                    pageList(pages)
+                        .frame(height: clampedTop)
 
-                ReadingPane(
-                    page: selectedPlayPage,
-                    source: source,
-                    loadGeneration: loadGeneration
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    horizontalSeparator(availableHeight: availableHeight)
+
+                    ReadingPane(
+                        page: selectedPlayPage,
+                        source: source,
+                        loadGeneration: loadGeneration
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         }
+    }
+
+    /// The M10 stacked-mode handle: horizontal rule + up/down resize
+    /// cursor. Byte-for-byte the M10 layout, factored out by #297 so the
+    /// wide branch can mirror it in the vertical orientation.
+    private func horizontalSeparator(availableHeight: CGFloat) -> some View {
+        let clampedTop = PagesSplitGeometry.clampedTopHeight(topHeight, availableHeight: availableHeight)
+        return ZStack {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(height: 1)
+
+            Capsule()
+                .fill(Color.secondary.opacity(0.4))
+                .frame(width: 36, height: 4)
+        }
+        .frame(height: 9)
+        .contentShape(Rectangle())
+        .onHover { inside in
+            if inside {
+                NSCursor.resizeUpDown.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { value in
+                    topHeight = PagesSplitGeometry.clampedTopHeight(
+                        clampedTop + value.translation.height,
+                        availableHeight: availableHeight
+                    )
+                }
+        )
+        .accessibilityLabel("List and letter separator; drag to resize")
+        .accessibilityHint("Drag to resize the list and letter panes")
+    }
+
+    /// #297 wide-mode handle: the same separator mirrored — 1pt rule,
+    /// vertical capsule knob, left/right resize cursor, `leftWidth`
+    /// drag. Independent of `topHeight`.
+    private func verticalSeparator(totalWidth: CGFloat) -> some View {
+        let clampedLeft = PagesSplitGeometry.clampedLeftWidth(leftWidth, totalWidth: totalWidth)
+        return ZStack {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(width: 1)
+
+            Capsule()
+                .fill(Color.secondary.opacity(0.4))
+                .frame(width: 4, height: 36)
+        }
+        .frame(width: 9)
+        .contentShape(Rectangle())
+        .onHover { inside in
+            if inside {
+                NSCursor.resizeLeftRight.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 1)
+                .onChanged { value in
+                    leftWidth = PagesSplitGeometry.clampedLeftWidth(
+                        clampedLeft + value.translation.width,
+                        totalWidth: totalWidth
+                    )
+                }
+        )
+        .accessibilityLabel("List and letter separator; drag to resize")
+        .accessibilityHint("Drag to resize the list and letter panes")
     }
 
     // MARK: - List
@@ -543,6 +658,14 @@ private struct PageRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                if let ingredientCount = page.ingredientCount {
+                    // #296: Recipes mailbox row — ingredient count from
+                    // the graph facet. An empty recipe still lists: 0.
+                    Text("\(ingredientCount) ingredient\(ingredientCount == 1 ? "" : "s")")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
             Spacer(minLength: 8)
 

@@ -58,6 +58,12 @@ enum WorkspaceMailbox {
     static let all: [String] = [pages, outputs, publish, plan, activity, contentAudit]
     static let defaultMailbox = pages
 
+    /// #296: Cooklang recipe mailbox. Conditional — only in `all(for:)`
+    /// when the source graph has ≥1 node with a `recipe` facet. A mixed
+    /// corpus (markdown + cook) is valid, so presence keys off graph
+    /// nodes, never `profile.input_format`.
+    static let recipes = "recipes"
+
     static func isKnown(_ raw: String?) -> Bool {
         guard let raw else { return false }
         return all.contains(raw)
@@ -83,6 +89,7 @@ enum WorkspaceMailbox {
         case remote: return "Remote"
         case issues: return "Issues"
         case pulls: return "Pull Requests"
+        case recipes: return "Recipes"
         default: return raw
         }
     }
@@ -98,18 +105,33 @@ enum WorkspaceMailbox {
         case remote: return "arrow.triangle.2.circlepath"
         case issues: return "exclamationmark.circle"
         case pulls: return "arrow.triangle.branch"
+        case recipes: return "fork.knife"
         default: return "folder"
         }
     }
 
     /// Sidebar row list for one source. Local sources get the M10 set;
     /// GitHub sources additionally get the Remote, Issues, and Pull
-    /// Requests mailboxes (github-only rows).
+    /// Requests mailboxes (github-only rows). #296: a source whose
+    /// graph carries ≥1 recipe node additionally gets the Recipes row —
+    /// `recipesWithGraph` composes it in.
     static func all(for item: SourceItem) -> [String] {
         switch item.kind {
         case .github: return all + [remote, issues, pulls]
         case .local: return all
         }
+    }
+
+    /// #296: `all(for:)` plus the Recipes row when the graph has ≥1
+    /// node with a non-nil `recipe` facet. Markdown-only graphs never
+    /// see the row; an unbuilt graph shows nothing until the first
+    /// build (same as Pages trunks — never synthesized).
+    static func all(for item: SourceItem, graph: Graph?) -> [String] {
+        var rows = all(for: item)
+        if let graph, graph.nodes.contains(where: { $0.recipe != nil }) {
+            rows.append(recipes)
+        }
+        return rows
     }
 }
 
