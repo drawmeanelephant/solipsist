@@ -124,6 +124,12 @@ final class RecipesMailboxTests: XCTestCase {
         let recipes = LocalPlayGraph.recipes(from: pages, graph: mixed)
         XCTAssertEqual(recipes.map(\.id), ["soup", "bread"], "graph order, markdown pages excluded")
         XCTAssertEqual(recipes.count, 2)
+        // #296: the row carries the ingredient count; an empty recipe
+        // still lists as 0, never dropped.
+        XCTAssertEqual(recipes[0].ingredientCount, 2)
+        XCTAssertEqual(recipes[1].ingredientCount, 0)
+        // Pages rows on other surfaces never carry it.
+        XCTAssertNil(pages.first { $0.id == "index" }?.ingredientCount)
     }
 
     func testRecipesListEmptyWithoutGraphOrFacet() {

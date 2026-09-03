@@ -658,6 +658,14 @@ private struct PageRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                if let ingredientCount = page.ingredientCount {
+                    // #296: Recipes mailbox row — ingredient count from
+                    // the graph facet. An empty recipe still lists: 0.
+                    Text("\(ingredientCount) ingredient\(ingredientCount == 1 ? "" : "s")")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
             Spacer(minLength: 8)
 

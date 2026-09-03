@@ -16,6 +16,10 @@ struct PlayPage: Identifiable, Hashable, Sendable {
     /// whose `parent` chain this row reaches, or nil for non-trunk roots.
     /// Drives the trunk-mailbox filter; never the sidebar.
     let trunkID: String?
+    /// #296: ingredient count for the Recipes mailbox row, from the
+    /// node's `recipe` facet. nil on every other surface — the pages
+    /// list never carries it.
+    let ingredientCount: Int?
 
     init(
         id: String,
@@ -25,7 +29,8 @@ struct PlayPage: Identifiable, Hashable, Sendable {
         depth: Int = 0,
         tags: [String] = [],
         sourcePath: String = "",
-        trunkID: String? = nil
+        trunkID: String? = nil,
+        ingredientCount: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -35,6 +40,7 @@ struct PlayPage: Identifiable, Hashable, Sendable {
         self.tags = tags
         self.sourcePath = sourcePath
         self.trunkID = trunkID
+        self.ingredientCount = ingredientCount
     }
 }
 
@@ -124,16 +130,33 @@ enum LocalPlayGraph {
     }
 
     /// #296: the Recipes mailbox list — every graph node carrying a
-    /// non-nil `recipe` facet, in graph order. An empty-ingredient
-    /// recipe still lists (the row shows "0 ingredients"); a corpus
-    /// whose graph is not built yet lists nothing (never synthesized).
-    /// Keys off `GraphNode.recipe` presence only — never
-    /// `profile.input_format` (a mixed corpus is valid).
+    /// non-nil `recipe` facet, in graph order, with its ingredient
+    /// count on the row. An empty-ingredient recipe still lists (the
+    /// row shows "0 ingredients"); a corpus whose graph is not built
+    /// yet lists nothing (never synthesized). Keys off
+    /// `GraphNode.recipe` presence only — never `profile.input_format`
+    /// (a mixed corpus is valid).
     static func recipes(from pages: [PlayPage], graph: Graph?) -> [PlayPage] {
         guard let graph else { return [] }
-        let recipeIDs = Set(graph.nodes.compactMap { $0.recipe != nil ? $0.id : nil })
-        guard !recipeIDs.isEmpty else { return [] }
-        return pages.filter { recipeIDs.contains($0.id) }
+        var recipeByPage: [String: CookRecipe] = [:]
+        for node in graph.nodes where node.recipe != nil {
+            recipeByPage[node.id] = node.recipe
+        }
+        guard !recipeByPage.isEmpty else { return [] }
+        return pages.compactMap { page in
+            guard let recipe = recipeByPage[page.id] else { return nil }
+            return PlayPage(
+                id: page.id,
+                title: page.title,
+                status: page.status,
+                role: page.role,
+                depth: page.depth,
+                tags: page.tags,
+                sourcePath: page.sourcePath,
+                trunkID: page.trunkID,
+                ingredientCount: recipe.ingredients.count
+            )
+        }
     }
 
     /// Filter pages by query string matching title, id, tag, or status.
