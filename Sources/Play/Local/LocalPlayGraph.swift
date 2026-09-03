@@ -123,6 +123,19 @@ enum LocalPlayGraph {
         pages(from: graph).filter { $0.depth == 0 && $0.role == .trunk }
     }
 
+    /// #296: the Recipes mailbox list — every graph node carrying a
+    /// non-nil `recipe` facet, in graph order. An empty-ingredient
+    /// recipe still lists (the row shows "0 ingredients"); a corpus
+    /// whose graph is not built yet lists nothing (never synthesized).
+    /// Keys off `GraphNode.recipe` presence only — never
+    /// `profile.input_format` (a mixed corpus is valid).
+    static func recipes(from pages: [PlayPage], graph: Graph?) -> [PlayPage] {
+        guard let graph else { return [] }
+        let recipeIDs = Set(graph.nodes.compactMap { $0.recipe != nil ? $0.id : nil })
+        guard !recipeIDs.isEmpty else { return [] }
+        return pages.filter { recipeIDs.contains($0.id) }
+    }
+
     /// Filter pages by query string matching title, id, tag, or status.
     /// Supports prefixes: `tag:`, `status:`, `id:`, `title:`.
     static func filter(pages: [PlayPage], query: String) -> [PlayPage] {

@@ -89,8 +89,12 @@ private struct SourceSection: View {
     @State private var signOutItem: SourceItem?
 
     var body: some View {
+        // #296: the Recipes row is conditional on the cached graph
+        // carrying ≥1 recipe node — same cached-only read as PagesGroup,
+        // so a markdown-only source never sees the row.
+        let graph = store.cachedGraph(for: item.id)
         Section(isExpanded: $isExpanded) {
-            ForEach(WorkspaceMailbox.all(for: item), id: \.self) { box in
+            ForEach(WorkspaceMailbox.all(for: item, graph: graph), id: \.self) { box in
                 if box == WorkspaceMailbox.pages {
                     // Pages grows trunk-folder children from the decoded
                     // graph (M13-1). No graph yet → no children, not an

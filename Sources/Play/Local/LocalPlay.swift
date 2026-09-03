@@ -64,6 +64,12 @@ struct LocalPlay: PlaySurface {
                     // github sources. Honest fallback rather than a crash.
                     trunkMailbox
                 }
+            case WorkspaceMailbox.recipes:
+                // #296: the row only exists when the graph has recipe
+                // nodes, so the list is non-empty in practice. A stale
+                // stored mailbox on a rebuilt graph falls to the honest
+                // empty state inside.
+                recipesMailbox
             default:
                 // Unknown mailbox is a trunk id (M13): Pages means all;
                 // a trunk id means that folder and its descendants.
@@ -127,12 +133,36 @@ struct LocalPlay: PlaySurface {
         mailboxContent(pages: displayedPages, empty: .emptyFolder)
     }
 
+    /// #296: the Recipes mailbox — every graph node carrying a `recipe`
+    /// facet as a row (title, servings when present, ingredient count).
+    /// Selecting a row selects that page noun so the reading pane shows
+    /// the letter and the drawer keeps its Recipe Scale section. The
+    /// list reads the same graph the inspector reads — `recipe-scale`
+    /// still runs only on factor change, never for the list.
+    @ViewBuilder
+    private var recipesMailbox: some View {
+        let recipes = LocalPlayGraph.recipes(from: loadedPages, graph: currentGraph)
+        mailboxContent(pages: recipes, empty: .noRecipes)
+    }
+
+    /// The decoded graph for the current source, as pushed by `apply` —
+    /// `nil` before the first load/build. The Recipes list keys off
+    /// `GraphNode.recipe` facets, never `profile.input_format` (a mixed
+    /// corpus is valid).
+    private var currentGraph: Graph? {
+        store.cachedGraph(for: source.id)
+    }
+
     private enum MailboxEmptyKind {
         /// The source's graph has no pages at all.
         case noPages
         /// The trunk folder has no pages in the current graph (or its id
         /// is stale — the graph no longer contains it).
         case emptyFolder
+        /// #296: the graph (or this mailbox selection) has no recipe
+        /// nodes — e.g. a stale stored `recipes` value after the corpus
+        /// lost its last `.cook` page.
+        case noRecipes
     }
 
     @ViewBuilder
@@ -190,6 +220,15 @@ struct LocalPlay: PlaySurface {
                 Text("This folder has no pages in the current graph.")
             }
             .accessibilityLabel("No Pages in This Folder")
+        case .noRecipes:
+            ContentUnavailableView {
+                Label("No Recipes", systemImage: "fork.knife")
+            } description: {
+                Text("This source's graph has no Cooklang recipe pages.")
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("No Recipes")
+            .accessibilityHint("This source's graph has no Cooklang recipe pages.")
         }
     }
 
