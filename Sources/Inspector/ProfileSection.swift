@@ -11,6 +11,15 @@ struct ProfileSection: View {
     @State private var status: Status = .idle
     @State private var note: String?
     @State private var availableThemes: [String] = []
+    /// #298: the target row whose theme browser sheet is open.
+    @State private var browsingTheme: BrowsableTargetTheme?
+
+    /// Identifiable wrapper for the sheet(item:) binding — the target
+    /// row index whose theme the browser writes.
+    private struct BrowsableTargetTheme: Identifiable {
+        let index: Int
+        var id: Int { index }
+    }
 
     var body: some View {
         Group {
@@ -95,6 +104,18 @@ struct ProfileSection: View {
                 }
             }
         }
+        .sheet(item: $browsingTheme) { browse in
+            ThemeBrowserView(
+                themes: availableThemes,
+                selection: browse.index < fields.targets.count ? fields.targets[browse.index].theme : nil,
+                workspaceRoot: try? source.resolve().url,
+                onSelect: { theme in
+                    guard browse.index < fields.targets.count else { return }
+                    fields.targets[browse.index].theme = theme
+                },
+                onCancel: {}
+            )
+        }
     }
 
     @ViewBuilder
@@ -112,15 +133,27 @@ struct ProfileSection: View {
                     .help("Remove target")
                 }
                 TextField("Output", text: $fields.targets[index].output)
-                Picker("Theme", selection: Binding(
-                    get: { fields.targets[index].theme ?? "" },
-                    set: { fields.targets[index].theme = $0.isEmpty ? nil : $0 }
-                )) {
-                    Text("Default").tag("")
-                    ForEach(availableThemes, id: \.self) { theme in
-                        Text(theme).tag(theme)
+                // #298: the theme control is a button opening the visual
+                // browser (was: flat name Picker). Writes the same
+                // `target.theme` string the Picker wrote; Save unchanged.
+                Button {
+                    browsingTheme = BrowsableTargetTheme(index: index)
+                } label: {
+                    HStack {
+                        Text("Theme")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(fields.targets[index].theme ?? "Default")
+                            .foregroundStyle(fields.targets[index].theme == nil ? .secondary : .primary)
+                        Image(systemName: "paintpalette")
+                            .foregroundStyle(.secondary)
                     }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .help("Browse themes visually")
+                .accessibilityLabel("Theme: \(fields.targets[index].theme ?? "Default")")
+                .accessibilityHint("Opens the theme browser")
                 TextField("Layout", text: Binding(
                     get: { fields.targets[index].layout ?? "" },
                     set: { fields.targets[index].layout = $0.isEmpty ? nil : $0 }

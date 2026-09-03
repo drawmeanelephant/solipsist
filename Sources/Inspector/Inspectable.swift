@@ -105,6 +105,17 @@ struct InspectorSnapshot: Inspectable {
         case WorkspaceMailbox.issues, WorkspaceMailbox.pulls:
             sections.append(InspectorSection(id: InspectorSectionID.execution, title: "GitHub & Execution"))
 
+        case WorkspaceMailbox.recipes:
+            // #296: a selected recipe page shows the page inspector (its
+            // Recipe Scale section is the play surface); otherwise the
+            // profile + execution defaults.
+            if nounKind == InspectorNounKind.page {
+                sections.append(InspectorSection(id: InspectorSectionID.page, title: "Page"))
+            } else if sourceKind == .local {
+                sections.append(InspectorSection(id: InspectorSectionID.profile, title: "Site Profile"))
+            }
+            sections.append(InspectorSection(id: InspectorSectionID.execution, title: "Execution"))
+
         default:
             // Unknown mailbox (e.g. a trunk id): if a page is selected,
             // show that page's inspector; otherwise signal the trunk filter.

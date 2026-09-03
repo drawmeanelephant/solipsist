@@ -9,6 +9,10 @@ struct TargetSection: View {
     @State private var target: PublicationTarget?
     @State private var profile: PublicationProfile?
     @State private var availableThemes: [String] = []
+    /// #298: opens the theme browser (browse-only here — this section
+    /// reads the selected target; writes stay in ProfileSection).
+    @State private var showThemeBrowser = false
+    private var workspaceRoot: URL? { try? source.workspaceRoot() }
 
     var body: some View {
         Group {
@@ -47,13 +51,23 @@ struct TargetSection: View {
                 }
 
                 if !availableThemes.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Available Themes")
-                            .foregroundStyle(.secondary)
-                        Text(availableThemes.joined(separator: ", "))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                    // #298: browse the themes visually (was: a comma blob).
+                    Button {
+                        showThemeBrowser = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("Available Themes")
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "paintpalette")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .help("Browse themes visually")
+                    .accessibilityLabel("Available Themes, \(availableThemes.count) themes")
+                    .accessibilityHint("Opens the theme browser")
                 }
             } else {
                 Text("Target “\(targetName)” not found in profile.")
@@ -62,6 +76,15 @@ struct TargetSection: View {
         }
         .task(id: "\(source.id.raw):\(targetName)") {
             load()
+        }
+        .sheet(isPresented: $showThemeBrowser) {
+            ThemeBrowserView(
+                themes: availableThemes,
+                selection: target?.theme,
+                workspaceRoot: workspaceRoot,
+                onSelect: { _ in },
+                onCancel: {}
+            )
         }
     }
 
