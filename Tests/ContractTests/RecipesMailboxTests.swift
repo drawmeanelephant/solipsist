@@ -147,7 +147,7 @@ final class RecipesMailboxTests: XCTestCase {
         XCTAssertEqual(WorkspaceMailbox.symbolName(WorkspaceMailbox.recipes), "fork.knife")
     }
 
-    func testUnknownRecipesMailboxSurvivesRelaunch() {
+    func testUnknownRecipesMailboxSurvivesRelaunch() throws {
         // A persisted `mailbox = "recipes"` round-trips through
         // WorkspaceSelection untouched — never coerced to "pages".
         let stored = WorkspaceSelection(
@@ -155,8 +155,8 @@ final class RecipesMailboxTests: XCTestCase {
             mailbox: WorkspaceMailbox.recipes,
             noun: nil
         )
-        let data = try! JSONEncoder().encode(stored)
-        let decoded = try! JSONDecoder().decode(WorkspaceSelection.self, from: data)
+        let data = try JSONEncoder().encode(stored)
+        let decoded = try JSONDecoder().decode(WorkspaceSelection.self, from: data)
         XCTAssertEqual(decoded.mailbox, WorkspaceMailbox.recipes)
         XCTAssertEqual(WorkspaceMailbox.display(decoded.mailbox), WorkspaceMailbox.recipes)
     }
