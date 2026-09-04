@@ -54,6 +54,12 @@ enum WorkspaceMailbox {
     /// requests, via `/pulls` (not the issues-list filter). Same
     /// pattern — never in `all`.
     static let pulls = "pulls"
+    /// Recipe mailbox (#296): a first-class view over the graph for
+    /// Cooklang corpora. Never in `all` — `all(for:graph:)` appends it
+    /// only when the source graph carries ≥1 node with a `recipe`
+    /// facet. The list reads `graph.json`; `recipe-scale` runs only on
+    /// factor change (drawer), never for the list.
+    static let recipes = "recipes"
 
     static let all: [String] = [pages, outputs, publish, plan, activity, contentAudit]
     static let defaultMailbox = pages
@@ -83,6 +89,7 @@ enum WorkspaceMailbox {
         case remote: return "Remote"
         case issues: return "Issues"
         case pulls: return "Pull Requests"
+        case recipes: return "Recipes"
         default: return raw
         }
     }
@@ -98,17 +105,27 @@ enum WorkspaceMailbox {
         case remote: return "arrow.triangle.2.circlepath"
         case issues: return "exclamationmark.circle"
         case pulls: return "arrow.triangle.branch"
+        case recipes: return "fork.knife"
         default: return "folder"
         }
     }
 
     /// Sidebar row list for one source. Local sources get the M10 set;
     /// GitHub sources additionally get the Remote, Issues, and Pull
-    /// Requests mailboxes (github-only rows).
-    static func all(for item: SourceItem) -> [String] {
+    /// Requests mailboxes (github-only rows). Either kind additionally
+    /// gets the Recipes mailbox when `graph` carries ≥1 node with a
+    /// non-nil `recipe` facet (#296) — keyed off the facet, never off
+    /// `profile.input_format`, so a mixed corpus still qualifies. A nil
+    /// graph (no build yet) yields no Recipes row, same as Pages showing
+    /// nothing before a build.
+    static func all(for item: SourceItem, graph: Graph? = nil) -> [String] {
+        var rows = all
+        if let graph, graph.nodes.contains(where: { $0.recipe != nil }) {
+            rows.append(recipes)
+        }
         switch item.kind {
-        case .github: return all + [remote, issues, pulls]
-        case .local: return all
+        case .github: return rows + [remote, issues, pulls]
+        case .local: return rows
         }
     }
 }

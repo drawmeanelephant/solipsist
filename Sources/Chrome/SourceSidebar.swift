@@ -90,7 +90,10 @@ private struct SourceSection: View {
 
     var body: some View {
         Section(isExpanded: $isExpanded) {
-            ForEach(WorkspaceMailbox.all(for: item), id: \.self) { box in
+            // #296: the Recipes row appears only when the decoded graph
+            // carries ≥1 node with a `recipe` facet. Cached-only read;
+            // the PagesGroup seed below fills the cache off-main.
+            ForEach(mailboxRows, id: \.self) { box in
                 if box == WorkspaceMailbox.pages {
                     // Pages grows trunk-folder children from the decoded
                     // graph (M13-1). No graph yet → no children, not an
@@ -138,6 +141,13 @@ private struct SourceSection: View {
     private var signOutPrompt: String {
         let name = signOutItem?.title ?? "this GitHub account"
         return "Sign Out of “\(name)”?"
+    }
+
+    /// #296: sidebar rows for this source — the M10 set plus github-only
+    /// rows plus the Recipes row when the cached graph has a recipe
+    /// facet. A missing cache (no build yet) means no Recipes row.
+    private var mailboxRows: [String] {
+        WorkspaceMailbox.all(for: item, graph: store.cachedGraph(for: item.id))
     }
 }
 

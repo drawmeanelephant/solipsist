@@ -15,6 +15,12 @@ struct PlayPage: Identifiable, Hashable, Sendable {
     /// whose `parent` chain this row reaches, or nil for non-trunk roots.
     /// Drives the trunk-mailbox filter; never the sidebar.
     let trunkID: String?
+    /// Cooklang ingredient count (#296). Non-nil iff the graph node
+    /// carries a `recipe` facet — including an empty recipe (zero
+    /// ingredients still lists). Nil means no facet, never a recipe row.
+    /// Servings live in frontmatter only and never reach the IR, so the
+    /// mailbox shows the count, never a servings badge.
+    let ingredientCount: Int?
 
     init(
         id: String,
@@ -24,7 +30,8 @@ struct PlayPage: Identifiable, Hashable, Sendable {
         depth: Int = 0,
         tags: [String] = [],
         sourcePath: String = "",
-        trunkID: String? = nil
+        trunkID: String? = nil,
+        ingredientCount: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -34,7 +41,11 @@ struct PlayPage: Identifiable, Hashable, Sendable {
         self.tags = tags
         self.sourcePath = sourcePath
         self.trunkID = trunkID
+        self.ingredientCount = ingredientCount
     }
+
+    /// True when the graph node carries a Cooklang `recipe` facet.
+    var hasRecipe: Bool { ingredientCount != nil }
 }
 
 enum LocalPlayGraph {
@@ -63,7 +74,8 @@ enum LocalPlayGraph {
                     depth: depth,
                     tags: node.tags ?? [],
                     sourcePath: node.sourcePath,
-                    trunkID: trunkID
+                    trunkID: trunkID,
+                    ingredientCount: node.recipe.map { $0.ingredients.count }
                 )
             )
             for child in children[node.id] ?? [] {
@@ -86,6 +98,21 @@ enum LocalPlayGraph {
     /// missing from the current graph — never a fall-through to all pages.
     static func pages(in pages: [PlayPage], trunkID: String) -> [PlayPage] {
         pages.filter { $0.trunkID == trunkID }
+    }
+
+    /// The Recipes mailbox's letter list (#296): every page whose graph
+    /// node carries a `recipe` facet, in publication order. A present but
+    /// empty recipe (zero ingredients) still lists — the facet, not the
+    /// count, is the membership test.
+    static func recipes(in pages: [PlayPage]) -> [PlayPage] {
+        pages.filter(\.hasRecipe)
+    }
+
+    /// Sidebar gate (#296): true iff ≥1 node carries a `recipe` facet.
+    /// Keyed off the facet only — never `profile.input_format`, so a
+    /// mixed corpus qualifies and a markdown-only corpus never does.
+    static func hasRecipes(in graph: Graph) -> Bool {
+        graph.nodes.contains { $0.recipe != nil }
     }
 
     /// One-pass sidebar snapshot (#275): pages, trunks, and per-trunk

@@ -40,6 +40,11 @@ struct LocalPlay: PlaySurface {
                 ActivityPane()
             case WorkspaceMailbox.contentAudit:
                 ContentAuditPane(source: source)
+            case WorkspaceMailbox.recipes:
+                // #296: a view over the same graph Pages reads — every
+                // node with a `recipe` facet. No second Process; the
+                // drawer Recipe Scale section owns `recipe-scale`.
+                RecipesMailbox(source: source, loadGeneration: loadGeneration)
             case WorkspaceMailbox.remote:
                 if let github = source as? GithubSource {
                     RemoteMailboxView(source: github)

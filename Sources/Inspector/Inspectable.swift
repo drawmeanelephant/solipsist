@@ -70,7 +70,10 @@ struct InspectorSnapshot: Inspectable {
         let box = WorkspaceMailbox.display(mailbox)
 
         switch box {
-        case WorkspaceMailbox.pages:
+        case WorkspaceMailbox.pages, WorkspaceMailbox.recipes:
+            // #296: Recipes selects the same page noun Pages does, so
+            // the drawer shows the same Page section (with its Recipe
+            // Scale view) — the mailbox is a view over the graph.
             if nounKind == InspectorNounKind.page {
                 sections.append(InspectorSection(id: InspectorSectionID.page, title: "Page"))
             } else if sourceKind == .local {

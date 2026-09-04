@@ -52,6 +52,7 @@ final class HelpAuditTests: XCTestCase {
             WorkspaceMailbox.remote,
             WorkspaceMailbox.issues,
             WorkspaceMailbox.pulls,
+            WorkspaceMailbox.recipes,
         ]
         for mailbox in allMailboxes {
             XCTAssertTrue(
