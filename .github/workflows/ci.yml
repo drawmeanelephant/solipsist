@@ -38,7 +38,7 @@ jobs:
           ref: bf464a02883d1dce1d9f990739183c248e68c5c3
 
       - name: Install Zig
-        uses: mlugg/setup-zig@v2
+        uses: drawmeanelephant/zig-zouave@2d8510d62b517fa786279562cf8b1bdcf0c47b9f
         with:
           version: 0.16.0
 
