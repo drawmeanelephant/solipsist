@@ -32,7 +32,7 @@ jobs:
       # Same pin boris's own CI uses (github-pages.yml); `master` tarballs
       # rotate out of the mirrors and 404.
       - name: Install Zig
-        uses: mlugg/setup-zig@v2
+        uses: drawmeanelephant/zig-zouave@2d8510d62b517fa786279562cf8b1bdcf0c47b9f
         with:
           version: 0.16.0
       - name: Build Boris engine
