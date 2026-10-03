@@ -10,6 +10,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  doctor:
+    name: doctor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check repository health and doctor regressions
+        run: make doctor && make test-doctor
+
   lint:
     name: lint
     runs-on: xcode-27

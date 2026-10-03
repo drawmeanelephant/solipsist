@@ -1,5 +1,7 @@
 # Solipsist
 
+![Solipsist banner](brand/solipsist-banner.png)
+
 A native macOS harness for
 [Boris](https://github.com/drawmeanelephant/boris), the deterministic
 Zig graph-native publication compiler.
@@ -21,19 +23,37 @@ closed not-planned — unpark steps in
 File → Open… a folder under [`Stunts/`](Stunts/) (start with
 `happy/`). `make test` decodes checked-in fixtures (no boris binary).
 
+## Start here
+
+- New human? Read [`docs/ONBOARDING.md`](docs/ONBOARDING.md) — the
+  30-minute path through the repo.
+- Agent? Read [`AGENTS.md`](AGENTS.md), then `docs/ROADMAP.md` and
+  `docs/HARNESS.md`.
+- Run `make doctor` to check your environment and repo hygiene.
+
 ## Layout
 
 ```
 Sources/
-  App/ Chrome/ Workspace/ Play/ Inspector/ Companions/
+  App/        app lifecycle, coordinator, settings, commands, help
+  Chrome/     main window chrome: sidebar, reading host, inspector drawer
+  Workspace/  sources (local / git / GitHub), sidebar state, persistence
+  Play/       mailbox surfaces: pages, outputs, publish, plan, activity
+  Inspector/  drawer content: profile/page fields, theme browser
+  Companions/ hosted foreign surfaces: Preview (watch --serve), Editor
+  Compose/    native editor window: buffer, highlight, Oliver preview
+  Intents/    App Intents — Siri drafts (M18)
   Models/     Codable mirrors of Boris JSON contracts
   Engine/     locate, run, actor — the only Process owner
+  Security/   stdin secret buffers, Keychain, credential helpers
 Spike/        M1 CLI spike (`make run-spike`)
-scripts/      embed-boris.sh, stunt-smoke.sh, stunt-from-testdata.sh
+scripts/      embed-boris.sh, doctor.sh, stunt-smoke.sh, …
 Stunts/       dogfood corpora (happy, broken-*, cook-one)
 Tests/        Contract decode tests and JSON fixtures
 vendor/boris-agent-kit/   pin only (no binaries)
-docs/         ROADMAP · HARNESS · MISSION · cards · issues
+site/         public docs site — itself a Boris publication
+brand/        project graphics: icon, banner, palette
+docs/         ROADMAP · HARNESS · MISSION · cards · issues · ONBOARDING
 ```
 
 Never commit `SUPPORT-NOT-FOR-GITHUB/` or engine binaries.
