@@ -86,6 +86,7 @@ private struct ComposeHTMLPreview: NSViewRepresentable {
         configuration.suppressesIncrementalRendering = true
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         context.coordinator.load(html, in: webView)
         return webView
     }

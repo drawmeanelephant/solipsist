@@ -15,7 +15,7 @@ final class ComposeDocument {
     var text: String = "" {
         didSet {
             if text != oldValue {
-                isDirty = true
+                isDirty = text != savedText
                 wordCount = Self.computeWordCount(for: text)
                 // Auto-detect only until the language is pinned (by the
                 // initial load or an explicit picker choice); never override
@@ -43,6 +43,10 @@ final class ComposeDocument {
 
     /// Whether the buffer differs from the last save/load.
     private(set) var isDirty = false
+
+    private var savedText = ""
+    private var savedContents: Data?
+    private var savedFileURL: URL?
 
     /// Cursor position for the status bar (#228) and Go to Line (#238).
     /// Updated by `ComposeTextView.Coordinator` on every selection change.
@@ -203,7 +207,8 @@ final class ComposeDocument {
         self.fileURL = fileURL
         self.language = language ?? ComposeLanguage.detect(fileURL: fileURL, contents: text)
         self.languageExplicit = language != nil
-        self.isDirty = false
+        self.savedText = fileURL == nil ? "" : text
+        self.isDirty = text != savedText
         self.cursorLine = 1
         self.cursorColumn = 1
         self.selectedLength = 0
@@ -242,16 +247,40 @@ final class ComposeDocument {
     @discardableResult
     func save() throws -> Bool {
         guard let fileURL, isDirty else { return false }
+        if fileURL == savedFileURL {
+            let currentContents = try Data(contentsOf: fileURL)
+            guard currentContents == savedContents else {
+                throw SaveError.fileChanged
+            }
+        }
         try text.write(to: fileURL, atomically: true, encoding: .utf8)
+        savedText = text
+        savedContents = Data(text.utf8)
+        savedFileURL = fileURL
         isDirty = false
         return true
+    }
+
+    enum SaveError: LocalizedError {
+        case fileChanged
+
+        var errorDescription: String? {
+            "This file changed on disk after it was opened or saved. "
+                + "Your changes have not been written. Copy your changes before reopening the page to review the newer version."
+        }
     }
 
     /// Loads a file into the buffer (used by the future host; keeps the
     /// element testable in isolation).
     func load(from url: URL) throws {
-        let loaded = try String(contentsOf: url, encoding: .utf8)
+        let contents = try Data(contentsOf: url)
+        guard let loaded = String(data: contents, encoding: .utf8) else {
+            throw CocoaError(.fileReadInapplicableStringEncoding)
+        }
         fileURL = url
+        savedText = loaded
+        savedContents = contents
+        savedFileURL = url
         text = loaded
         language = ComposeLanguage.detect(fileURL: url, contents: loaded)
         isDirty = false

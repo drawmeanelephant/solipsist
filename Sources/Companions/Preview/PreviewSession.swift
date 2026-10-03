@@ -1,18 +1,26 @@
 import Foundation
 import Observation
 
+@MainActor
+protocol PreviewWatchCoordinating: AnyObject {
+    func registerWatch(_ server: WatchServer)
+    func unregisterWatch(_ server: WatchServer)
+}
+
 /// Drives the M4 preview surface (D5): owns the `boris watch --serve`
 /// lifetime for the selected source and hands the served helper URL to the
 /// preview web view.
 ///
 /// Main-actor confined. `start` is idempotent for the same content root —
 /// reopening the window reuses a live server instead of rebuilding. A
-/// server takes over when the port line (`preview: http://127.0.0.1:PORT/`)
-/// arrives on stderr; if it never arrives within 15 seconds, the phase
+/// server takes over when the A1 `serve-started` event arrives on stderr;
+/// if it never arrives within 15 seconds, the phase
 /// degrades to `failed` and the server is stopped so it cannot linger.
 @MainActor
 @Observable
 final class PreviewSession {
+    typealias ServerFactory = @MainActor (BorisEngine, URL, URL) throws -> WatchServer
+
     enum Phase: Equatable {
         case idle
         case starting
@@ -62,19 +70,27 @@ final class PreviewSession {
     }
 
     private var server: WatchServer?
+    private var lifecycleID = UUID()
+    private let makeServer: ServerFactory
     private var rootPath: String?
     private var timeoutTask: Task<Void, Never>?
-    private weak var coordinator: Coordinator?
+    private weak var coordinator: (any PreviewWatchCoordinating)?
 
-    func start(contentRoot: URL, projectRoot: URL, engine: BorisEngine?, coordinator: Coordinator?) {
-        self.coordinator = coordinator
+    init(makeServer: @escaping ServerFactory = { engine, contentRoot, projectRoot in
+        try engine.previewStart(contentRoot: contentRoot, workingDirectory: projectRoot, port: 0)
+    }) {
+        self.makeServer = makeServer
+    }
+
+    func start(contentRoot: URL, projectRoot: URL, engine: BorisEngine?, coordinator: (any PreviewWatchCoordinating)?) {
         let root = contentRoot.standardizedFileURL.path
         if root == rootPath, let server, server.isRunning {
+            self.coordinator = coordinator
             coordinator?.registerWatch(server)
             if let url = server.serveURL {
                 phase = .serving(url)
             }
-            // Port line still pending → still starting; the in-flight server
+            // Serve event still pending → still starting; the in-flight server
             // owns the timeout. Either way: reuse, no rebuild.
             return
         }
@@ -90,22 +106,29 @@ final class PreviewSession {
         phase = .starting
         scheduleTimeout()
         do {
-            let server = try engine.previewStart(
-                contentRoot: contentRoot,
-                workingDirectory: projectRoot,
-                port: 0
-            )
+            let server = try makeServer(engine, contentRoot, projectRoot)
             self.server = server
             coordinator?.registerWatch(server)
+            let lifecycleID = self.lifecycleID
             server.onServe = { [weak self] url in
-                Task { @MainActor in self?.handleServe(url: url) }
+                Task { @MainActor in
+                    guard let self, self.lifecycleID == lifecycleID, self.server != nil else { return }
+                    self.handleServe(url: url)
+                }
             }
             server.onProblem = { [weak self] message in
-                Task { @MainActor in self?.handleProblem(message) }
+                Task { @MainActor in
+                    guard let self, self.lifecycleID == lifecycleID, self.server != nil else { return }
+                    self.handleProblem(message)
+                }
             }
             server.onExit = { [weak self] exit in
-                Task { @MainActor in self?.handleExit(exit) }
+                Task { @MainActor in
+                    guard let self, self.lifecycleID == lifecycleID else { return }
+                    self.handleExit(exit)
+                }
             }
+            if server.isRunning, let url = server.serveURL { handleServe(url: url) }
         } catch {
             timeoutTask?.cancel()
             timeoutTask = nil
@@ -128,6 +151,8 @@ final class PreviewSession {
     }
 
     private func teardownServer() {
+        lifecycleID = UUID()
+        lastProblem = nil
         timeoutTask?.cancel()
         timeoutTask = nil
         if let server {
@@ -164,6 +189,7 @@ final class PreviewSession {
         // We stopped it on purpose; the callbacks were cleared first, so the
         // only exits that land here are spontaneous ones.
         guard let server else { return }
+        lifecycleID = UUID()
         coordinator?.unregisterWatch(server)
         self.server = nil
         timeoutTask?.cancel()

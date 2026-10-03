@@ -26,6 +26,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         urls.forEach(deliver)
     }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        ComposeWindowRegistry.shared.canTerminate() ? .terminateNow : .terminateCancel
+    }
+
     private func deliver(_ url: URL) {
         if let openFolder {
             openFolder(url)

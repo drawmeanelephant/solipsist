@@ -99,7 +99,7 @@ enum ComposeMarkupOp: Equatable, Sendable {
     /// Applies an operation to a buffer. Pure: returns the new text and caret.
     static func apply(_ operation: ComposeMarkupOp, to text: String) -> Application {
         let nsText = text as NSString
-        /// Pure splices via Swift ranges — no NSMutableString casts.
+        // Pure splices via Swift ranges — no NSMutableString casts.
         func splice(_ range: NSRange, replacement: String) -> Application {
             let safe = clamped(range, length: nsText.length)
             let swiftRange = Range(safe, in: text) ?? text.startIndex..<text.startIndex

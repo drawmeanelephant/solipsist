@@ -99,6 +99,97 @@ final class ComposeDocumentTests: XCTestCase {
         XCTAssertFalse(try doc.save(), "save without a URL must be a no-op")
     }
 
+    func testUntitledDraftStartsDirtyAndSavesWithoutAnotherEdit() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("compose-draft-\(UUID().uuidString).md")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let draft = StagedPostDraft(title: "Field Notes", body: "Review this draft.", origin: .menu)
+        let text = PostDraftAssembly.markdown(for: draft)
+        let doc = ComposeDocument(text: text, language: .markdown)
+        XCTAssertTrue(doc.isDirty, "staging is not a save")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+
+        doc.fileURL = url
+        XCTAssertTrue(try doc.save(), "an untouched draft must be saveable")
+        XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), text)
+        XCTAssertFalse(doc.isDirty)
+    }
+
+    func testSaveDoesNotOverwriteAnExternalEdit() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("compose-conflict-\(UUID().uuidString).md")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try "Original".write(to: url, atomically: true, encoding: .utf8)
+
+        let doc = ComposeDocument()
+        try doc.load(from: url)
+        doc.text = "Native compose edit"
+        try "Boris editor edit".write(to: url, atomically: true, encoding: .utf8)
+
+        XCTAssertThrowsError(try doc.save())
+        XCTAssertTrue(doc.isDirty)
+        XCTAssertEqual(doc.text, "Native compose edit")
+        XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), "Boris editor edit")
+    }
+
+    func testRevertingToLoadedTextClearsDirtyState() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("compose-revert-\(UUID().uuidString).md")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try "Original".write(to: url, atomically: true, encoding: .utf8)
+        let doc = ComposeDocument()
+        try doc.load(from: url)
+        doc.text = "Changed"
+        XCTAssertTrue(doc.isDirty)
+        doc.text = "Original"
+        XCTAssertFalse(doc.isDirty, "undoing the last edit must restore the clean state")
+        XCTAssertFalse(try doc.save())
+    }
+
+    func testSuccessfulSaveUpdatesTheConflictBaseline() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("compose-save-baseline-\(UUID().uuidString).md")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let doc = ComposeDocument(text: "First save")
+        doc.fileURL = url
+        XCTAssertTrue(try doc.save())
+        doc.text = "Second save"
+        XCTAssertTrue(try doc.save())
+        try "External save".write(to: url, atomically: true, encoding: .utf8)
+        doc.text = "Third save"
+        XCTAssertThrowsError(try doc.save())
+        XCTAssertEqual(try String(contentsOf: url, encoding: .utf8), "External save")
+    }
+
+    func testDeletedFileIsNotSilentlyRecreated() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("compose-deleted-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("note.md")
+        try "Original".write(to: url, atomically: true, encoding: .utf8)
+        let doc = ComposeDocument()
+        try doc.load(from: url)
+        doc.text = "Changed"
+        try FileManager.default.removeItem(at: url)
+        XCTAssertThrowsError(try doc.save())
+        XCTAssertTrue(doc.isDirty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+    }
+
+    func testFailedLoadPreservesTheCurrentBufferAndFile() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("compose-missing-\(UUID().uuidString).md")
+        let originalURL = url.appendingPathExtension("original")
+        let doc = ComposeDocument(text: "Original", fileURL: originalURL)
+        doc.text = "Unsaved changes"
+        XCTAssertThrowsError(try doc.load(from: url))
+        XCTAssertEqual(doc.fileURL, originalURL)
+        XCTAssertEqual(doc.text, "Unsaved changes")
+        XCTAssertTrue(doc.isDirty)
+    }
+
     func testLoadSyncsBufferAndClearsDirty() throws {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("compose-load-\(UUID().uuidString).cook")
