@@ -20,6 +20,9 @@ final class BorisEngineConcurrencyTests: XCTestCase {
         fi
         trap 'rmdir "\(root.path)/active"' EXIT
         echo "$1" >> '\(root.path)/calls'
+        if [ -e '\(root.path)/hold' ]; then
+            while [ ! -e '\(root.path)/release' ]; do sleep 0.01; done
+        fi
         sleep 0.15
         echo 'test-engine'
         """
@@ -65,9 +68,13 @@ final class BorisEngineConcurrencyTests: XCTestCase {
         let fixture = try makeEngine()
         let engine = fixture.engine
         let root = fixture.root
-        defer { try? FileManager.default.removeItem(at: root) }
+        defer {
+            engine.forceKill()
+            try? FileManager.default.removeItem(at: root)
+        }
+        XCTAssertTrue(FileManager.default.createFile(atPath: root.appendingPathComponent("hold").path, contents: nil))
         let first = Task { try await engine.version() }
-        let deadline = ContinuousClock.now + .seconds(2)
+        let deadline = ContinuousClock.now + .seconds(5)
         while !FileManager.default.fileExists(atPath: root.appendingPathComponent("active").path) {
             guard ContinuousClock.now < deadline else {
                 engine.forceKill()
@@ -79,6 +86,7 @@ final class BorisEngineConcurrencyTests: XCTestCase {
         let waiter = Task { try await engine.version() }
         try await Task.sleep(for: .milliseconds(10))
         waiter.cancel()
+        XCTAssertTrue(FileManager.default.createFile(atPath: root.appendingPathComponent("release").path, contents: nil))
         let firstResult = try await first.value
         XCTAssertEqual(firstResult.exitCode, 0)
         do {
