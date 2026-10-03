@@ -71,8 +71,8 @@ else
   warn_msg "XcodeGen not vendored — run 'make tools' on a Mac"
 fi
 
-# Engine resolution (mirrors the Makefile/embed search order, minus the
-# app-bundle slot which only exists after a build).
+# Common prebuilt engine locations. PATH alone is not supported by the
+# app or embed script; use SOLIPSIST_BORIS_BIN for an installed binary.
 find_boris() {
   if [[ -n "${SOLIPSIST_BORIS_BIN:-}" && -x "${SOLIPSIST_BORIS_BIN}" ]]; then
     echo "${SOLIPSIST_BORIS_BIN}"
@@ -88,23 +88,25 @@ find_boris() {
       return 0
     fi
   done
-  if command -v boris >/dev/null 2>&1; then
-    command -v boris
-    return 0
-  fi
   return 1
 }
 
 if boris_bin="$(find_boris)"; then
   ok_msg "boris engine resolves to: $boris_bin"
 else
-  warn_msg "no boris binary found (SOLIPSIST_BORIS_BIN, kit, ../boris, or PATH) — engine smoke runs will skip"
+  warn_msg "no boris binary found (SOLIPSIST_BORIS_BIN, kit, or ../boris) — set SOLIPSIST_BORIS_BIN to an executable, even if boris is on PATH"
 fi
 
 # macOS-only checks.
 if [[ "$(uname -s)" == "Darwin" ]]; then
   if command -v xcodebuild >/dev/null 2>&1; then
-    ok_msg "xcodebuild: $(xcodebuild -version | head -1 | tr '\n' ' ')"
+    if xcode_version="$(xcodebuild -version 2>&1)"; then
+      ok_msg "xcodebuild: ${xcode_version%%$'\n'*}"
+    else
+      xcode_exit=$?
+      fail_msg "xcodebuild -version failed (exit $xcode_exit) — select a working Xcode installation with xcode-select"
+      printf '%s\n' "$xcode_version" >&2
+    fi
   else
     fail_msg "xcodebuild not found — install Xcode"
   fi

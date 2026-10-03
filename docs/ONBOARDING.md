@@ -36,6 +36,10 @@ and `SUPPORT-NOT-FOR-GITHUB/` must never reach GitHub), XcodeGen
 vendored, which `boris` binary the engine search order would pick, and
 — on a Mac — Xcode and lint tools. Warnings are advice; failures block.
 
+If Boris is installed only on `PATH`, set `SOLIPSIST_BORIS_BIN` to its
+absolute executable path; the app and embed script do not search `PATH`.
+Run `make test-doctor` for portable regression tests of the health checks.
+
 ## 3. Build (10 min, macOS only)
 
 The app only builds on a Mac. Docs, scripts, and `make doctor` work

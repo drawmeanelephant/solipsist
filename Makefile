@@ -12,7 +12,7 @@ PROJECT  := Solipsist.xcodeproj
 # Empty SPIKE_CONTENT = spike default ../boris/content.
 SPIKE_CONTENT ?=
 
-.PHONY: tools generate build install-app spike run-spike test lint doctor harvest-fixtures site check-site clean fart
+.PHONY: tools generate build install-app spike run-spike test test-doctor lint doctor harvest-fixtures site check-site clean fart
 
 tools:
 	@mkdir -p .tools
@@ -76,6 +76,9 @@ lint:
 # macOS-only checks are skipped off-Mac.
 doctor:
 	bash scripts/doctor.sh
+
+test-doctor:
+	python3 -B -m unittest discover -s Tests/Doctor -p 'test_*.py' -v
 
 harvest-fixtures:
 	bash scripts/harvest-stunt-fixtures.sh
