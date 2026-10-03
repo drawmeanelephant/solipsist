@@ -48,7 +48,7 @@ struct ComposeWindow: View {
                     renderService: OliverRenderService(),
                     themeCSS: themeCSS,
                     cookCompletion: cookCompletion,
-                    onSave: save,
+                    onSave: { _ = save() },
                     externalJump: externalJump,
                     typography: runtime.composeTypography
                 )
@@ -67,6 +67,10 @@ struct ComposeWindow: View {
         }
         .frame(minWidth: 640, minHeight: 420)
         .navigationTitle("Compose")
+        .background {
+            ComposeWindowLifecycle(document: document, isDirty: document.isDirty, onSave: save)
+                .frame(width: 0, height: 0)
+        }
         .task(id: store.selection.noun) {
             handleSelection()
         }
@@ -146,7 +150,7 @@ struct ComposeWindow: View {
     /// The editor shows for a selected page (the M10 rule) or while an
     /// untitled AI draft is staged / already in the buffer (M18).
     private var showsEditor: Bool {
-        pageNoun != nil || runtime.pendingComposeDraft != nil || isUntitledDraft
+        pageNoun != nil || runtime.pendingComposeDraft != nil || isUntitledDraft || document.fileURL != nil
     }
 
     /// An unsaved buffer with no backing file — only a staged draft gets here.
@@ -241,13 +245,15 @@ struct ComposeWindow: View {
     /// so the preview watch can never observe a partially-written file.
     /// M18: an untitled draft asks for a destination first; cancelling
     /// keeps the buffer staged and writes nothing.
-    private func save() {
+    @discardableResult
+    private func save() -> Bool {
+        guard document.isDirty else { return true }
         saveSignal = nil
         if document.fileURL == nil {
             guard let destination = ComposeStagedDraft.runSavePanel(
                 directoryURL: selectedLocalSource.map { try? $0.contentRoot() } ?? nil,
                 frontmatterPayload: document.frontmatter?.payloadString ?? ""
-            ) else { return }
+            ) else { return false }
             document.fileURL = destination
         }
         let outcome = ComposeSaveFlow.run(
@@ -260,6 +266,7 @@ struct ComposeWindow: View {
             outcome: outcome,
             savedMessage: "Saved"
         )
+        return outcome == .saved
     }
 
     // MARK: - Staged AI drafts (M18)

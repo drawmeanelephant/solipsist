@@ -140,6 +140,12 @@ public enum BorisEngineError: Error, Sendable, CustomStringConvertible {
 public actor BorisEngine {
     public let binaryURL: URL
     private let runHandle = RunHandle()
+    private var runSlotOccupied = false
+    private struct RunSlotWaiter {
+        let id: UUID
+        let continuation: CheckedContinuation<Void, any Error>
+    }
+    private var runSlotWaiters: [RunSlotWaiter] = []
 
     public init(binaryURL: URL? = nil) throws {
         if let binaryURL {
@@ -912,11 +918,10 @@ public actor BorisEngine {
         arguments: [String],
         workingDirectory: URL? = nil
     ) async throws -> BorisPublishResult {
-        let out = try await BorisRunner.run(
+        let out = try await run(
             binary: binary,
             arguments: arguments,
-            workingDirectory: workingDirectory,
-            handle: runHandle
+            workingDirectory: workingDirectory
         )
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
@@ -1000,17 +1005,59 @@ public actor BorisEngine {
     // MARK: Helpers
 
     private func run(
+        binary: URL? = nil,
         arguments: [String],
         workingDirectory: URL? = nil,
         stdin: SecureBuffer? = nil
     ) async throws -> RunOutput {
-        try await BorisRunner.run(
-            binary: binaryURL,
+        try Task.checkCancellation()
+        try await acquireRunSlot()
+        defer { releaseRunSlot() }
+        // A cancelled waiter must give the slot to the next caller without
+        // launching a child or replacing the active RunHandle.
+        try Task.checkCancellation()
+        return try await BorisRunner.run(
+            binary: binary ?? binaryURL,
             arguments: arguments,
             workingDirectory: workingDirectory,
             handle: runHandle,
             stdin: stdin
         )
+    }
+
+    /// An actor is reentrant across `await`; actor isolation alone cannot
+    /// keep two one-shot processes from sharing (and replacing) the handle.
+    private func acquireRunSlot() async throws {
+        try Task.checkCancellation()
+        if !runSlotOccupied {
+            runSlotOccupied = true
+            return
+        }
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+                if Task.isCancelled {
+                    continuation.resume(throwing: CancellationError())
+                } else {
+                    runSlotWaiters.append(RunSlotWaiter(id: id, continuation: continuation))
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelRunSlotWaiter(id) }
+        }
+    }
+
+    private func cancelRunSlotWaiter(_ id: UUID) {
+        guard let index = runSlotWaiters.firstIndex(where: { $0.id == id }) else { return }
+        runSlotWaiters.remove(at: index).continuation.resume(throwing: CancellationError())
+    }
+
+    private func releaseRunSlot() {
+        if runSlotWaiters.isEmpty {
+            runSlotOccupied = false
+        } else {
+            runSlotWaiters.removeFirst().continuation.resume()
+        }
     }
 
     private func decode<T: Decodable>(_ type: T.Type, from url: URL, artifact: String) throws -> T {

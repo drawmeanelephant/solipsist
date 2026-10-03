@@ -105,7 +105,7 @@ extension ReadingWebModel: WKNavigationDelegate {
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
     ) {
         let url = navigationAction.request.url
         let allowed = url.map { PreviewURL.isAllowed($0) } ?? false
@@ -115,7 +115,7 @@ extension ReadingWebModel: WKNavigationDelegate {
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationResponse: WKNavigationResponse,
-        decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+        decisionHandler: @escaping @MainActor @Sendable (WKNavigationResponsePolicy) -> Void
     ) {
         let status = (navigationResponse.response as? HTTPURLResponse)?.statusCode
         if navigationResponse.isForMainFrame, let status, status >= 400 {

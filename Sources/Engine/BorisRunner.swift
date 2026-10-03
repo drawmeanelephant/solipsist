@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 public struct RunOutput: Sendable {
@@ -38,43 +39,44 @@ public final class RunHandle: @unchecked Sendable {
     }
 
     public var isRunning: Bool {
-        lock.lock()
-        let process = self.process
-        lock.unlock()
-        return process?.isRunning == true
+        currentProcess()?.isRunning == true
     }
 
     public var processIdentifier: Int32? {
-        lock.lock()
-        let process = self.process
-        lock.unlock()
-        guard let process, process.isRunning else { return nil }
+        guard let process = currentProcess(), process.isRunning else { return nil }
         return process.processIdentifier
     }
 
     public func terminate() {
-        lock.lock()
-        let process = self.process
-        lock.unlock()
-        guard let process, process.isRunning else { return }
+        guard let process = currentProcess(), process.isRunning else { return }
         process.terminate()
     }
 
     public func forceKill() {
-        lock.lock()
-        let process = self.process
-        lock.unlock()
-        guard let process, process.isRunning else { return }
+        guard let process = currentProcess(), process.isRunning else { return }
         ChildProcessControl.forceKill(pid: process.processIdentifier)
     }
 
     /// SIGTERM, wait `grace`, then SIGKILL if the child is still up.
     public func escalate(grace: Duration = ChildProcessControl.reapGrace) async {
-        terminate()
+        guard let process = currentProcess() else { return }
+        await Self.escalate(process, grace: grace)
+    }
+
+    /// Both signals belong to this child, even if the shared slot changes.
+    static func escalate(_ process: Process, grace: Duration) async {
+        guard process.isRunning else { return }
+        process.terminate()
         try? await Task.sleep(for: grace)
-        if isRunning {
-            forceKill()
+        if process.isRunning {
+            ChildProcessControl.forceKill(pid: process.processIdentifier)
         }
+    }
+
+    private func currentProcess() -> Process? {
+        lock.lock()
+        defer { lock.unlock() }
+        return process
     }
 }
 
@@ -167,35 +169,39 @@ public enum BorisRunner {
 
         let pipe = Pipe()
         process.standardInput = pipe
-
-        handle?.attach(process)
         defer {
             stdoutHandle.closeFile()
             stderrHandle.closeFile()
         }
+        // A child that closes stdin must produce a write error, not SIGPIPE
+        // in the app. Limit signal protection to this pipe, not the process.
+        guard fcntl(pipe.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1) == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        handle?.attach(process)
 
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            let box = OnceResume()
+            let completion = RunCompletion(cont)
             process.terminationHandler = { _ in
-                box.resume {
-                    cont.resume()
-                }
+                completion.processExited()
             }
             do {
                 try process.run()
             } catch {
-                box.resume {
-                    cont.resume(throwing: BorisRunnerError.launchFailed(String(describing: error)))
-                }
+                completion.launchFailed(BorisRunnerError.launchFailed(String(describing: error)))
                 return
             }
             do {
                 try writeStdin(pipe)
                 pipe.fileHandleForWriting.closeFile()
+                completion.stdinFinished()
             } catch {
-                process.terminate()
-                box.resume {
-                    cont.resume(throwing: error)
+                pipe.fileHandleForWriting.closeFile()
+                completion.stdinFinished(error: error)
+                // Do not release the caller's process slot until this child
+                // has exited. Escalation is bounded and targets only it.
+                Task {
+                    await RunHandle.escalate(process, grace: ChildProcessControl.reapGrace)
                 }
             }
         }
@@ -206,16 +212,57 @@ public enum BorisRunner {
     }
 }
 
-/// `terminationHandler` and launch-failure can race; resume once.
-private final class OnceResume: @unchecked Sendable {
+/// Exit can race stdin completion. Preserve write errors and resume once,
+/// only after the launched child has been reaped.
+private final class RunCompletion: @unchecked Sendable {
     private let lock = NSLock()
-    private var done = false
+    private let continuation: CheckedContinuation<Void, any Error>
+    private var exited = false
+    private var inputFinished = false
+    private var resumed = false
+    private var error: (any Error)?
 
-    func resume(_ body: () -> Void) {
+    init(_ continuation: CheckedContinuation<Void, any Error>) {
+        self.continuation = continuation
+    }
+
+    func processExited() {
         lock.lock()
-        let first = !done
-        done = true
+        exited = true
         lock.unlock()
-        if first { body() }
+        resumeIfComplete()
+    }
+
+    func stdinFinished(error: (any Error)? = nil) {
+        lock.lock()
+        inputFinished = true
+        self.error = error
+        lock.unlock()
+        resumeIfComplete()
+    }
+
+    func launchFailed(_ error: any Error) {
+        lock.lock()
+        exited = true
+        inputFinished = true
+        self.error = error
+        lock.unlock()
+        resumeIfComplete()
+    }
+
+    private func resumeIfComplete() {
+        lock.lock()
+        guard exited, inputFinished, !resumed else {
+            lock.unlock()
+            return
+        }
+        resumed = true
+        let error = self.error
+        lock.unlock()
+        if let error {
+            continuation.resume(throwing: error)
+        } else {
+            continuation.resume()
+        }
     }
 }

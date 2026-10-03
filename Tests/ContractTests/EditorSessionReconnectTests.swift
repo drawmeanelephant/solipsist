@@ -19,45 +19,6 @@ final class EditorSessionReconnectTests: XCTestCase {
         try BorisEngine(binaryURL: URL(fileURLWithPath: "/nonexistent/boris"))
     }
 
-    /// In-memory stand-in for `EditorServer`. Tests fire `connect` / `crash`
-    /// by hand, exactly like the process callbacks would arrive.
-    private final class FakeHost: EditorHost {
-        var onConnect: ((URL) -> Void)?
-        var onExit: ((EditorExit) -> Void)?
-
-        private(set) var editorURL: URL?
-        private(set) var stopCount = 0
-        var isRunning = true
-
-        func connect(url: URL) {
-            editorURL = url
-            isRunning = true
-            onConnect?(url)
-        }
-
-        func crash(exitCode: Int32, signalled: Bool = false) {
-            isRunning = false
-            onExit?(EditorExit(exitCode: exitCode, signalled: signalled, stderrTail: ""))
-        }
-
-        func stop() {
-            stopCount += 1
-            isRunning = false
-        }
-    }
-
-    private final class HostRecorder {
-        private(set) var hosts: [FakeHost] = []
-
-        var last: FakeHost? { hosts.last }
-
-        func factory(engine: BorisEngine, workingDirectory: URL) throws -> any EditorHost {
-            let host = FakeHost()
-            hosts.append(host)
-            return host
-        }
-    }
-
     /// Backoff small enough that auto-restarts land inside the test, large
     /// enough that `.reconnecting` stays observable between ticks.
     private let baseDelay = Duration.milliseconds(100)
@@ -67,21 +28,6 @@ final class EditorSessionReconnectTests: XCTestCase {
             makeHost: { engine, workDir in try recorder.factory(engine: engine, workingDirectory: workDir) },
             reconnectBaseDelay: baseDelay
         )
-    }
-
-    private func connectedURL(of session: EditorSession) -> URL? {
-        if case .connected(let url) = session.phase { return url }
-        return nil
-    }
-
-    private func reconnectingAttempt(of session: EditorSession) -> Int? {
-        if case .reconnecting(let attempt) = session.phase { return attempt }
-        return nil
-    }
-
-    /// Lets enqueued MainActor tasks (`handleConnect` / `handleExit`) run.
-    private func settle(milliseconds: Int = 10) async {
-        try? await Task.sleep(for: .milliseconds(milliseconds))
     }
 
     private func waitForHosts(_ recorder: HostRecorder, _ count: Int) async throws {
@@ -293,6 +239,60 @@ final class EditorSessionReconnectTests: XCTestCase {
         XCTAssertEqual(recorder.hosts.count, 1)
     }
 
+    func testQueuedConnectCannotReviveAStoppedSession() async throws {
+        let recorder = HostRecorder()
+        let session = makeSession(recorder)
+        session.start(contentRoot: root, projectRoot: project, engine: try makeEngine())
+        recorder.hosts[0].connect(url: tokenA)
+        session.stop()
+
+        await settle()
+        XCTAssertEqual(session.phase, .idle)
+        XCTAssertNil(session.editorURL)
+    }
+
+    func testQueuedConnectFromOldSourceCannotConnectTheNewSource() async throws {
+        let recorder = HostRecorder()
+        let session = makeSession(recorder)
+        defer { session.stop() }
+        session.start(contentRoot: root, projectRoot: project, engine: try makeEngine())
+        recorder.hosts[0].connect(url: tokenA)
+        session.start(contentRoot: root.appendingPathComponent("other"), projectRoot: project, engine: try makeEngine())
+
+        await settle()
+        XCTAssertEqual(session.phase, .starting)
+        XCTAssertNil(session.editorURL)
+        recorder.hosts[1].connect(url: tokenB)
+        await settle()
+        XCTAssertEqual(session.editorURL, tokenB)
+    }
+
+    func testQueuedExitCannotDiscardAReplacementHost() async throws {
+        let recorder = HostRecorder()
+        let session = makeSession(recorder)
+        defer { session.stop() }
+        try await startAndConnect(session, recorder)
+        recorder.hosts[0].crash(exitCode: 1)
+        session.restart()
+
+        await settle()
+        XCTAssertEqual(session.phase, .starting)
+        recorder.hosts[1].connect(url: tokenB)
+        await settle(milliseconds: 150)
+        XCTAssertEqual(session.editorURL, tokenB)
+        XCTAssertEqual(recorder.hosts.count, 2, "a retired host must not trigger another restart")
+    }
+
+    func testHostThatConnectedBeforeFactoryReturnedIsConsumed() throws {
+        let host = FakeHost()
+        host.connect(url: tokenA)
+        let session = EditorSession(makeHost: { _, _ in host })
+        defer { session.stop() }
+        session.start(contentRoot: root, projectRoot: project, engine: try makeEngine())
+        XCTAssertEqual(session.editorURL, tokenA)
+        XCTAssertEqual(session.phase, .connected(tokenA))
+    }
+
     // MARK: Source switch while pending
 
     func testSourceSwitchCancelsPendingReconnect() async throws {
@@ -338,5 +338,61 @@ final class EditorSessionReconnectTests: XCTestCase {
         XCTAssertEqual(EditorAutoReconnect.prune([stale], now: now), [])
         XCTAssertEqual(EditorAutoReconnect.prune([fresh], now: now), [fresh])
         XCTAssertEqual(EditorAutoReconnect.prune([boundary], now: now), [boundary])
+    }
+}
+
+private extension EditorSessionReconnectTests {
+    func connectedURL(of session: EditorSession) -> URL? {
+        if case .connected(let url) = session.phase { return url }
+        return nil
+    }
+
+    func reconnectingAttempt(of session: EditorSession) -> Int? {
+        if case .reconnecting(let attempt) = session.phase { return attempt }
+        return nil
+    }
+
+    /// Lets enqueued MainActor tasks (`handleConnect` / `handleExit`) run.
+    func settle(milliseconds: Int = 10) async {
+        try? await Task.sleep(for: .milliseconds(milliseconds))
+    }
+
+    /// In-memory stand-in for `EditorServer`. Tests fire `connect` / `crash`
+    /// by hand, exactly like the process callbacks would arrive.
+    final class FakeHost: EditorHost {
+        var onConnect: ((URL) -> Void)?
+        var onExit: ((EditorExit) -> Void)?
+
+        private(set) var editorURL: URL?
+        private(set) var stopCount = 0
+        var isRunning = true
+
+        func connect(url: URL) {
+            editorURL = url
+            isRunning = true
+            onConnect?(url)
+        }
+
+        func crash(exitCode: Int32, signalled: Bool = false) {
+            isRunning = false
+            onExit?(EditorExit(exitCode: exitCode, signalled: signalled, stderrTail: ""))
+        }
+
+        func stop() {
+            stopCount += 1
+            isRunning = false
+        }
+    }
+
+    final class HostRecorder {
+        private(set) var hosts: [FakeHost] = []
+
+        var last: FakeHost? { hosts.last }
+
+        func factory(engine: BorisEngine, workingDirectory: URL) throws -> any EditorHost {
+            let host = FakeHost()
+            hosts.append(host)
+            return host
+        }
     }
 }

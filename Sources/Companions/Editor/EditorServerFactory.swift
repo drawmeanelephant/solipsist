@@ -1,5 +1,18 @@
 import Foundation
 
+/// What `EditorSession` drives across the subprocess boundary. Production
+/// vends `EditorServer` from `BorisEngine.editorStart` (A14); the seam lets
+/// reconnect behavior be exercised without spawning binaries.
+protocol EditorHost: AnyObject {
+    var onConnect: ((URL) -> Void)? { get set }
+    var onExit: ((EditorExit) -> Void)? { get set }
+    var editorURL: URL? { get }
+    var isRunning: Bool { get }
+    func stop()
+}
+
+extension EditorServer: EditorHost {}
+
 /// Why the production host factory refused to build a host. These are
 /// permanent configuration errors — never crash-reconnect candidates (#232).
 enum EditorHostLaunchError: LocalizedError {

@@ -122,6 +122,52 @@ final class ComposeWebViewPreviewTests: XCTestCase {
     // MARK: - Integration: a real web view honors the policy
 
     @MainActor
+    func testNavigationPolicyIsAnObjectiveCDelegateMethod() {
+        let coordinator = ComposePreviewCoordinator()
+        XCTAssertTrue(coordinator.responds(to: NSSelectorFromString("webView:decidePolicyForNavigationAction:decisionHandler:")))
+    }
+
+    @MainActor
+    func testUnapprovedDocumentLoadCannotReplaceThePreview() async throws {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        let webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 400, height: 300), configuration: configuration)
+        let coordinator = ComposePreviewCoordinator()
+        webView.navigationDelegate = coordinator
+        coordinator.load("<p id='original'>Original preview</p>", in: webView)
+        try await waitUntil("original preview") {
+            let text = try await webView.evaluateJavaScript("document.body.innerText") as? String
+            return text == "Original preview"
+        }
+
+        webView.loadHTMLString("<p>Unapproved replacement</p>", baseURL: nil)
+        try await Task.sleep(for: .milliseconds(500))
+        let text = try await webView.evaluateJavaScript("document.body.innerText") as? String
+        XCTAssertEqual(text, "Original preview", "navigation without the host's grant must be cancelled")
+    }
+
+    @MainActor
+    func testHostCanReloadAfterCancellingAnUnapprovedNavigation() async throws {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        let webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 400, height: 300), configuration: configuration)
+        let coordinator = ComposePreviewCoordinator()
+        webView.navigationDelegate = coordinator
+        coordinator.load("<p>First preview</p>", in: webView)
+        try await waitUntil("first preview") {
+            let text = try await webView.evaluateJavaScript("document.body.innerText") as? String
+            return text == "First preview"
+        }
+        webView.loadHTMLString("<p>Unapproved</p>", baseURL: nil)
+        try await Task.sleep(for: .milliseconds(300))
+        coordinator.load("<p>Updated preview</p>", in: webView)
+        try await waitUntil("updated preview") {
+            let text = try await webView.evaluateJavaScript("document.body.innerText") as? String
+            return text == "Updated preview"
+        }
+    }
+
+    @MainActor
     func testWebViewRendersFragmentAndBlocksLinkNavigation() async throws {
         let document = ComposePreviewDocument.html(
             fragment: "<p id=\"p\">Hello preview <a id=\"l\" href=\"https://example.invalid/escape\">link</a></p>",
