@@ -25,6 +25,27 @@ public struct BorisHTMLBuild: Sendable {
 public struct BorisAnalysis: Sendable {
     public let exitCode: Int32
     public let report: AnalysisReport
+    public let stdout: String
+    public let stderr: String
+}
+
+/// Analysis can fail before writing a report. Keep the real command exit
+/// and diagnostics instead of replacing them with a bare missing-file error.
+public struct BorisAnalysisFailure: Error, Sendable, CustomStringConvertible {
+    public let command: String
+    public let exitCode: Int32
+    public let reportError: String
+    public let stdout: String
+    public let stderr: String
+
+    public var description: String {
+        let diagnostic = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+        let output = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+        var message = "\(command) exit \(exitCode): \(reportError)"
+        if !diagnostic.isEmpty { message += "\nstderr: \(diagnostic)" }
+        if !output.isEmpty { message += "\nstdout: \(output)" }
+        return message
+    }
 }
 
 /// Result of `boris --version`.
@@ -652,8 +673,8 @@ public actor BorisEngine {
             arguments: args,
             workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
         )
-        let report = try decode(AnalysisReport.self, from: reportURL, artifact: "check report")
-        return BorisAnalysis(exitCode: out.exitCode, report: report)
+        let report = try analysisReport(command: "check", output: out, url: reportURL)
+        return BorisAnalysis(exitCode: out.exitCode, report: report, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
     /// Runs `boris impact <pageID> --format json --report <file>` and decodes
@@ -678,8 +699,8 @@ public actor BorisEngine {
             arguments: args,
             workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
         )
-        let report = try decode(AnalysisReport.self, from: reportURL, artifact: "impact report")
-        return BorisAnalysis(exitCode: out.exitCode, report: report)
+        let report = try analysisReport(command: "impact", output: out, url: reportURL)
+        return BorisAnalysis(exitCode: out.exitCode, report: report, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
     // MARK: Version / plan / validate / init
@@ -989,6 +1010,20 @@ public actor BorisEngine {
     }
 
     // MARK: Helpers
+
+    private func analysisReport(command: String, output: RunOutput, url: URL) throws -> AnalysisReport {
+        do {
+            return try decode(AnalysisReport.self, from: url, artifact: "\(command) report")
+        } catch {
+            throw BorisAnalysisFailure(
+                command: command,
+                exitCode: output.exitCode,
+                reportError: String(describing: error),
+                stdout: output.stdoutText,
+                stderr: output.stderrText
+            )
+        }
+    }
 
     private func run(
         binary: URL? = nil,

@@ -71,6 +71,7 @@ jobs:
         run: |
           set -euo pipefail
           test -x "$SOLIPSIST_BORIS_BIN"
+          make test-spike
           make run-spike SPIKE_CONTENT="${{ github.workspace }}/boris/content" | tee "$RUNNER_TEMP/spike.out"
           grep -q "SPIKE OK" "$RUNNER_TEMP/spike.out"
 
