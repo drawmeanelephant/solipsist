@@ -56,7 +56,7 @@ Every menu verb and keyboard shortcut:
 | Build This | — | Build the selected HTML target or edition (Outputs mailbox). |
 | Check | — | Run static documentation intelligence and reference checks. |
 | Impact | — | Analyze ripple effects of node changes across the graph (enabled when a page is selected). |
-| Recipe Scale | — | Scale the selected Cooklang page (`boris recipe-scale`; enabled when a page is selected). |
+| Recipe Scale | — | Unavailable until the pinned Boris scaling JSON contract is verified. The inspector shows recipe data from `graph.json` unchanged; it never invents ingredients or scales them in Swift. |
 | Publish to Standard.site | — | Prompt for an app password (stdin), `login --app-password`, then `publish`. Optional Keychain remember. |
 | Verify Standard.site | — | Verify the current Standard.site publication (`boris standard-site verify`). |
 | Standard.site Records | — | List Standard.site records for the publication profile. |

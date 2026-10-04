@@ -657,3 +657,28 @@ root keeps only `INDEX.md` (a router over the packs) and
 - A "Source RAG export" verb can run the default profile, then reveal
   `--out` in Finder (or open `INDEX.md`). Same single-`Process?`-slot
   rule as §8.
+
+---
+
+## 10. Recipe scaling — unavailable pending a pinned contract (#308)
+
+**2026-10-04:** the archived pin remains `bf464a0` / Boris 0.8.1, but
+its binary is unavailable in this environment. The installed executable
+reports Boris 0.8.2 and has SHA-256
+`0c657d81652a1381c76a9864c3dc055ac53c64354cb4f231d63a1754b09e6d39`.
+That is a compatibility observation, not a probe of the documented pin.
+
+Its help names `recipe-scale --input DIR --id PAGE --factor TEXT`,
+not the app's previously assumed positional ID / `--scale` invocation.
+No recipe-scale stdout schema has been verified against the pin.
+App scaling is therefore explicitly unavailable. The inspector displays
+the `graph.json` recipe facet unchanged, or an unavailable message when
+recipe data is missing. Tags and file names never manufacture a recipe.
+
+The engine transport no longer rescues failure by reading graph artifacts
+or doing Swift arithmetic. Nonzero exits keep stdout/stderr and have no
+recipe result. Launch/cancellation failures propagate. An exit-0 response
+that cannot decode as recipe data is an explicit decode failure, not
+success. Re-enabling scaling requires probing the pinned invocation and
+versioned response first; the remaining transport is not a verified
+recipe-scale contract.

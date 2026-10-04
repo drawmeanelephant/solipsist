@@ -806,6 +806,16 @@ final class Coordinator: PreviewWatchCoordinating {
                 )
 
             case .recipeScale:
+                guard RecipeScaleSupport.isAvailable else {
+                    return JobResult(
+                        exit: 2,
+                        summary: "recipe-scale unavailable",
+                        problems: CoordinatorProblems.fromFailure(
+                            code: "recipe-scale",
+                            message: RecipeScaleSupport.unavailableMessage
+                        )
+                    )
+                }
                 guard let pageID = noun?.kind == "page" ? noun?.id : nil else {
                     return JobResult(
                         exit: 2,
@@ -826,8 +836,12 @@ final class Coordinator: PreviewWatchCoordinating {
                 let count = result.recipe?.ingredients.count ?? 0
                 return JobResult(
                     exit: result.exitCode,
-                    summary: "recipe-scale \(pageID) · \(count) ingredient(s)",
-                    problems: []
+                    summary: "recipe-scale \(pageID) · exit \(result.exitCode) · \(count) ingredient(s)",
+                    problems: CoordinatorProblems.fromCommand(
+                        code: "recipe-scale",
+                        exitCode: result.exitCode,
+                        stderr: result.stderr
+                    )
                 )
 
             case .publishStandardSite:

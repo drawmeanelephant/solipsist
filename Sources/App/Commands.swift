@@ -117,7 +117,8 @@ struct SolipsistCommands: Commands {
             Button("Recipe Scale") {
                 runtime.coordinator.run(.recipeScale, store: store, runtime: runtime)
             }
-            .disabled(!hasPage || !runtime.coordinator.canRunVerb)
+            .disabled(!RecipeScaleSupport.isAvailable || !hasPage || !runtime.coordinator.canRunVerb)
+            .help(RecipeScaleSupport.unavailableMessage)
 
             Divider()
 
