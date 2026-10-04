@@ -76,6 +76,11 @@ make test
 SOLIPSIST_BORIS_BIN=/path/to/boris make run-spike
 ```
 
+The spike chooses an impact page from the returned graph. To select one,
+pass `SPIKE_CONTENT=/path/to/content SPIKE_PAGE=guides/getting-started`.
+`make test-spike` runs disposable-corpus CLI regressions with a stub
+engine, including missing reports and early watch exits.
+
 Engine search order: `SOLIPSIST_BORIS_BIN` → app bundle →
 `SUPPORT-NOT-FOR-GITHUB/…/bin/boris` (local only) →
 `../boris/zig-out/bin/boris`.

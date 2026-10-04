@@ -115,6 +115,8 @@ targets:
       - path: Sources/Models
       - path: Sources/Security
       - path: Sources/Engine
+      - path: Spike/SpikePolicy.swift
+      - path: Spike/SpikeWatchProbe.swift
       - path: Sources/Inspector
       - path: Sources/Play/Local/LocalPlayGraph.swift
       - path: Sources/Play/Local/LetterReloadClient.swift

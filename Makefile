@@ -11,8 +11,9 @@ XCODEGEN := .tools/xcodegen/xcodegen/bin/xcodegen
 PROJECT  := Solipsist.xcodeproj
 # Empty SPIKE_CONTENT = spike default ../boris/content.
 SPIKE_CONTENT ?=
+SPIKE_PAGE ?=
 
-.PHONY: tools generate build install-app spike run-spike test test-doctor lint doctor harvest-fixtures site check-site clean fart
+.PHONY: tools generate build install-app spike run-spike test-spike test test-doctor lint doctor harvest-fixtures site check-site clean fart
 
 tools:
 	@mkdir -p .tools
@@ -53,7 +54,10 @@ spike: generate
 		-derivedDataPath build build
 
 run-spike: spike
-	build/Build/Products/Debug/boris-spike $(SPIKE_CONTENT)
+	build/Build/Products/Debug/boris-spike $(if $(SPIKE_CONTENT),"$(SPIKE_CONTENT)",$(if $(SPIKE_PAGE),"../boris/content")) $(if $(SPIKE_PAGE),"$(SPIKE_PAGE)")
+
+test-spike: spike
+	python3 -B -m unittest discover -s Tests/Spike -p 'test_*.py' -v
 
 test: generate
 	xcodebuild -project $(PROJECT) -scheme ContractTests -configuration Debug \

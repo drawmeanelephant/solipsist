@@ -52,6 +52,7 @@ public final class WatchServer: @unchecked Sendable {
     private var _serveURL: URL?
     private var didFireServe = false
     private var deliveredProblemCount = 0
+    private var finishedExit: WatchExit?
 
     public init(binary: URL, contentRoot: URL, workingDirectory: URL, port: Int = 0) {
         let process = Process()
@@ -78,6 +79,20 @@ public final class WatchServer: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return _serveURL
+    }
+
+    /// Snapshots let CLI probes observe ready/exit without racing callback
+    /// registration against an already-started child.
+    public var exit: WatchExit? {
+        lock.lock()
+        defer { lock.unlock() }
+        return finishedExit
+    }
+
+    public var problems: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return parser.problems
     }
 
     public var isRunning: Bool {
@@ -236,6 +251,7 @@ public final class WatchServer: @unchecked Sendable {
             stderrTail: stderrTailText
         )
         let onExit = self.onExit
+        finishedExit = exit
         self.process = nil
         _suspended = false
         lock.unlock()
