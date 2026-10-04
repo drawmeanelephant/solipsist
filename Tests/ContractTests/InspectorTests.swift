@@ -139,32 +139,27 @@ final class InspectorExecutionAndRecipeTests: XCTestCase {
         XCTAssertEqual(args, ["--input", "content", "--jobs", "4", "--incremental", "--quiet"])
     }
 
-    func testRecipeScaleHelperAmountMath() {
-        XCTAssertEqual(RecipeScaleHelper.parseAmount("2"), 2.0)
-        XCTAssertEqual(RecipeScaleHelper.parseAmount("1/2"), 0.5)
-        XCTAssertEqual(RecipeScaleHelper.parseAmount("2 1/2"), 2.5)
-        XCTAssertNil(RecipeScaleHelper.parseAmount("pinch"))
-
-        XCTAssertEqual(RecipeScaleHelper.formatAmount(4.0), "4")
-        XCTAssertEqual(RecipeScaleHelper.formatAmount(0.5), "1/2")
-        XCTAssertEqual(RecipeScaleHelper.formatAmount(1.5), "1 1/2")
+    func testScalingIsUnavailableUntilThePinnedContractIsVerified() {
+        XCTAssertFalse(RecipeScaleSupport.isAvailable)
+        XCTAssertTrue(RecipeScaleSupport.unavailableMessage.contains("pinned Boris"))
     }
 
-    func testRecipeScaleHelperScaling() {
-        let recipe = CookRecipe(
-            ingredients: [
-                CookIngredient(name: "water", quantity: CookQuantity(amount: "2", unit: "cups")),
-                CookIngredient(name: "salt", quantity: CookQuantity(amount: "1/2", unit: "tsp"))
-            ],
-            cookware: [CookCookware(name: "pot", quantity: CookQuantity(amount: "1", unit: ""))],
-            timers: [CookTimer(name: "boil", quantity: CookQuantity(amount: "5", unit: "min"))]
+    func testRecipeTagsAndCookExtensionDoNotInventARecipe() {
+        let node = GraphNode(
+            index: 0, id: "recipe", sourcePath: "recipe.cook", role: .trunk,
+            parent: nil, parentIndex: nil, title: "Recipe", status: nil, tags: ["recipe"]
         )
+        XCTAssertNil(InspectorRecipe.recipe(for: node))
+        XCTAssertNil(InspectorRecipe.recipe(for: nil))
+        XCTAssertTrue(InspectorRecipe.unavailableMessage.contains("unavailable"))
+    }
 
-        let scaled = RecipeScaleHelper.scale(recipe: recipe, factor: 2.0)
-        XCTAssertEqual(scaled.ingredients[0].quantity.amount, "4")
-        XCTAssertEqual(scaled.ingredients[1].quantity.amount, "1")
-        XCTAssertEqual(scaled.cookware[0].name, "pot")
-        XCTAssertEqual(scaled.timers[0].quantity.amount, "5")
+    func testEmptyRecipeFacetStaysEmpty() {
+        let node = GraphNode(
+            index: 0, id: "empty", sourcePath: "empty.cook", role: .trunk,
+            parent: nil, parentIndex: nil, title: "Empty", status: nil, tags: [], recipe: CookRecipe()
+        )
+        XCTAssertEqual(InspectorRecipe.recipe(for: node), CookRecipe())
     }
 
     func testInspectorGraphLoad() throws {
@@ -205,8 +200,8 @@ final class InspectorExecutionAndRecipeTests: XCTestCase {
         let graph = try XCTUnwrap(InspectorGraph.load(from: tempDir))
         let node = try XCTUnwrap(graph.nodes.first)
         let recipe = try XCTUnwrap(node.recipe)
-        let scaled = RecipeScaleHelper.scale(recipe: recipe, factor: 3.0)
-        XCTAssertEqual(scaled.ingredients[0].quantity.amount, "6")
+        XCTAssertEqual(InspectorRecipe.recipe(for: node), recipe)
+        XCTAssertEqual(recipe.ingredients[0].quantity.amount, "2", "display the authoritative graph quantity unchanged")
     }
 }
 

@@ -928,7 +928,8 @@ public actor BorisEngine {
 
     // MARK: Recipe Scale
 
-    /// Runs `boris recipe-scale` (or evaluates scaled Cooklang recipe).
+    /// Subprocess-only recipe-scale transport. UI scaling remains disabled
+    /// until its machine contract is verified against the archived pin.
     public func recipeScale(
         contentRoot: URL,
         pageID: String,
@@ -949,44 +950,29 @@ public actor BorisEngine {
         }
 
         let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
-        let out = try? await run(arguments: args, workingDirectory: cwd)
-
-        if let out, out.exitCode == 0, let recipe = decodeJSON(CookRecipe.self, from: out.stdout) {
-            return BorisRecipeScale(
-                exitCode: out.exitCode,
-                recipe: recipe,
-                scale: factor,
-                stdout: out.stdoutText,
-                stderr: out.stderrText
-            )
-        }
-
-        // Fallback: evaluate scaling directly from local graph artifact if available
-        let graphURL = contentRoot.appendingPathComponent(".boris/graph.json")
-        let altGraphURL = cwd.appendingPathComponent(".boris/graph.json")
-        let targetGraphURL = FileManager.default.fileExists(atPath: graphURL.path) ? graphURL : altGraphURL
-        if FileManager.default.fileExists(atPath: targetGraphURL.path),
-           let data = try? Data(contentsOf: targetGraphURL),
-           let graph = try? JSONDecoder().decode(Graph.self, from: data),
-           let node = graph.nodes.first(where: { $0.id == pageID }),
-           let originalRecipe = node.recipe
-        {
-            let scaled = RecipeScaleHelper.scale(recipe: originalRecipe, factor: factor)
-            return BorisRecipeScale(
-                exitCode: 0,
-                recipe: scaled,
-                scale: factor,
-                stdout: out?.stdoutText ?? "",
-                stderr: out?.stderrText ?? ""
-            )
+        let out = try await run(arguments: args, workingDirectory: cwd)
+        let recipe: CookRecipe?
+        if out.exitCode == 0 {
+            do {
+                recipe = try JSONDecoder().decode(CookRecipe.self, from: out.stdout)
+            } catch {
+                let diagnostic = out.stderrText.trimmingCharacters(in: .whitespacesAndNewlines)
+                let suffix = diagnostic.isEmpty ? "" : " — \(diagnostic)"
+                throw BorisEngineError.decodeFailed(
+                    artifact: "recipe-scale stdout",
+                    reason: "\(error)\(suffix)"
+                )
+            }
+        } else {
+            recipe = nil
         }
 
         return BorisRecipeScale(
-            exitCode: out?.exitCode ?? 1,
-            recipe: nil,
+            exitCode: out.exitCode,
+            recipe: recipe,
             scale: factor,
-            stdout: out?.stdoutText ?? "",
-            stderr: out?.stderrText ?? ""
+            stdout: out.stdoutText,
+            stderr: out.stderrText
         )
     }
 

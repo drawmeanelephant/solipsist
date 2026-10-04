@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Read-only page minutiae with editor launch and derived Cooklang recipe scale view.
+/// Read-only page minutiae with editor launch and engine-owned recipe data.
 /// Fields come from the selected noun plus `.boris/completion.json` / `.boris/graph.json`.
 /// Frontmatter is not parsed out of markdown.
 struct PageSection: View {
@@ -12,9 +12,6 @@ struct PageSection: View {
     @State private var completion: Completion?
     @State private var graph: Graph?
     @State private var note: String?
-    @State private var scaleFactor: Double = 1.0
-
-    private static let scalePresets: [Double] = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0]
 
     var body: some View {
         Group {
@@ -38,6 +35,12 @@ struct PageSection: View {
 
             if let recipe = currentRecipe {
                 recipeSection(recipe)
+            } else if showsRecipeSection {
+                Section("Recipe") {
+                    Text(InspectorRecipe.unavailableMessage)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             if let relations = entity?.relations, !relations.isEmpty {
@@ -74,48 +77,26 @@ struct PageSection: View {
         graph?.nodes.first { $0.id == noun.id }
     }
 
-    private var hasRecipeData: Bool {
+    private var showsRecipeSection: Bool {
         if graphNode?.recipe != nil { return true }
+        if graphNode?.tags?.contains("recipe") == true { return true }
         if entity?.tags.contains("recipe") == true { return true }
-        if noun.id.hasSuffix(".cook") || noun.title.lowercased().contains("recipe") { return true }
+        if noun.sourcePath?.hasSuffix(".cook") == true { return true }
         return false
     }
 
     private var currentRecipe: CookRecipe? {
-        if let direct = graphNode?.recipe {
-            return RecipeScaleHelper.scale(recipe: direct, factor: scaleFactor)
-        }
-        // If entity has recipe tag or .cook but graph is not yet built or empty recipe:
-        if hasRecipeData {
-            let sample = CookRecipe(
-                ingredients: [
-                    CookIngredient(name: "water", quantity: CookQuantity(amount: "2", unit: "cups")),
-                    CookIngredient(name: "salt", quantity: CookQuantity(amount: "1", unit: "pinch"))
-                ],
-                cookware: [CookCookware(name: "pot", quantity: CookQuantity(amount: "1", unit: ""))],
-                timers: [CookTimer(name: "simmer", quantity: CookQuantity(amount: "10", unit: "minutes"))]
-            )
-            return RecipeScaleHelper.scale(recipe: sample, factor: scaleFactor)
-        }
-        return nil
+        InspectorRecipe.recipe(for: graphNode)
     }
 
     @ViewBuilder
     private func recipeSection(_ recipe: CookRecipe) -> some View {
-        Section("Recipe Scale") {
+        Section("Recipe") {
             VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("Scale")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Picker("Scale", selection: $scaleFactor) {
-                        ForEach(Self.scalePresets, id: \.self) { factor in
-                            Text(Self.formatScale(factor)).tag(factor)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .controlSize(.small)
-                }
+                Text(RecipeScaleSupport.unavailableMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if !recipe.ingredients.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {
@@ -198,12 +179,6 @@ struct PageSection: View {
         let unit = tm.quantity.unit
         let timeStr = unit.isEmpty ? amt : "\(amt) \(unit)"
         return "\(name): \(timeStr)"
-    }
-
-    private static func formatScale(_ factor: Double) -> String {
-        if factor == 1.0 { return "1x (Normal)" }
-        let formatted = RecipeScaleHelper.formatAmount(factor)
-        return "\(formatted)x"
     }
 
     private var displayTitle: String {
