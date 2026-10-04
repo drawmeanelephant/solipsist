@@ -1,19 +1,6 @@
 import Foundation
 import Observation
 
-/// What `EditorSession` drives across the subprocess boundary. Production
-/// vends `EditorServer` from `BorisEngine.editorStart` (A14); the seam lets
-/// reconnect behavior be exercised without spawning binaries.
-protocol EditorHost: AnyObject {
-    var onConnect: ((URL) -> Void)? { get set }
-    var onExit: ((EditorExit) -> Void)? { get set }
-    var editorURL: URL? { get }
-    var isRunning: Bool { get }
-    func stop()
-}
-
-extension EditorServer: EditorHost {}
-
 /// Auto-reconnect policy for spontaneous `boris-editor` crashes (#232): up
 /// to three restarts inside a 30s sliding window, backing off 2s × attempt.
 /// Pure so the cap/window arithmetic is unit-testable without a clock.
@@ -172,6 +159,7 @@ final class EditorSession {
 
     private let makeHost: HostFactory
     private var server: (any EditorHost)?
+    private var lifecycleID = UUID()
     private var rootPath: String?
     private var timeoutTask: Task<Void, Never>?
     private var lastContentRoot: URL?
@@ -236,11 +224,23 @@ final class EditorSession {
         do {
             let server = try makeHost(engine, projectRoot)
             self.server = server
+            let lifecycleID = self.lifecycleID
             server.onConnect = { [weak self] url in
-                Task { @MainActor in self?.handleConnect(url: url) }
+                Task { @MainActor in
+                    guard let self, self.lifecycleID == lifecycleID, self.server != nil else { return }
+                    self.handleConnect(url: url)
+                }
             }
             server.onExit = { [weak self] exit in
-                Task { @MainActor in self?.handleExit(exit) }
+                Task { @MainActor in
+                    guard let self, self.lifecycleID == lifecycleID else { return }
+                    self.handleExit(exit)
+                }
+            }
+            // A fast host can report its URL before the factory returns and
+            // callbacks are installed. Consume that already-captured value.
+            if server.isRunning, let url = server.editorURL {
+                handleConnect(url: url)
             }
         } catch let error as EditorHostLaunchError {
             timeoutTask?.cancel()
@@ -299,6 +299,7 @@ final class EditorSession {
     /// Tears down the host and returns the session to idle without touching
     /// auto-reconnect bookkeeping (callers decide whether to reset it).
     private func teardown() {
+        lifecycleID = UUID()
         timeoutTask?.cancel()
         timeoutTask = nil
         if let server {
@@ -330,6 +331,7 @@ final class EditorSession {
         // nil the callbacks before the old process can report, so a manual
         // Restart Host, Stop, window close, or source switch never lands here.
         guard server != nil else { return }
+        lifecycleID = UUID()
         server = nil
         timeoutTask?.cancel()
         timeoutTask = nil
@@ -373,10 +375,7 @@ final class EditorSession {
     }
 
     private func failTimeout() {
-        server?.stop()
-        server = nil
-        timeoutTask = nil
-        rootPath = nil
+        teardown()
         setPhase(.failed(.timeout))
     }
 

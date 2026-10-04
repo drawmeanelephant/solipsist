@@ -60,7 +60,8 @@ Never commit `SUPPORT-NOT-FOR-GITHUB/` or engine binaries.
 
 ## Prerequisites
 
-- macOS 26+ (arm64 + x86_64)
+- Solipsist app: macOS 27+ (arm64 + x86_64)
+- Spike harness and contract tests (`make run-spike` / `make test`): macOS 26+
 - Xcode 26+ (tested Xcode 27 / Swift 6)
 - Zig 0.16+ only if you must *rebuild* the engine
 - XcodeGen is vendored into `.tools/` by `make tools`

@@ -6,7 +6,7 @@ import Observation
 /// status bar read this; they do not spawn `boris`.
 @MainActor
 @Observable
-final class Coordinator {
+final class Coordinator: PreviewWatchCoordinating {
     private(set) var isRunning = false
     private(set) var state: CoordinatorState = .idle
     private(set) var verb: CoordinatorVerb?
@@ -30,7 +30,7 @@ final class Coordinator {
     /// The A5 problems daemon (#161), one per selected source (bound-root
     /// rule: a foreign root is idle, never consumed). Sibling of the
     /// preview watch — never a third watch.
-    private weak var activeValidateWatch: ValidateWatch?
+    private var activeValidateWatch: ValidateWatch?
     private var validateWatchSourceID: SourceID?
     private var validateWatchContentRoot: URL?
     private var watchSuspends = 0
@@ -179,14 +179,23 @@ final class Coordinator {
                 workingDirectory: try folder.workspaceRoot()
             )
             activeValidateWatch = watch
-            watch.onBuild = { [weak self] outcome in
-                Task { @MainActor in self?.handleValidateBuild(outcome) }
+            watch.onBuild = { [weak self, weak watch] outcome in
+                Task { @MainActor in
+                    guard let self, let watch, self.activeValidateWatch === watch else { return }
+                    self.handleValidateBuild(outcome)
+                }
             }
-            watch.onProblem = { [weak self] message in
-                Task { @MainActor in self?.handleValidateProblem(message) }
+            watch.onProblem = { [weak self, weak watch] message in
+                Task { @MainActor in
+                    guard let self, let watch, self.activeValidateWatch === watch else { return }
+                    self.handleValidateProblem(message)
+                }
             }
-            watch.onExit = { [weak self] exit in
-                Task { @MainActor in self?.handleValidateExit(watch, exit) }
+            watch.onExit = { [weak self, weak watch] exit in
+                Task { @MainActor in
+                    guard let watch else { return }
+                    self?.handleValidateExit(watch, exit)
+                }
             }
         } catch {
             validateWatchSourceID = nil

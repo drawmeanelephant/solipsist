@@ -118,6 +118,7 @@ targets:
       - path: Sources/Inspector
       - path: Sources/Play/Local/LocalPlayGraph.swift
       - path: Sources/Play/Local/LetterReloadClient.swift
+      - path: Sources/Play/Local/ReadingWebView.swift
       - path: Sources/App/CoordinatorActivity.swift
       - path: Sources/Play/Local/ProblemResolver.swift
       - path: Sources/App/CoordinatorProblems.swift
@@ -137,9 +138,11 @@ targets:
       - path: Sources/Companions/Editor/EditorCopy.swift
       - path: Sources/Companions/Editor/EditorServerFactory.swift
       - path: Sources/Companions/Preview/PreviewURL.swift
+      - path: Sources/Companions/Preview/PreviewSession.swift
       - path: Sources/Compose/ComposeLanguage.swift
       - path: Sources/Compose/ComposeDocument.swift
       - path: Sources/Compose/ComposeBuffer.swift
+      - path: Sources/Compose/ComposeWindowLifecycle.swift
       - path: Sources/Compose/ComposeSaveFlow.swift
       - path: Sources/Compose/ComposeHighlighter.swift
       - path: Sources/Compose/ComposeDiagnostic.swift

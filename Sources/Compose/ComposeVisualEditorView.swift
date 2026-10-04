@@ -202,6 +202,7 @@ private struct ComposeVisualWebView: NSViewRepresentable {
         )
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         context.coordinator.load(html, in: webView)
         return webView
     }
@@ -212,24 +213,12 @@ private struct ComposeVisualWebView: NSViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+    final class Coordinator: ComposePreviewCoordinator, WKScriptMessageHandler {
         var onVisualEdit: (ComposeMarkupOp.Event) -> Void
-        private var lastLoaded: String?
-        private var initialLoadPending = false
 
         init(onVisualEdit: @escaping (ComposeMarkupOp.Event) -> Void) {
             self.onVisualEdit = onVisualEdit
-        }
-
-        func load(_ html: String, in webView: WKWebView) {
-            lastLoaded = html
-            initialLoadPending = true
-            webView.loadHTMLString(html, baseURL: nil)
-        }
-
-        func reloadIfChanged(_ html: String, in webView: WKWebView) {
-            guard html != lastLoaded else { return }
-            load(html, in: webView)
+            super.init()
         }
 
         // MARK: WKScriptMessageHandler
@@ -245,30 +234,6 @@ private struct ComposeVisualWebView: NSViewRepresentable {
                 let event = try? JSONDecoder().decode(ComposeMarkupOp.Event.self, from: data)
             else { return }
             onVisualEdit(event)
-        }
-
-        // MARK: WKNavigationDelegate — the #230 sandbox policy verbatim
-
-        func webView(
-            _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-        ) {
-            let isMainFrame = navigationAction.targetFrame?.isMainFrame == true
-            let allow = ComposePreviewSandbox.allows(
-                initialLoadPending: initialLoadPending,
-                isMainFrame: isMainFrame
-            )
-            if isMainFrame { initialLoadPending = false }
-            decisionHandler(allow ? .allow : .cancel)
-        }
-
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            initialLoadPending = false
-        }
-
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            initialLoadPending = false
         }
     }
 }

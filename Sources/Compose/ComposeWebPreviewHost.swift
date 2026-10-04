@@ -16,7 +16,7 @@ enum ComposePreviewSandbox {
 /// arms the single allowed navigation per load, and enforces the sandbox.
 /// Main-actor confined; the SwiftUI representable is the only client.
 @MainActor
-final class ComposePreviewCoordinator: NSObject {
+class ComposePreviewCoordinator: NSObject {
     private var lastLoaded: String?
     private var initialLoadPending = false
 
@@ -35,11 +35,11 @@ final class ComposePreviewCoordinator: NSObject {
     }
 }
 
-extension ComposePreviewCoordinator: WKNavigationDelegate {
+extension ComposePreviewCoordinator: WKNavigationDelegate, WKUIDelegate {
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
     ) {
         let isMainFrame = navigationAction.targetFrame?.isMainFrame == true
         let allow = ComposePreviewSandbox.allows(

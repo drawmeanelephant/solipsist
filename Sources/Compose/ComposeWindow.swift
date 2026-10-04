@@ -45,7 +45,7 @@ struct ComposeWindow: View {
                     renderService: OliverRenderService(),
                     themeCSS: themeCSS,
                     cookCompletion: cookCompletion,
-                    onSave: { save() },
+                    onSave: { _ = save() },
                     externalJump: externalJump,
                     typography: runtime.composeTypography
                 )
@@ -75,6 +75,10 @@ struct ComposeWindow: View {
         }
         .frame(minWidth: 640, minHeight: 420)
         .navigationTitle("Compose")
+        .background {
+            ComposeWindowLifecycle(document: document, isDirty: document.isDirty, onSave: save)
+                .frame(width: 0, height: 0)
+        }
         .task(id: selectionRequest) {
             if buffer.select(selectionRequest) {
                 didLoadPage()
@@ -168,7 +172,7 @@ struct ComposeWindow: View {
     /// The editor shows for a selected page (the M10 rule) or while an
     /// untitled AI draft is staged / already in the buffer (M18).
     private var showsEditor: Bool {
-        buffer.page != nil || pageNoun != nil || runtime.pendingComposeDraft != nil || isUntitledDraft
+        buffer.page != nil || pageNoun != nil || runtime.pendingComposeDraft != nil || isUntitledDraft || document.fileURL != nil
     }
 
     private var document: ComposeDocument { buffer.document }
@@ -258,6 +262,7 @@ struct ComposeWindow: View {
     /// keeps the buffer staged and writes nothing.
     @discardableResult
     private func save() -> Bool {
+        guard document.isDirty else { return true }
         saveSignal = nil
         if document.fileURL == nil {
             guard let destination = ComposeStagedDraft.runSavePanel(
@@ -276,8 +281,7 @@ struct ComposeWindow: View {
             outcome: outcome,
             savedMessage: "Saved"
         )
-        if case .failed = outcome { return false }
-        return true
+        return outcome == .saved
     }
 
     // MARK: - Staged AI drafts (M18)
