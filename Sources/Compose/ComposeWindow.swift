@@ -7,7 +7,7 @@ import SwiftUI
 /// - The buffer is sourced from the selected `page` noun; the file is
 ///   resolved through the published graph contract (`graph.json`) so the
 ///   selection store stays a pair of strings.
-/// - Files are read/written under the local source's security-scoped access
+/// - Files are read/written under the source folder's security-scoped access
 ///   (the same bookmark the play surface uses). Nothing writes except an
 ///   explicit Save / ⌘S.
 /// - A successful save flows into the coordinator's save→validate gate
@@ -187,15 +187,8 @@ struct ComposeWindow: View {
         return noun
     }
 
-    private var selectedLocalSource: LocalSource? {
-        if case .local(let source) = store.selectedSource {
-            return source
-        }
-        return nil
-    }
-
     private var selectionRequest: ComposeBuffer.Request? {
-        guard let source = selectedLocalSource, pageNoun != nil else { return nil }
+        guard let source = store.selectedSource, pageNoun != nil else { return nil }
         return ComposeBuffer.Request(source: source, selection: store.selection)
     }
 
@@ -216,10 +209,9 @@ struct ComposeWindow: View {
     private func restoreBufferSelection() {
         guard let page = buffer.page,
               let item = store.sources.first(where: { $0.id == page.owner.source.id }),
-              case .local(let source) = item,
-              (try? source.workspaceRoot().path) == page.owner.workspaceRoot.path
+              (try? item.folderSource.workspaceRoot().path) == page.owner.workspaceRoot.path
         else { return }
-        store.select(source.id, mailbox: page.selection.mailbox ?? WorkspaceMailbox.pages)
+        store.select(item.id, mailbox: page.selection.mailbox ?? WorkspaceMailbox.pages)
         store.select(noun: page.noun)
     }
 
@@ -266,7 +258,7 @@ struct ComposeWindow: View {
         saveSignal = nil
         if document.fileURL == nil {
             guard let destination = ComposeStagedDraft.runSavePanel(
-                directoryURL: selectedLocalSource.map { try? $0.contentRoot() } ?? nil,
+                directoryURL: store.selectedSource.flatMap { try? $0.folderSource.contentRoot() },
                 frontmatterPayload: document.frontmatter?.payloadString ?? ""
             ) else { return false }
             document.fileURL = destination
@@ -294,7 +286,7 @@ struct ComposeWindow: View {
         saveSignal = nil
         externalJump = nil
         cookCompletion = .empty
-        if let source = selectedLocalSource, let workspaceRoot = try? source.workspaceRoot() {
+        if let source = store.selectedSource?.folderSource, let workspaceRoot = try? source.workspaceRoot() {
             themeCSS = resolveThemeCSS(workspaceRoot: workspaceRoot)
         } else {
             themeCSS = nil
@@ -321,6 +313,9 @@ struct ComposeWindow: View {
                 + "Add a source first: File → Open… or Settings → Sources "
                 + "(try Stunts/happy), then select a page in the Pages mailbox. "
                 + "You can also draft from scratch: File → New Draft with Apple Intelligence…"
+        }
+        if store.selectedSource?.isAvailable == false {
+            return intro + "This source's working folder is unavailable. Relocate it in Settings → Sources, then select a page."
         }
         return intro
             + "Select a page in the Pages mailbox, then open it from "

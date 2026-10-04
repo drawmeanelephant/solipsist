@@ -70,7 +70,11 @@ extension PlayFolderSource {
 
     /// `content/` when this looks like a project root (`content/` + `boris.json`).
     func contentRoot() throws -> URL {
-        let root = try workspaceRoot()
+        contentRoot(in: try workspaceRoot())
+    }
+
+    /// Resolve once when binding an operation to a source's folder.
+    func contentRoot(in root: URL) -> URL {
         return Self.isProjectRoot(root)
             ? root.appendingPathComponent("content", isDirectory: true)
             : root
@@ -92,6 +96,13 @@ extension PlayFolderSource {
 enum SourceItem: Identifiable, Hashable, Sendable {
     case local(LocalSource)
     case github(GithubSource)
+
+    var folderSource: any PlayFolderSource {
+        switch self {
+        case .local(let source): return source
+        case .github(let source): return source
+        }
+    }
 
     var id: SourceID {
         switch self {

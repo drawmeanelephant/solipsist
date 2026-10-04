@@ -42,6 +42,7 @@ final class Coordinator: PreviewWatchCoordinating {
     private var jobOrigin: JobOrigin = .manual
     private var timedOut = false
     private var watchingSourceID: SourceID?
+    private var watchingContentRoot: URL?
     @ObservationIgnored
     private weak var boundStore: WorkspaceStore?
     @ObservationIgnored
@@ -112,34 +113,32 @@ final class Coordinator: PreviewWatchCoordinating {
     func syncSaveWatch(store: WorkspaceStore, runtime: AppRuntime) {
         boundStore = store
         boundRuntime = runtime
-        let folder: (any PlayFolderSource)?
-        switch store.selectedSource {
-        case .local(let source): folder = source
-        case .github(let source): folder = source
-        case nil: folder = nil
-        }
+        let folder = store.selectedSource?.folderSource
         guard let folder, folder.isAvailable,
               let root = try? folder.contentRoot(),
               FileManager.default.fileExists(atPath: root.path)
         else {
             saveWatcher.stop()
             watchingSourceID = nil
+            watchingContentRoot = nil
             return
         }
-        guard watchingSourceID != folder.id else { return }
-        let owner: ComposeSourceBinding?
+        guard watchingSourceID != folder.id || watchingContentRoot != root else { return }
+        let owner: ComposeSourceBinding
         do {
-            owner = try (folder as? LocalSource).map { try ComposeSourceBinding(source: $0) }
+            owner = try ComposeSourceBinding(source: folder)
         } catch {
             saveWatcher.stop()
             watchingSourceID = nil
+            watchingContentRoot = nil
             problems = CoordinatorProblems.fromFailure(code: "source", message: "could not bind the save watcher: \(error)")
             return
         }
         watchingSourceID = folder.id
+        watchingContentRoot = root
         saveWatcher.handler = { [weak self] in
             Task { @MainActor in
-                guard let self, self.watchingSourceID == folder.id else { return }
+                guard let self, self.watchingSourceID == folder.id, self.watchingContentRoot == root else { return }
                 self.noteSave(source: owner)
             }
         }
@@ -151,12 +150,7 @@ final class Coordinator: PreviewWatchCoordinating {
     /// a foreign root). Runs alongside the save watcher; the daemon's own
     /// debounce retires the one-shot save-validate while it is live.
     func syncValidateWatch(store: WorkspaceStore, runtime: AppRuntime) {
-        let folder: (any PlayFolderSource)?
-        switch store.selectedSource {
-        case .local(let source): folder = source
-        case .github(let source): folder = source
-        case nil: folder = nil
-        }
+        let folder = store.selectedSource?.folderSource
         guard let folder, folder.isAvailable,
               let root = try? folder.contentRoot(),
               FileManager.default.fileExists(atPath: root.path),
@@ -261,9 +255,9 @@ final class Coordinator: PreviewWatchCoordinating {
         let owner: ComposeSourceBinding?
         if let source {
             owner = source
-        } else if case .local(let local) = boundStore?.selectedSource {
+        } else if let folder = boundStore?.selectedSource?.folderSource {
             do {
-                owner = try ComposeSourceBinding(source: local)
+                owner = try ComposeSourceBinding(source: folder)
             } catch {
                 problems = CoordinatorProblems.fromFailure(code: "source", message: "could not resolve saved source: \(error)")
                 return
@@ -293,6 +287,7 @@ final class Coordinator: PreviewWatchCoordinating {
         watchdogTask = nil
         saveWatcher.stop()
         watchingSourceID = nil
+        watchingContentRoot = nil
         stopValidateWatch()
         if state != .terminating {
             stop(runtime: runtime)
@@ -330,20 +325,28 @@ final class Coordinator: PreviewWatchCoordinating {
             )
             return
         }
-        let localSource: LocalSource?
-        if let savedSource {
-            localSource = savedSource.source
-        } else if case .local(let source) = store.selectedSource {
-            localSource = source
-        } else {
-            localSource = nil
-        }
-        guard let source = localSource, source.isAvailable else {
+        guard let source = savedSource?.source ?? store.selectedSource?.folderSource, source.isAvailable else {
+            let message = store.selectedSource == nil
+                ? "No source selected."
+                : "This source's working folder is unavailable. Relocate it in Settings → Sources."
             finish(
                 verb: verb,
                 exit: nil,
-                summary: "no local source",
-                problems: CoordinatorProblems.fromFailure(code: "source", message: "no local source")
+                summary: message,
+                problems: CoordinatorProblems.fromFailure(code: "source", message: message)
+            )
+            return
+        }
+        let binding: ComposeSourceBinding
+        do {
+            binding = try savedSource ?? ComposeSourceBinding(source: source)
+        } catch {
+            let message = "Could not access the source's working folder: \(error.localizedDescription)"
+            finish(
+                verb: verb,
+                exit: nil,
+                summary: message,
+                problems: CoordinatorProblems.fromFailure(code: "source", message: message)
             )
             return
         }
@@ -399,7 +402,7 @@ final class Coordinator: PreviewWatchCoordinating {
                 noun: noun,
                 engine: engine,
                 secret: secret,
-                savedSource: savedSource
+                savedSource: binding
             )
             if verb == .sourceRag, result.exit == 0, let reveal = result.revealURL {
                 NSWorkspace.shared.activateFileViewerSelecting([reveal])
@@ -610,7 +613,7 @@ final class Coordinator: PreviewWatchCoordinating {
 
     private static func perform(
         _ verb: CoordinatorVerb,
-        source: LocalSource,
+        source: any PlayFolderSource,
         noun: WorkspaceNoun?,
         engine: BorisEngine,
         secret: SecureBuffer?,
@@ -1037,7 +1040,7 @@ final class Coordinator: PreviewWatchCoordinating {
 
     private static func buildThis(
         noun: WorkspaceNoun?,
-        source: LocalSource,
+        source: any PlayFolderSource,
         engine: BorisEngine,
         knobs: BorisExecutionKnobs? = nil
     ) async throws -> JobResult {
@@ -1156,7 +1159,7 @@ final class Coordinator: PreviewWatchCoordinating {
     }
 
     private static func publishStandardSite(
-        source: LocalSource,
+        source: any PlayFolderSource,
         engine: BorisEngine,
         secret: SecureBuffer?
     ) async throws -> JobResult {
@@ -1223,7 +1226,7 @@ final class Coordinator: PreviewWatchCoordinating {
     }
 
     private static func publishNostr(
-        source: LocalSource,
+        source: any PlayFolderSource,
         engine: BorisEngine,
         secret: SecureBuffer?
     ) async throws -> JobResult {
@@ -1331,7 +1334,7 @@ final class Coordinator: PreviewWatchCoordinating {
         return (nil, raw)
     }
 
-    private static func loadProfile(from source: LocalSource) throws -> PublicationProfile? {
+    private static func loadProfile(from source: any PlayFolderSource) throws -> PublicationProfile? {
         let root = try source.workspaceRoot()
         guard let pair = try InspectorProfile.load(from: root) else { return nil }
         return try JSONDecoder().decode(PublicationProfile.self, from: pair.data)
