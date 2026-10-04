@@ -24,6 +24,7 @@ Accounts live in Settings. The main window is mailboxes, a reading place, and a 
 - **Content Audit**: Run structure, integrity, and relation checks across the publication graph (such as unreferenced pages or missing parents).
 - **Recipes**: Appears only when the source's graph carries Cooklang recipes (a `.cook` corpus). Lists every recipe node; selecting one shows the page as a letter, and the drawer's Recipe Scale section scales it. Markdown-only sources never see this row.
 - **Remote (GitHub)**: Displays working copy status, current branch, ahead/behind commit counts relative to upstream, and provides Sync, Commit, and Push actions.
+- **Working copies**: Compose and Boris Plan / Validate / Build operate on Local folders and available GitHub working copies alike. Compose saves only on an explicit Save and validates its owning source. Editing or building never commits, pushes, or publishes automatically. If a working folder becomes unavailable, relocate it in Settings → Sources.
 - **Issues (GitHub)**: Lists open GitHub issues for the repository with links to view and manage them in the browser.
 - **Pull Requests (GitHub)**: Lists open pull requests with draft status and branch heads, and provides a `New Pull Request…` toolbar action to push upstream and open the PR authoring flow.
 

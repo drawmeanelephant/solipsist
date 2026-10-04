@@ -69,15 +69,24 @@ enum ComposeSourceSwitchSmoke {
             noun: noun
         )
         try checkValidation(store: store, runtime: runtime, sourceID: firstID, invocations: invocations)
+        try checkGithub(store: store, runtime: runtime, window: window, root: root, invocations: invocations)
     }
 
     private static func makeEngineStub(root: URL, invocations: URL) throws {
         let binary = root.appendingPathComponent("boris-stub")
         let script = """
         #!/bin/sh
+        if [ "$1" != "--version" ]; then
+          printf 'CALL\\n%s\\n' "$PWD" >> "$COMPOSE_SMOKE_INVOCATIONS"
+          printf '%s\\n' "$@" >> "$COMPOSE_SMOKE_INVOCATIONS"
+          printf 'END\\n' >> "$COMPOSE_SMOKE_INVOCATIONS"
+        fi
+        if [ -f fail-command ]; then echo 'working-copy failure' >&2; exit 3; fi
         case "$1" in
           --version) printf 'boris/0.8.1\\n' ;;
-          validate) printf '%s\\n' "$PWD" "$@" >> "$COMPOSE_SMOKE_INVOCATIONS" ;;
+          validate) ;;
+          plan) cat "$COMPOSE_SMOKE_FIXTURES/plan-happy/plan.json" ;;
+          --out) cp "$COMPOSE_SMOKE_FIXTURES/happy-ir/build-report.json" "$2/build-report.json" ;;
           *) exit 2 ;;
         esac
         """
@@ -85,24 +94,108 @@ enum ComposeSourceSwitchSmoke {
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: binary.path)
         setenv("SOLIPSIST_BORIS_BIN", binary.path, 1)
         setenv("COMPOSE_SMOKE_INVOCATIONS", invocations.path, 1)
+        let fixtures = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Fixtures")
+        setenv("COMPOSE_SMOKE_FIXTURES", fixtures.path, 1)
     }
 
     private static func checkValidation(store: WorkspaceStore, runtime: AppRuntime, sourceID: SourceID, invocations: URL) throws {
-        guard let item = store.sources.first(where: { $0.id == sourceID }), case .local(let source) = item else {
+        guard let item = store.sources.first(where: { $0.id == sourceID }) else {
             throw SmokeFailure(message: "missing validation owner")
         }
-        let owner = try ComposeSourceBinding(source: source)
+        let owner = try ComposeSourceBinding(source: item.folderSource)
+        try "".write(to: invocations, atomically: true, encoding: .utf8)
         runtime.coordinator.syncSaveWatch(store: store, runtime: runtime)
         runtime.coordinator.noteSave(source: owner)
         try wait("source-bound validation despite selected B") {
             guard let text = try? String(contentsOf: invocations, encoding: .utf8) else { return false }
             let lines = text.components(separatedBy: "\n")
-            let cwd = lines.first.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath() }
+            let cwd = lines.dropFirst().first.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath() }
             return cwd == owner.workspaceRoot.resolvingSymlinksInPath() && lines.contains(owner.contentRoot.path) && lines.contains("validate")
         }
-        print("PASS delayed validation uses A's workspace and content roots while B is selected")
+        print("PASS delayed validation uses the \(item.kind) owner's roots with another source selected")
+    }
+}
+
+extension ComposeSourceSwitchSmoke {
+    private static func checkGithub(
+        store: WorkspaceStore, runtime: AppRuntime, window: NSWindow, root: URL, invocations: URL
+    ) throws {
+        try wait("previous validation finished") { !runtime.coordinator.isRunning }
+        guard let local = store.sources.first(where: { $0.kind == .local }) else {
+            throw SmokeFailure(message: "missing local source")
+        }
+        try checkCommands(store: store, runtime: runtime, source: local, invocations: invocations)
+        let folder = try makePublication(root: root.appendingPathComponent("Github"), text: "GitHub page")
+        let github = try require(store.addGithub(
+            workingCopy: folder, owner: "example", repository: "publication", defaultBranch: "main", grantedScopes: []
+        ), "GitHub working copy")
+        let noun = WorkspaceNoun(kind: "page", id: "index", title: "Index", sourcePath: "index.md")
+        store.select(noun: noun)
+        try wait("GitHub Compose loads") { editor(in: window)?.string == "GitHub page" }
+        try checkCommands(store: store, runtime: runtime, source: .github(github), invocations: invocations)
+        let readyAt = Date().addingTimeInterval(2.1)
+        try wait("manual validation freshness expires") { Date() >= readyAt }
+        try edit("Saved GitHub page", in: window)
+        store.select(local.id)
+        store.select(noun: noun)
+        try clickDialog("Cancel", in: window)
+        try wait("GitHub cancel restores owner") { store.selection.sourceID == github.id && editor(in: window)?.string == "Saved GitHub page" }
+        store.select(local.id)
+        store.select(noun: noun)
+        try clickDialog("Save Changes", in: window)
+        try wait("GitHub Save writes its own file") {
+            (try? String(contentsOf: folder.appendingPathComponent("content/index.md"), encoding: .utf8)) == "Saved GitHub page"
+        }
+        try wait("GitHub save validation finished") { !runtime.coordinator.isRunning }
+        try checkValidation(store: store, runtime: runtime, sourceID: github.id, invocations: invocations)
+        try wait("GitHub bound validation finished") { !runtime.coordinator.isRunning }
+        try checkFailures(store: store, runtime: runtime, source: github)
+        print("PASS GitHub Compose, Cancel/Save, manual commands, bound validation, and failure diagnostics")
     }
 
+    private static func checkCommands(store: WorkspaceStore, runtime: AppRuntime, source: SourceItem, invocations: URL) throws {
+        store.select(source.id)
+        let folder = source.folderSource
+        for verb in [CoordinatorVerb.plan, .validate, .buildIR] {
+            try "".write(to: invocations, atomically: true, encoding: .utf8)
+            runtime.coordinator.run(verb, store: store, runtime: runtime)
+            try wait("\(source.kind) \(verb)") { !runtime.coordinator.isRunning }
+            try check(runtime.coordinator.exitCode == 0, "\(source.kind) \(verb) failed: \(runtime.coordinator.summary)")
+            let text = try String(contentsOf: invocations, encoding: .utf8)
+            let root = try folder.workspaceRoot()
+            try check(text.contains(root.resolvingSymlinksInPath().path), "command ran outside its source workspace")
+            if verb == .plan {
+                try check(text.contains("--profile\nboris.json"), "Plan did not use the source profile")
+            } else {
+                try check(text.contains(try folder.contentRoot().path), "command did not use the source content root")
+            }
+            if verb == .buildIR {
+                try check(text.contains("--out\n.boris"), "Build did not keep its output workspace-relative")
+            }
+            try check(!text.contains("standard-site") && !text.contains("nostr") && !text.contains("push"), "local operation invoked publication")
+        }
+        print("PASS \(source.kind) Plan/Validate/Build use source-bound roots and relative outputs")
+    }
+
+    private static func checkFailures(store: WorkspaceStore, runtime: AppRuntime, source: GithubSource) throws {
+        store.select(source.id)
+        let root = try source.workspaceRoot()
+        let marker = root.appendingPathComponent("fail-command")
+        try "".write(to: marker, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: marker) }
+        runtime.coordinator.run(.validate, store: store, runtime: runtime)
+        try wait("failed GitHub command finished") { !runtime.coordinator.isRunning }
+        try check(runtime.coordinator.exitCode == 3, "nonzero working-copy exit was lost")
+        try check(runtime.coordinator.problems.contains { $0.message.contains("working-copy failure") }, "working-copy stderr was lost")
+        try FileManager.default.removeItem(at: marker)
+        try FileManager.default.removeItem(at: root)
+        runtime.coordinator.run(.validate, store: store, runtime: runtime)
+        try check(runtime.coordinator.problems.contains { $0.code == "source" }, "missing working folder was not explained")
+        try check(runtime.coordinator.summary.contains("working folder"), "missing folder message was not actionable")
+    }
+}
+
+extension ComposeSourceSwitchSmoke {
     private static func checkSwitches(
         store: WorkspaceStore, window: NSWindow, first: Publication, second: Publication, noun: WorkspaceNoun
     ) throws {

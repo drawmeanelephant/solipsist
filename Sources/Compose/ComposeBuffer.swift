@@ -4,24 +4,41 @@ import Observation
 /// A buffer keeps its own bookmark access and resolved roots, even when
 /// Settings relocates or removes the source that originally supplied it.
 final class ComposeSourceBinding: Sendable {
-    let source: LocalSource
+    let source: any PlayFolderSource
     let workspaceRoot: URL
     let contentRoot: URL
     private let scopedURL: URL
     private let hasAccess: Bool
 
-    init(source: LocalSource) throws {
+    enum AccessError: LocalizedError {
+        case unavailable(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .unavailable(let title):
+                return "The working folder for “\(title)” is unavailable or unreadable. Relocate it in Settings → Sources."
+            }
+        }
+    }
+
+    init(source: any PlayFolderSource) throws {
         guard source.isAvailable else {
-            throw CocoaError(.fileReadNoPermission)
+            throw AccessError.unavailable(source.title)
         }
         let url = try source.resolve().url
+        let hasAccess = url.startAccessingSecurityScopedResource()
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+              isDirectory.boolValue, FileManager.default.isReadableFile(atPath: url.path)
+        else {
+            if hasAccess { url.stopAccessingSecurityScopedResource() }
+            throw AccessError.unavailable(source.title)
+        }
         self.source = source
         self.scopedURL = url
-        self.hasAccess = url.startAccessingSecurityScopedResource()
+        self.hasAccess = hasAccess
         self.workspaceRoot = url.standardizedFileURL
-        self.contentRoot = LocalSource.isProjectRoot(workspaceRoot)
-            ? workspaceRoot.appendingPathComponent("content", isDirectory: true)
-            : workspaceRoot
+        self.contentRoot = source.contentRoot(in: workspaceRoot)
     }
 
     deinit {
@@ -41,8 +58,21 @@ final class ComposeSourceBinding: Sendable {
 @Observable
 final class ComposeBuffer {
     struct Request: Hashable {
-        let source: LocalSource
+        let source: SourceItem
         let selection: WorkspaceSelection
+
+        init(source: SourceItem, selection: WorkspaceSelection) {
+            self.source = source
+            self.selection = selection
+        }
+
+        init(source: LocalSource, selection: WorkspaceSelection) {
+            self.init(source: .local(source), selection: selection)
+        }
+
+        init(source: GithubSource, selection: WorkspaceSelection) {
+            self.init(source: .github(source), selection: selection)
+        }
     }
 
     struct Page {
@@ -73,7 +103,7 @@ final class ComposeBuffer {
               request.selection.sourceID == request.source.id
         else { return false }
         do {
-            let owner = try ComposeSourceBinding(source: request.source)
+            let owner = try ComposeSourceBinding(source: request.source.folderSource)
             guard let node = try ComposePageResolver.page(id: noun.id, workspaceRoot: owner.workspaceRoot) else {
                 loadError = "No graph node for “\(noun.title)”."
                 return false
@@ -94,7 +124,7 @@ final class ComposeBuffer {
             }
             return load(next)
         } catch {
-            loadError = String(describing: error)
+            loadError = error.localizedDescription
             return false
         }
     }
@@ -133,7 +163,7 @@ final class ComposeBuffer {
             loadError = nil
             return true
         } catch {
-            loadError = String(describing: error)
+            loadError = error.localizedDescription
             return false
         }
     }
