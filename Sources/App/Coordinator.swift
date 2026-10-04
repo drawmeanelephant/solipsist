@@ -32,8 +32,11 @@ final class Coordinator: PreviewWatchCoordinating {
     /// preview watch — never a third watch.
     private var activeValidateWatch: ValidateWatch?
     private var validateWatchSourceID: SourceID?
+    private var validateWatchContentRoot: URL?
     private var watchSuspends = 0
     private var saveGate = SaveValidateGate()
+    /// Captured at the write, not looked up from the sidebar after debounce.
+    private var pendingSaveSource: ComposeSourceBinding?
     @ObservationIgnored
     private var saveWatcher = ContentTreeWatcher()
     private var jobOrigin: JobOrigin = .manual
@@ -124,10 +127,20 @@ final class Coordinator: PreviewWatchCoordinating {
             return
         }
         guard watchingSourceID != folder.id else { return }
+        let owner: ComposeSourceBinding?
+        do {
+            owner = try (folder as? LocalSource).map { try ComposeSourceBinding(source: $0) }
+        } catch {
+            saveWatcher.stop()
+            watchingSourceID = nil
+            problems = CoordinatorProblems.fromFailure(code: "source", message: "could not bind the save watcher: \(error)")
+            return
+        }
         watchingSourceID = folder.id
         saveWatcher.handler = { [weak self] in
             Task { @MainActor in
-                self?.noteSave()
+                guard let self, self.watchingSourceID == folder.id else { return }
+                self.noteSave(source: owner)
             }
         }
         saveWatcher.start(path: root.path)
@@ -152,11 +165,14 @@ final class Coordinator: PreviewWatchCoordinating {
             stopValidateWatch()
             return
         }
-        if validateWatchSourceID == folder.id, let watch = activeValidateWatch, watch.isRunning {
+        if validateWatchSourceID == folder.id, validateWatchContentRoot == root,
+           let watch = activeValidateWatch, watch.isRunning
+        {
             return
         }
         stopValidateWatch()
         validateWatchSourceID = folder.id
+        validateWatchContentRoot = root
         do {
             let watch = try engine.validateStart(
                 contentRoot: root,
@@ -183,6 +199,7 @@ final class Coordinator: PreviewWatchCoordinating {
             }
         } catch {
             validateWatchSourceID = nil
+            validateWatchContentRoot = nil
             problems = CoordinatorProblems.fromFailure(
                 code: "validate-watch",
                 message: "could not start the validation daemon: \(error)"
@@ -193,6 +210,7 @@ final class Coordinator: PreviewWatchCoordinating {
     private func stopValidateWatch() {
         guard let watch = activeValidateWatch else {
             validateWatchSourceID = nil
+            validateWatchContentRoot = nil
             return
         }
         watch.onBuild = nil
@@ -201,6 +219,7 @@ final class Coordinator: PreviewWatchCoordinating {
         watch.stop()
         activeValidateWatch = nil
         validateWatchSourceID = nil
+        validateWatchContentRoot = nil
     }
 
     /// The daemon's build cycles drive the problems pane: `.failed`
@@ -227,6 +246,7 @@ final class Coordinator: PreviewWatchCoordinating {
         guard activeValidateWatch === watch else { return }
         activeValidateWatch = nil
         validateWatchSourceID = nil
+        validateWatchContentRoot = nil
         if exit.exitCode != 0 {
             let tail = exit.stderrTail.trimmingCharacters(in: .whitespacesAndNewlines)
             let suffix = tail.isEmpty ? "" : " — \(tail.suffix(200))"
@@ -237,13 +257,28 @@ final class Coordinator: PreviewWatchCoordinating {
         }
     }
 
-    func noteSave() {
+    func noteSave(source: ComposeSourceBinding? = nil) {
+        let owner: ComposeSourceBinding?
+        if let source {
+            owner = source
+        } else if case .local(let local) = boundStore?.selectedSource {
+            do {
+                owner = try ComposeSourceBinding(source: local)
+            } catch {
+                problems = CoordinatorProblems.fromFailure(code: "source", message: "could not resolve saved source: \(error)")
+                return
+            }
+        } else {
+            owner = nil
+        }
         // While the A5 daemon is live, boris owns the debounce and `changed`
-        // gives per-save attribution — the one-shot save-validate retires.
-        if let watch = activeValidateWatch, watch.isRunning {
-            saveGate.dropAll()
+        // gives per-save attribution, but only for its own bound root.
+        if let watch = activeValidateWatch, watch.isRunning,
+           owner.map({ $0.isWatched(sourceID: validateWatchSourceID, contentRoot: validateWatchContentRoot) }) ?? true
+        {
             return
         }
+        pendingSaveSource = owner
         if saveGate.noteSave(now: .now, state: state) == .armDebounce {
             armDebounce()
         }
@@ -251,6 +286,7 @@ final class Coordinator: PreviewWatchCoordinating {
 
     func terminateAll(runtime: AppRuntime) {
         saveGate.dropAll()
+        pendingSaveSource = nil
         debounceTask?.cancel()
         debounceTask = nil
         watchdogTask?.cancel()
@@ -271,14 +307,17 @@ final class Coordinator: PreviewWatchCoordinating {
 
     private func startSaveValidate() {
         guard let store = boundStore, let runtime = boundRuntime else { return }
-        start(.validate, store: store, runtime: runtime, origin: .save)
+        let owner = pendingSaveSource
+        pendingSaveSource = nil
+        start(.validate, store: store, runtime: runtime, origin: .save, savedSource: owner)
     }
 
     private func start(
         _ verb: CoordinatorVerb,
         store: WorkspaceStore,
         runtime: AppRuntime,
-        origin: JobOrigin
+        origin: JobOrigin,
+        savedSource: ComposeSourceBinding? = nil
     ) {
         guard canRunVerb else { return }
         guard let engine = runtime.engine else {
@@ -291,7 +330,15 @@ final class Coordinator: PreviewWatchCoordinating {
             )
             return
         }
-        guard case .local(let source) = store.selectedSource, source.isAvailable else {
+        let localSource: LocalSource?
+        if let savedSource {
+            localSource = savedSource.source
+        } else if case .local(let source) = store.selectedSource {
+            localSource = source
+        } else {
+            localSource = nil
+        }
+        guard let source = localSource, source.isAvailable else {
             finish(
                 verb: verb,
                 exit: nil,
@@ -317,6 +364,7 @@ final class Coordinator: PreviewWatchCoordinating {
 
         if origin == .manual {
             saveGate.manualVerbStarted()
+            pendingSaveSource = nil
             debounceTask?.cancel()
             debounceTask = nil
         }
@@ -350,7 +398,8 @@ final class Coordinator: PreviewWatchCoordinating {
                 source: source,
                 noun: noun,
                 engine: engine,
-                secret: secret
+                secret: secret,
+                savedSource: savedSource
             )
             if verb == .sourceRag, result.exit == 0, let reveal = result.revealURL {
                 NSWorkspace.shared.activateFileViewerSelecting([reveal])
@@ -564,7 +613,8 @@ final class Coordinator: PreviewWatchCoordinating {
         source: LocalSource,
         noun: WorkspaceNoun?,
         engine: BorisEngine,
-        secret: SecureBuffer?
+        secret: SecureBuffer?,
+        savedSource: ComposeSourceBinding? = nil
     ) async -> JobResult {
         let knobs = BorisExecutionKnobs.load()
         do {
@@ -598,9 +648,9 @@ final class Coordinator: PreviewWatchCoordinating {
                     .appendingPathComponent("solipsist-validate-\(UUID().uuidString).json")
                 defer { try? FileManager.default.removeItem(at: reportURL) }
                 let result = try await engine.validate(
-                    contentRoot: source.contentRoot(),
+                    contentRoot: try savedSource?.contentRoot ?? source.contentRoot(),
                     reportURL: reportURL,
-                    workingDirectory: try source.workspaceRoot(),
+                    workingDirectory: try savedSource?.workspaceRoot ?? source.workspaceRoot(),
                     knobs: knobs
                 )
                 var items = CoordinatorProblems.from(report: result.report)

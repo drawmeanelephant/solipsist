@@ -141,6 +141,7 @@ targets:
       - path: Sources/Companions/Preview/PreviewSession.swift
       - path: Sources/Compose/ComposeLanguage.swift
       - path: Sources/Compose/ComposeDocument.swift
+      - path: Sources/Compose/ComposeBuffer.swift
       - path: Sources/Compose/ComposeWindowLifecycle.swift
       - path: Sources/Compose/ComposeSaveFlow.swift
       - path: Sources/Compose/ComposeHighlighter.swift

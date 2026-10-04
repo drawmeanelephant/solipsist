@@ -17,13 +17,10 @@ struct ComposeWindow: View {
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
 
-    @State private var document = ComposeDocument()
-    @State private var currentNoun: WorkspaceNoun?
-    @State private var pendingSwitch: WorkspaceNoun?
+    @State private var buffer = ComposeBuffer()
     /// M18: a staged draft that arrived while the buffer held unsaved
     /// work — it waits behind the same discard-confirm as a page switch.
     @State private var pendingStagedDraft: StagedPostDraft?
-    @State private var loadError: String?
     /// #265: typed save signal from `ComposeSaveFlow.run` — no more
     /// string-matching "Saved" in rendered text.
     @State private var saveSignal: ComposeSaveFlow.Signal?
@@ -54,12 +51,23 @@ struct ComposeWindow: View {
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     ComposeStatusBar(
-                        loadError: loadError,
+                        loadError: buffer.loadError,
                         document: document,
                         coordinatorSummary: runtime.coordinator.summary,
                         saveSignal: saveSignal,
                         showDetailStats: $showDetailStats
                     )
+                }
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if let page = buffer.page {
+                        Text("\(page.owner.source.title) · \(page.fileURL.path)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                            .background(.bar)
+                    }
                 }
             } else {
                 emptyState
@@ -71,8 +79,10 @@ struct ComposeWindow: View {
             ComposeWindowLifecycle(document: document, isDirty: document.isDirty, onSave: save)
                 .frame(width: 0, height: 0)
         }
-        .task(id: store.selection.noun) {
-            handleSelection()
+        .task(id: selectionRequest) {
+            if buffer.select(selectionRequest) {
+                didLoadPage()
+            }
         }
         // M18: accept a staged AI draft (Siri or File menu) into the
         // untitled buffer. Memory-only until an explicit Save; a dirty
@@ -87,7 +97,7 @@ struct ComposeWindow: View {
             }
         }
         .task(id: runtime.pendingComposeJump) {
-            if let jump = runtime.pendingComposeJump, jump.pageID == pageNoun?.id {
+            if let jump = runtime.pendingComposeJump, jump.pageID == buffer.page?.noun.id, store.selection.sourceID == buffer.page?.owner.source.id {
                 if let offset = characterOffset(for: jump.line, column: jump.column, in: document.text) {
                     externalJump = offset
                 } else {
@@ -97,36 +107,48 @@ struct ComposeWindow: View {
             }
         }
         .confirmationDialog(
-            "Discard unsaved changes?",
+            "Save changes before switching?",
             isPresented: Binding(
-                get: { pendingSwitch != nil || pendingStagedDraft != nil },
+                get: { buffer.pendingPage != nil || pendingStagedDraft != nil },
                 set: {
                     if !$0 {
-                        pendingSwitch = nil
+                        buffer.cancelSwitch()
                         pendingStagedDraft = nil
                     }
                 }
             ),
             titleVisibility: .visible
         ) {
-            Button("Discard Changes", role: .destructive) {
-                if let source = selectedLocalSource, let noun = pendingSwitch {
-                    switchTo(noun, source: source)
+            // AppKit dismisses the dialog (and clears its presentation
+            // binding) before running a button's action.
+            let pendingPage = buffer.pendingPage
+            let pendingDraft = pendingStagedDraft
+            Button("Save Changes") {
+                if let draft = pendingDraft {
+                    if save() {
+                        stage(draft)
+                    }
+                } else if buffer.saveAndSwitch(to: pendingPage, save: save) {
+                    didLoadPage()
                 }
-                if let draft = pendingStagedDraft {
+                pendingStagedDraft = nil
+            }
+            Button("Discard Changes", role: .destructive) {
+                if buffer.discardAndSwitch(to: pendingPage) {
+                    didLoadPage()
+                }
+                if let draft = pendingDraft {
                     stage(draft)
                 }
-                pendingSwitch = nil
+                buffer.cancelSwitch()
                 pendingStagedDraft = nil
             }
             Button("Cancel", role: .cancel) {
                 // Snap the selection back so the compose window keeps the
                 // buffer the author is mid-edit on; a discarded staged
                 // draft simply drops (Siri can stage it again).
-                if let noun = currentNoun {
-                    store.select(noun: noun)
-                }
-                pendingSwitch = nil
+                restoreBufferSelection()
+                buffer.cancelSwitch()
                 pendingStagedDraft = nil
             }
         } message: {
@@ -141,7 +163,7 @@ struct ComposeWindow: View {
             let title = draft.title.isEmpty ? "an untitled draft" : "“\(draft.title)”"
             return "The staged draft \(title) replaces your unsaved changes."
         }
-        return currentNoun.map { "“\($0.title)” has unsaved changes." }
+        return buffer.page.map { "“\($0.noun.title)” in \($0.owner.source.title) has unsaved changes." }
             ?? "The current page has unsaved changes."
     }
 
@@ -150,8 +172,10 @@ struct ComposeWindow: View {
     /// The editor shows for a selected page (the M10 rule) or while an
     /// untitled AI draft is staged / already in the buffer (M18).
     private var showsEditor: Bool {
-        pageNoun != nil || runtime.pendingComposeDraft != nil || isUntitledDraft || document.fileURL != nil
+        buffer.page != nil || pageNoun != nil || runtime.pendingComposeDraft != nil || isUntitledDraft || document.fileURL != nil
     }
+
+    private var document: ComposeDocument { buffer.document }
 
     /// An unsaved buffer with no backing file — only a staged draft gets here.
     private var isUntitledDraft: Bool {
@@ -170,42 +194,33 @@ struct ComposeWindow: View {
         return nil
     }
 
-    private func handleSelection() {
-        guard let source = selectedLocalSource, let noun = pageNoun else { return }
-        guard noun != currentNoun else { return }
-        if document.isDirty {
-            pendingSwitch = noun
-        } else {
-            switchTo(noun, source: source)
+    private var selectionRequest: ComposeBuffer.Request? {
+        guard let source = selectedLocalSource, pageNoun != nil else { return nil }
+        return ComposeBuffer.Request(source: source, selection: store.selection)
+    }
+
+    private func didLoadPage() {
+        guard let page = buffer.page else { return }
+        cookCompletion = ComposeCookCompletion.load(workspaceRoot: page.owner.workspaceRoot)
+        themeCSS = resolveThemeCSS(workspaceRoot: page.owner.workspaceRoot)
+        saveSignal = nil
+        externalJump = nil
+        if let jump = runtime.pendingComposeJump, jump.pageID == page.noun.id {
+            if let offset = characterOffset(for: jump.line, column: jump.column, in: document.text) {
+                externalJump = offset
+            }
+            runtime.pendingComposeJump = nil
         }
     }
 
-    private func switchTo(_ noun: WorkspaceNoun, source: LocalSource) {
-        defer { currentNoun = noun }
-        do {
-            let workspaceRoot = try source.workspaceRoot()
-            let contentRoot = try source.contentRoot()
-            guard let node = try ComposePageResolver.page(id: noun.id, workspaceRoot: workspaceRoot) else {
-                loadError = "No graph node for “\(noun.title)”."
-                return
-            }
-            let url = ComposePageResolver.fileURL(contentRoot: contentRoot, sourcePath: node.sourcePath)
-            try document.load(from: url)
-            cookCompletion = ComposeCookCompletion.load(workspaceRoot: workspaceRoot)
-            themeCSS = resolveThemeCSS(workspaceRoot: workspaceRoot)
-            loadError = nil
-            saveSignal = nil
-            if let jump = runtime.pendingComposeJump, jump.pageID == noun.id {
-                if let offset = characterOffset(for: jump.line, column: jump.column, in: document.text) {
-                    externalJump = offset
-                }
-                runtime.pendingComposeJump = nil
-            } else {
-                externalJump = nil
-            }
-        } catch {
-            loadError = String(describing: error)
-        }
+    private func restoreBufferSelection() {
+        guard let page = buffer.page,
+              let item = store.sources.first(where: { $0.id == page.owner.source.id }),
+              case .local(let source) = item,
+              (try? source.workspaceRoot().path) == page.owner.workspaceRoot.path
+        else { return }
+        store.select(source.id, mailbox: page.selection.mailbox ?? WorkspaceMailbox.pages)
+        store.select(noun: page.noun)
     }
 
     private func characterOffset(for line: Int, column: Int?, in text: String) -> Int? {
@@ -228,7 +243,7 @@ struct ComposeWindow: View {
     /// Anything missing (no profile, no target theme, unreadable folder)
     /// degrades to nil — the preview falls back to its readable stylesheet.
     private func resolveThemeCSS(workspaceRoot: URL) -> String? {
-        guard let profileURL = selectedLocalSource?.profileURL() else { return nil }
+        let profileURL = workspaceRoot.appendingPathComponent("boris.json")
         do {
             let data = try Data(contentsOf: profileURL)
             let profile = try JSONDecoder().decode(PublicationProfile.self, from: data)
@@ -259,7 +274,7 @@ struct ComposeWindow: View {
         let outcome = ComposeSaveFlow.run(
             beginTreeWrite: { runtime.coordinator.beginTreeWrite() },
             endTreeWrite: { runtime.coordinator.endTreeWrite() },
-            noteSave: { runtime.coordinator.noteSave() },
+            noteSave: { runtime.coordinator.noteSave(source: buffer.page?.owner) },
             save: { try document.save() }
         )
         saveSignal = ComposeSaveFlow.Signal(
@@ -275,15 +290,10 @@ struct ComposeWindow: View {
     /// from the repo's canonical closed-key emitter; the buffer starts
     /// dirty — review is mandatory, saving is explicit.
     private func stage(_ draft: StagedPostDraft) {
-        document = ComposeDocument(
-            text: PostDraftAssembly.markdown(for: draft),
-            fileURL: nil,
-            language: .markdown
-        )
-        currentNoun = nil
-        loadError = nil
+        buffer.stage(draft)
         saveSignal = nil
         externalJump = nil
+        cookCompletion = .empty
         if let source = selectedLocalSource, let workspaceRoot = try? source.workspaceRoot() {
             themeCSS = resolveThemeCSS(workspaceRoot: workspaceRoot)
         } else {
