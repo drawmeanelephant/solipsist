@@ -36,22 +36,19 @@ final class FixtureMatrixTests: XCTestCase {
         XCTAssertEqual(report.counters?.page_reads, 9)
     }
 
-    // MARK: - HTML build report failure (dual diagnostics, nullable location)
+    // MARK: - HTML build report failure (located diagnostics)
 
-    func testValidateFailureHTMLReportDualDiagnostics() throws {
+    func testValidateFailureHTMLReportLocatedDiagnostic() throws {
         let report = try decode(HTMLBuildReport.self, "validate-failure", "html-build-report.json")
         XCTAssertFalse(report.ok)
-        XCTAssertEqual(report.schemaVersion, "html-build-report-0.1.0")
-        XCTAssertEqual(report.errorCount, 2)
-        XCTAssertEqual(report.diagnostics.count, 2)
-        // First diagnostic is graph-level with null location
-        XCTAssertNil(report.diagnostics[0].sourcePath)
-        XCTAssertNil(report.diagnostics[0].line)
-        XCTAssertEqual(report.diagnostics[0].code, "EIO")
-        // Second is located
-        XCTAssertEqual(report.diagnostics[1].sourcePath, "page.md")
-        XCTAssertEqual(report.diagnostics[1].line, 6)
-        XCTAssertEqual(report.diagnostics[1].code, "EREFERENCEMISSING")
+        XCTAssertEqual(report.schemaVersion, "html-build-report-0.2.0")
+        XCTAssertEqual(report.errorCount, 1)
+        XCTAssertEqual(report.diagnostics.count, 1)
+        // Single located diagnostic (0.8.2 dropped the leading graph-level
+        // EIO that the 0.1.0 report carried).
+        XCTAssertEqual(report.diagnostics[0].sourcePath, "page.md")
+        XCTAssertEqual(report.diagnostics[0].line, 6)
+        XCTAssertEqual(report.diagnostics[0].code, "EREFERENCEMISSING")
     }
 
     // MARK: - Plan with editions scope/split_size

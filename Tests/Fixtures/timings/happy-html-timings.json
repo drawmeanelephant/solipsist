@@ -3,27 +3,27 @@
   "schemaVersion": "1",
   "mode": "html",
   "phases": {
-    "scan": 810333,
-    "parse": 584875,
-    "graph_validate": 1404625,
-    "dependency_resolve": 1879083,
-    "fingerprint": 5755333,
-    "render": 3916500,
-    "heading_harvest": 523334,
-    "search": 16047709,
-    "link_audit": 4649583,
-    "inventory": 4921542,
-    "checks": 4883083,
-    "claims": 1929875,
-    "touches": 2340334,
-    "proof_pack": 4393750
+    "scan": 329542,
+    "parse": 531375,
+    "graph_validate": 1332167,
+    "dependency_resolve": 1646792,
+    "fingerprint": 2413500,
+    "render": 2374792,
+    "heading_harvest": 364875,
+    "search": 8596833,
+    "link_audit": 3901625,
+    "inventory": 1143166,
+    "checks": 2910500,
+    "claims": 586708,
+    "touches": 2388417,
+    "proof_pack": 2252167
   },
   "counters": {
     "page_reads": 9,
     "include_reads": 0,
-    "hash_bytes": 10603,
+    "hash_bytes": 10312,
     "link_resolutions": 17,
-    "fast_path_hits": 11
+    "fast_path_hits": 17
   },
-  "totalNs": 76075750
+  "totalNs": 42421458
 }

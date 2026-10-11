@@ -10,10 +10,14 @@ Native macOS SwiftUI app. Boris is the engine — a subprocess, never a
 library. We decode its versioned JSON contracts and host the surfaces
 we refuse to write (`watch --serve`, `boris-editor`).
 
-**Baseline:** afterparty `boris/0.8.1`. **Pin:** `bf464a0` (kit
-metadata in `vendor/boris-agent-kit/`). Contains A1/A14/A7 + A3/A4/A13
-(boris#648 / #643 / #642 / #641) **plus A15 `open=` (boris#649) and
-A5 `validate --watch` (boris#647)**.
+**Baseline:** `main` `boris/0.8.2`, Zig 0.17 (the `afterparty` line
+landed via boris PR #790). **Pin:** `3ab19ad` (kit metadata in
+`vendor/boris-agent-kit/`). Everything the old pin carried (watch
+schema 1, `validate --watch`, `open=`, token launch line) plus:
+`html-build-report-0.2.0`, `boris --build-info`, profile-driven
+`build`/`watch`/`validate --profile` execution, `static.dir`, plan
+schema 3 (`head`/`html_profile`), `boris graph`, `proof verify`, and
+the editor host's managed daemon layer (`editor-host.md`).
 
 ## Hard boundaries
 
@@ -50,9 +54,14 @@ Engine checkouts (boris + oliver) resolve via `BORIS_REPO_DIR` /
 `OLIVER_REPO_DIR` — required from worktrees — else derived from
 `SOLIPSIST_BORIS_BIN` inside a checkout, else `../boris` / `../oliver`
 siblings. `make build` bundles boris, boris-editor + editor-ui, and oliver
-into `Resources/`; a missing piece fails the build (`SKIP_EMBED_BORIS=1`
-opts out). Overrides: `SOLIPSIST_BORIS_EDITOR_BIN`,
-`SOLIPSIST_EDITOR_UI_DIR`, `SOLIPSIST_OLIVER_BIN`.
+into `Resources/` plus an `engine-provenance.json` (compiler id,
+vcsRevision, checkout commits, tool versions) shown in Settings → Engine;
+a missing piece fails the build (`SKIP_EMBED_BORIS=1` opts out).
+Overrides: `SOLIPSIST_BORIS_EDITOR_BIN`, `SOLIPSIST_EDITOR_UI_DIR`,
+`SOLIPSIST_OLIVER_BIN`. The compiled editor shell is built by
+`make editor-ui` (`npm ci && npm run build` in the resolved checkout's
+`editor/ui`) — the embed script never runs npm, so run it after touching
+`editor/ui/src`; `make doctor` warns when `dist` goes stale.
 
 Never hand-edit `Solipsist.xcodeproj` — edit `Project.yml`.
 

@@ -2,21 +2,23 @@
   "format": "boris-agent-kit",
   "schema_version": 1,
   "repository": "drawmeanelephant/boris",
-  "commit": "bf464a02883d1dce1d9f990739183c248e68c5c3",
-  "branch": "afterparty",
+  "commit": "3ab19adf4d57e9061d880288ec1a2774ffa46a8c",
+  "branch": "main",
   "dirty": false,
   "platform": "Darwin-arm64",
-  "zig_version": "0.16.0",
+  "zig_version": "0.17.0",
+  "compiler_id": "boris/0.8.2",
+  "vcs_revision": "3ab19ad",
   "binaries": [
-    {"name":"boris","path":"bin/boris","sha256":"f6d17ad1792c1a62922c11c2775646e0ef07756bcaf05e3c8b802eab938f5519"},
-    {"name":"boris-package","path":"bin/boris-package","sha256":"38ea33ff4fb7e5e5c9c1e68d5faa488844dcbd0bbcf6aa41bc69e9cd539cf086"},
-    {"name":"boris-source-rag","path":"bin/boris-source-rag","sha256":"d16048c49496942b2a361545518fbd58c5f967b731470af85ab21a88964bccb5"},
-    {"name":"boris-content-audit","path":"bin/boris-content-audit","sha256":"1dab77678a45d5d9e4096c95f61653e1c59f885d6188893ff61f9836ec529941"},
-    {"name":"boris-docs-maintenance","path":"bin/boris-docs-maintenance","sha256":"01c616fe22eaaf65f0951e4dacee7453c3b884bfee7752a44cfb3f3a4f3d1809"},
-    {"name":"boris-github-pages-audit","path":"bin/boris-github-pages-audit","sha256":"6f83a3a7433b82d497a3708246c00057410d51d2b26ff5477ad20fa4cd9ae72c"},
-    {"name":"boris-migration-lab","path":"bin/boris-migration-lab","sha256":"b32c9ad6139b7276e2f5ad1deeebb373c0bb45c83e4254568b6138e29b030e08"},
-    {"name":"boris-scale-smoke","path":"bin/boris-scale-smoke","sha256":"69adc43de838e8a0f659254a10f6d4de1db96a2c045444eb787a8974970500f5"},
-    {"name":"boris-search-index","path":"bin/boris-search-index","sha256":"ebe4220f1766db6e62e40107762f7e898cb3ff97651764af2c3a065962be7be5"},
-    {"name":"boris-testdata","path":"bin/boris-testdata","sha256":"ef0e11527f709918485bda7b8d6bb724184452d8919d2bd215eae71bacda2885"}
-  ]
+    {"name":"boris","path":"bin/boris","sha256":"bb49bc149d21f17ae063d0fdbca44dfb154d8adc9f3e75ab7f83d0760d96eaef"},
+    {"name":"boris-editor","path":"bin/boris-editor","sha256":"92a447fa4db2ad570bf1c0cabb7e582c233d1b967ade220bdc88100ffbd68222"},
+    {"name":"boris-package","path":"bin/boris-package","sha256":"78078392d26e893f39c8d141339238703fae26ae5ecddafccb8806fb9e87acda"},
+    {"name":"boris-source-rag","path":"bin/boris-source-rag","sha256":"b93332f74c0864a41422bde00b7980b69ea324a55947375e7fd93bc39eaf72aa"}
+  ],
+  "notes": {
+    "boris-content-audit": "graduated to drawmeanelephant/boris-content-audit (boris#834); no longer built from this checkout",
+    "boris-migration-lab": "moved to its own repository before this pin",
+    "editor-ui": "compiled Svelte shell at editor/ui/dist; built via 'make editor-ui', never by embed-boris.sh",
+    "sha256 basis": "debug zig-out builds at the pinned commit; binaries are not vendored, hashes identify the kit the app was developed against"
+  }
 }

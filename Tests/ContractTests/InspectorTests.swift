@@ -139,9 +139,8 @@ final class InspectorExecutionAndRecipeTests: XCTestCase {
         XCTAssertEqual(args, ["--input", "content", "--jobs", "4", "--incremental", "--quiet"])
     }
 
-    func testScalingIsUnavailableUntilThePinnedContractIsVerified() {
-        XCTAssertFalse(RecipeScaleSupport.isAvailable)
-        XCTAssertTrue(RecipeScaleSupport.unavailableMessage.contains("pinned Boris"))
+    func testScalingIsAvailableAgainstTheVerifiedPinnedContract() {
+        XCTAssertTrue(RecipeScaleSupport.isAvailable)
     }
 
     func testRecipeTagsAndCookExtensionDoNotInventARecipe() {

@@ -1,7 +1,9 @@
 import Foundation
 
 /// Locates the `boris-content-audit` kit tool — poetry / parent-alignment
-/// source auditing (LATER-1 / #165).
+/// source auditing (LATER-1 / #165). The tool graduated to its own
+/// repository (`drawmeanelephant/boris-content-audit`, boris#834); it no
+/// longer builds from the boris checkout.
 ///
 /// Search order:
 ///   1. `SOLIPSIST_CONTENT_AUDIT_BIN` environment override
@@ -17,11 +19,6 @@ public enum ContentAuditBinary {
 
         func isExecutable(_ url: URL) -> Bool {
             fm.isExecutableFile(atPath: url.path)
-        }
-
-        if let custom = UserDefaults.standard.string(forKey: "customContentAuditBinaryPath"), !custom.isEmpty {
-            let url = URL(fileURLWithPath: custom)
-            if isExecutable(url) { return url }
         }
 
         if let override = environment["SOLIPSIST_CONTENT_AUDIT_BIN"], !override.isEmpty {
@@ -43,8 +40,8 @@ public enum ContentAuditBinary {
         let devCandidates = [
             "SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/boris-agent-kit/bin/boris-content-audit",
             "../boris-agent-kit/bin/boris-content-audit",
-            "../boris/tools/content-audit/zig-out/bin/boris-content-audit",
-            "boris/tools/content-audit/zig-out/bin/boris-content-audit",
+            "../boris-content-audit/zig-out/bin/boris-content-audit",
+            "boris-content-audit/zig-out/bin/boris-content-audit",
             "../boris/zig-out/bin/boris-content-audit",
         ]
         for relative in devCandidates {

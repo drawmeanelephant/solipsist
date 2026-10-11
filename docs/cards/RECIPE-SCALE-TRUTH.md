@@ -8,10 +8,12 @@ Remove Swift recipe scaling and fabricated inspector recipes. Graph
 facets are read-only engine data. Failed subprocesses retain their exit
 codes and diagnostics; launch and JSON decode failures propagate.
 
-The archived `bf464a0` / Boris 0.8.1 binary is unavailable in this
-environment. The installed engine is 0.8.2, not the pin. Disable app
-scaling until the pinned invocation and response contract are verified,
-rather than treating an unpinned probe as authority.
+The pin moved to `3ab19ad` / Boris 0.8.2 and the contract is now
+verified (`docs/ENGINE-CONTRACTS.md` §10): `recipe-scale --input DIR
+--id PAGE --factor TEXT [--cooklang]` emits a `boris-recipe-scale` 0.2.0
+envelope whose `quantity.amount` is `{class, original, scaled}` — a
+different shape than the graph facet's string amount. The transport and
+decoder are fixed; `RecipeScaleSupport.isAvailable` is live again.
 
 ## Paths and gate
 

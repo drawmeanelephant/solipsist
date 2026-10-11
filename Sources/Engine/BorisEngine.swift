@@ -14,7 +14,7 @@ public struct BorisBuild: Sendable {
 }
 
 /// Result of a Boris HTML build. Optional `--report` decodes
-/// `html-build-report-0.1.0` when the file is written.
+/// `html-build-report-0.2.0` when the file is written.
 public struct BorisHTMLBuild: Sendable {
     public let exitCode: Int32
     public let report: HTMLBuildReport?
@@ -263,7 +263,7 @@ public actor BorisEngine {
 
     /// Runs an HTML site build: `boris --input <root> --html-dir <dir> --quiet`.
     ///
-    /// Same afterparty containment rule as `buildIR`: run from the output's
+    /// Same engine containment rule as `buildIR`: run from the output's
     /// parent and pass a relative path. Optional `--report` is a single file
     /// (absolute allowed).
     public func buildHTML(
@@ -651,7 +651,7 @@ public actor BorisEngine {
     ///
     /// Note: Boris prints analysis reports to *stderr* by default, so we use
     /// `--report PATH` to write the rendered JSON to a file instead. On
-    /// afterparty, `check` exits 0 with findings by default and only exits 1
+    /// `check` exits 0 with findings by default and only exits 1
     /// with `--fail-on-unreferenced` — either way the report decodes fine.
     public func check(contentRoot: URL, workingDirectory: URL? = nil, knobs: BorisExecutionKnobs? = nil) async throws -> BorisAnalysis {
         let fm = FileManager.default
@@ -705,11 +705,21 @@ public actor BorisEngine {
 
     // MARK: Version / plan / validate / init
 
-    /// Runs `boris --version` and returns the stdout line (e.g. `boris/0.8.1`).
+    /// Runs `boris --version` and returns the stdout line (e.g. `boris/0.8.2`).
     public func version() async throws -> BorisVersion {
         let out = try await run(arguments: ["--version"])
         let line = out.stdoutText.trimmingCharacters(in: .whitespacesAndNewlines)
         return BorisVersion(exitCode: out.exitCode, line: line)
+    }
+
+    /// Runs `boris --build-info` (#776) and decodes the one-line
+    /// `boris-build-info` provenance document. Returns `nil` when the binary
+    /// predates the flag or emits something unparseable — provenance is
+    /// additive, never a gate (D8).
+    public func buildInfo() async throws -> BorisBuildInfo? {
+        let out = try await run(arguments: ["--build-info"])
+        guard out.exitCode == 0 else { return nil }
+        return decodeJSON(BorisBuildInfo.self, from: out.stdout)
     }
 
     /// Runs `boris plan --profile PATH` with cwd = the profile's parent
@@ -728,7 +738,7 @@ public actor BorisEngine {
     }
 
     /// Runs `boris validate --input … --report PATH` and decodes the
-    /// `html-build-report-0.1.0` file when written. `--report` may be absolute.
+    /// `html-build-report-0.2.0` file when written. `--report` may be absolute.
     public func validate(
         contentRoot: URL,
         reportURL: URL,
@@ -949,21 +959,32 @@ public actor BorisEngine {
 
     // MARK: Recipe Scale
 
-    /// Subprocess-only recipe-scale transport. UI scaling remains disabled
-    /// until its machine contract is verified against the archived pin.
+    /// `boris recipe-scale --input DIR --id PAGE --factor TEXT
+    /// [--cooklang]` — verified against `boris/0.8.2` at pin `3ab19ad`
+    /// (`docs/contracts/cooklang.md`). Emits a `boris-recipe-scale` 0.2.0
+    /// envelope on stdout; exit 1 carries diagnostics on stderr.
+    /// `cooklang` must be true for `.cook`-only content trees (the engine
+    /// refuses mixed trees without it).
     public func recipeScale(
         contentRoot: URL,
         pageID: String,
         factor: Double = 1.0,
+        cooklang: Bool = false,
         workingDirectory: URL? = nil,
         knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisRecipeScale {
+        let factorText = factor.truncatingRemainder(dividingBy: 1) == 0
+            ? String(Int(factor))
+            : String(factor)
         var args = [
             "recipe-scale",
-            pageID,
-            "--scale", "\(factor)",
             "--input", contentRoot.path,
+            "--id", pageID,
+            "--factor", factorText,
         ]
+        if cooklang {
+            args.append("--cooklang")
+        }
         if let knobs {
             knobs.apply(to: &args, defaultQuiet: true)
         } else {
@@ -975,7 +996,9 @@ public actor BorisEngine {
         let recipe: CookRecipe?
         if out.exitCode == 0 {
             do {
-                recipe = try JSONDecoder().decode(CookRecipe.self, from: out.stdout)
+                recipe = try JSONDecoder()
+                    .decode(RecipeScaleEnvelope.self, from: out.stdout)
+                    .recipe()
             } catch {
                 let diagnostic = out.stderrText.trimmingCharacters(in: .whitespacesAndNewlines)
                 let suffix = diagnostic.isEmpty ? "" : " — \(diagnostic)"

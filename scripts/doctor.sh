@@ -93,8 +93,19 @@ find_boris() {
 
 if boris_bin="$(find_boris)"; then
   ok_msg "boris engine resolves to: $boris_bin"
+  if vline="$("$boris_bin" --version 2>/dev/null | head -1)" && [[ -n "$vline" ]]; then
+    ok_msg "boris version: $vline"
+  fi
 else
   warn_msg "no boris binary found (SOLIPSIST_BORIS_BIN, kit, or ../boris) — set SOLIPSIST_BORIS_BIN to an executable, even if boris is on PATH"
+fi
+
+# Editor UI freshness — the embed script bundles editor/ui/dist verbatim
+# and never runs npm; a missing or stale dist silently ships an old shell.
+if ui_out="$(bash scripts/build-editor-ui.sh --check 2>&1)"; then
+  ok_msg "editor UI compiled shell is fresh"
+else
+  warn_msg "$ui_out"
 fi
 
 # macOS-only checks.

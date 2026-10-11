@@ -8,10 +8,11 @@ import WebKit
 ///
 /// The window starts an `EditorSession` for the selected source's project
 /// root, then loads the tokenized `BORIS_EDITOR_URL=` into the web view
-/// with `open=` set from the page `sourcePath` (A15 / boris#649; ignored
-/// by today's shell). The header names the selected page and its
-/// `sourcePath`. Manual URL paste and "Open in Browser" stay as the
-/// loopback fallback.
+/// with `open=` set from the page `sourcePath` (A15 / boris#649; the
+/// shipped shell consumes it — safe paths land on that file, unsafe or
+/// missing ones degrade to the shell's restore/default open). The header
+/// names the selected page and its `sourcePath`. Manual URL paste and
+/// "Open in Browser" stay as the loopback fallback.
 struct EditorWindow: View { // swiftlint:disable:this type_body_length
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
@@ -72,6 +73,9 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
             session.fail(.folderUnresolved(source.title))
             return
         }
+        // The connected host owns this project's dist-writer seat; the
+        // session parks/frees the app preview through its lifecycle.
+        session.previewSession = runtime.previewSession
         session.start(
             contentRoot: contentRoot,
             projectRoot: projectRoot,

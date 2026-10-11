@@ -1,6 +1,6 @@
 {
   "schemaVersion": "0.3.0",
-  "compiler": "boris/0.8.1+semantic-relations",
+  "compiler": "boris/0.8.2+semantic-relations",
   "contentRoot": "content",
   "pageCount": 3,
   "pages": [

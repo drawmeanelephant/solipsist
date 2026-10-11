@@ -114,4 +114,90 @@ final class PreviewSessionLifecycleTests: XCTestCase {
         XCTAssertTrue(session.statusText.contains("3"))
         XCTAssertTrue(session.statusText.contains("I/O failed"))
     }
+
+    // MARK: - Editor companion dist-seat parking
+
+    // While the Editor companion is connected to a project it owns the
+    // dist-writer seat (editor-host.md §7.4) — the app's watch must park,
+    // not run a second writer against the same `dist/`.
+
+    func testParkSuspendsTheBoundWatchAndUnparkResumes() async throws {
+        let servers = Servers()
+        let session = makeSession(servers)
+        defer { session.stop() }
+        session.start(contentRoot: root, projectRoot: project, engine: try makeEngine(), coordinator: nil)
+        servers.values[0].onServe?(helper)
+        try await settle()
+
+        session.parkForEditor(contentRoot: root)
+        XCTAssertTrue(session.editorParked)
+        XCTAssertEqual(session.serveURL, helper, "a parked watch keeps its rendered bytes")
+        XCTAssertTrue(session.statusText.contains("editor companion"))
+
+        session.unparkForEditor()
+        XCTAssertFalse(session.editorParked)
+        XCTAssertEqual(session.serveURL, helper)
+    }
+
+    func testStartWhileEditorOwnsDefersAndReplaysOnUnpark() async throws {
+        let servers = Servers()
+        let session = makeSession(servers)
+        defer { session.stop() }
+
+        // Editor claims the seat before the preview ever starts.
+        session.parkForEditor(contentRoot: root)
+        session.start(contentRoot: root, projectRoot: project, engine: try makeEngine(), coordinator: nil)
+        try await settle()
+        XCTAssertTrue(session.editorParked)
+        XCTAssertTrue(servers.values.isEmpty, "no second dist writer may spawn while parked")
+
+        session.unparkForEditor()
+        try await settle()
+        XCTAssertEqual(servers.values.count, 1, "the deferred start replays into a fresh watch")
+        servers.values[0].onServe?(helper)
+        try await settle()
+        XCTAssertEqual(session.serveURL, helper)
+        XCTAssertFalse(session.editorParked)
+    }
+
+    func testParkOnOneRootDoesNotFreezeADifferentBoundWatch() async throws {
+        let servers = Servers()
+        let session = makeSession(servers)
+        defer { session.stop() }
+        session.start(contentRoot: root, projectRoot: project, engine: try makeEngine(), coordinator: nil)
+        servers.values[0].onServe?(helper)
+        try await settle()
+
+        session.parkForEditor(contentRoot: root.appendingPathComponent("other"))
+        XCTAssertFalse(session.editorParked,
+                       "the seat is per-project: parking a different root leaves this watch alone")
+    }
+
+    // `unparkForEditor(contentRoot:)` with a root the caller does not own
+    // leaves the seat claimed — one session cannot lift another's claim.
+    func testUnparkForOtherRootKeepsTheSeat() throws {
+        let servers = Servers()
+        let session = makeSession(servers)
+        defer { session.stop() }
+        session.start(contentRoot: root, projectRoot: project, engine: try makeEngine(), coordinator: nil)
+        session.parkForEditor(contentRoot: root)
+        XCTAssertTrue(session.editorParked)
+
+        session.unparkForEditor(contentRoot: root.appendingPathComponent("other"))
+        XCTAssertTrue(session.editorParked,
+                      "an unrelated unpark must not free the seat")
+
+        session.unparkForEditor(contentRoot: root)
+        XCTAssertFalse(session.editorParked)
+    }
+
+    func testStopClearsTheParkedSeat() throws {
+        let servers = Servers()
+        let session = makeSession(servers)
+        session.parkForEditor(contentRoot: root)
+        session.start(contentRoot: root, projectRoot: project, engine: try makeEngine(), coordinator: nil)
+        session.stop()
+        XCTAssertFalse(session.editorParked)
+        XCTAssertTrue(servers.values.isEmpty)
+    }
 }

@@ -37,14 +37,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Same pin the app bundles and the site deploys (D7): `main` on boris
-      # is the stale v0.8.0 line; moving pins are not reproducible.
+      # Same pin the app bundles and the site deploys (D7):
+      # vendor/boris-agent-kit/MANIFEST.json. Moving pins are not reproducible.
       - name: Checkout Boris engine
         uses: actions/checkout@v7
         with:
           repository: drawmeanelephant/boris
           path: boris
-          ref: bf464a02883d1dce1d9f990739183c248e68c5c3
+          ref: 3ab19adf4d57e9061d880288ec1a2774ffa46a8c
 
       - name: Set up Xcode
         run: |
@@ -58,7 +58,7 @@ jobs:
       - name: Install Zig
         uses: drawmeanelephant/zig-zouave@2d8510d62b517fa786279562cf8b1bdcf0c47b9f
         with:
-          version: 0.16.0
+          version: 0.17.0
 
       # embed-boris.sh lipo-merges discrete arches when both are provided;
       # zig cross-compiles macOS slices from either host arch.
@@ -71,10 +71,25 @@ jobs:
           lipo -create -output /tmp/boris-universal /tmp/boris-arm64/bin/boris /tmp/boris-x86_64/bin/boris
           lipo -info /tmp/boris-universal
 
+          # boris-editor builds from its own build.zig (editor/build.zig),
+          # not the root zig build — cross-build it per arch too.
+          zig build --build-file editor/build.zig -Dtarget=aarch64-macos -Doptimize=ReleaseFast --prefix /tmp/boris-editor-arm64
+          zig build --build-file editor/build.zig -Dtarget=x86_64-macos -Doptimize=ReleaseFast --prefix /tmp/boris-editor-x86_64
+
           # Companion tools: cross-build each arch, lipo-merge.
           # boris-search-index is present in the kit but unused by the app —
-          # do not build or bundle it.
-          TOOLS="boris-editor boris-package boris-source-rag boris-content-audit"
+          # do not build or bundle it. boris-content-audit graduated to its
+          # own repository (boris#834) and no longer builds from this checkout.
+          for tool in boris-editor; do
+            if [ -f "/tmp/boris-editor-arm64/bin/$tool" ] && [ -f "/tmp/boris-editor-x86_64/bin/$tool" ]; then
+              lipo -create -output "/tmp/boris-universal-$tool" \
+                "/tmp/boris-editor-arm64/bin/$tool" "/tmp/boris-editor-x86_64/bin/$tool"
+              lipo -info "/tmp/boris-universal-$tool"
+            else
+              echo "WARNING: $tool not found in both arch builds — embedding host-only"
+            fi
+          done
+          TOOLS="boris-package boris-source-rag"
           for tool in $TOOLS; do
             if [ -f "/tmp/boris-arm64/bin/$tool" ] && [ -f "/tmp/boris-x86_64/bin/$tool" ]; then
               lipo -create -output "/tmp/boris-universal-$tool" \
@@ -85,10 +100,19 @@ jobs:
             fi
           done
 
-      # Drop universal companion binaries into the kit bin dir so
-      # embed-boris.sh finds them through its existing search path.
+      # The compiled Svelte shell is platform-independent — one build feeds
+      # the bundle (embed-boris.sh bundles editor/ui/dist verbatim and
+      # never runs npm itself).
+      - name: Build editor UI
+        run: |
+          cd boris/editor/ui
+          npm ci
+          npm run build
+
+      # Drop universal companion binaries into the kit bin dir embed
+      # searches so embed-boris.sh finds them during the release build.
       - name: Populate universal companion tools
-        run: bash scripts/populate-universal-companions.sh boris/bin
+        run: bash scripts/populate-universal-companions.sh SUPPORT-NOT-FOR-GITHUB/boris-agent-kit/bin
 
       - name: Install tools & generate project
         run: |
@@ -193,7 +217,9 @@ jobs:
           fi
 
           # Companion tools: must be present and universal.
-          COMPANIONS="boris-editor boris-package boris-source-rag boris-content-audit"
+          # boris-content-audit graduated to its own repo (boris#834) and is
+          # bundled opportunistically, not required.
+          COMPANIONS="boris-editor boris-package boris-source-rag"
           for comp in $COMPANIONS; do
             COMP_PATH="$APP_PATH/Contents/Resources/$comp"
             if [ -f "$COMP_PATH" ]; then

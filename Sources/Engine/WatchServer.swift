@@ -5,10 +5,23 @@ public struct WatchExit: Sendable {
     public let exitCode: Int32
     /// True when the process ended on a signal (SIGTERM from `stop()`, SIGKILL…).
     /// A clean SIGTERM shutdown is exit code 0 with `signalled == true`
-    /// (afterparty C06 / A12 pins this).
+    /// (boris watch-mode contract C06 / A12 pins this).
     public let signalled: Bool
     /// Last 4 KB of stderr, for surfacing build failures on unexpected exit.
     public let stderrTail: String
+}
+
+/// Why a watch daemon is frozen. Suspend/resume are reason-counted so
+/// overlapping owners (a tree-writing one-shot, a connected editor
+/// companion) cannot resume the process out from under each other — the
+/// SIGCONT only fires when the last reason lifts.
+public enum WatchSuspendReason: String, Sendable {
+    /// A tree-writing invocation owns `dist/` / `.boris` for its duration
+    /// (Coordinator.beginTreeWrite/endTreeWrite).
+    case treeWrite
+    /// The Boris Editor companion is connected for this project; its host
+    /// owns the dist-writer seat while it lives.
+    case editorCompanion
 }
 
 /// The M4 preview server (D5): a long-lived `boris watch --serve` subprocess.
@@ -104,7 +117,7 @@ public final class WatchServer: @unchecked Sendable {
     public var isSuspended: Bool {
         lock.lock()
         defer { lock.unlock() }
-        return _suspended
+        return !suspendReasons.isEmpty
     }
 
     public var processIdentifier: Int32? {
@@ -114,7 +127,7 @@ public final class WatchServer: @unchecked Sendable {
         return process.processIdentifier
     }
 
-    private var _suspended = false
+    private var suspendReasons: Set<WatchSuspendReason> = []
 
     /// Launches the process. Throws `BorisRunnerError.launchFailed` when the
     /// binary cannot be spawned.
@@ -144,15 +157,15 @@ public final class WatchServer: @unchecked Sendable {
         }
     }
 
-    /// SIGTERM the server (afterparty exits 0 gracefully — A12). Cannot be
+    /// SIGTERM the server (boris exits 0 gracefully — A12). Cannot be
     /// restarted; create a new `WatchServer` instead. A SIGSTOP'd child is
     /// continued first so the signal is delivered.
     public func stop() {
         lock.lock()
         let process = self.process
-        let suspended = _suspended
+        let suspended = !suspendReasons.isEmpty
         let pid = process?.processIdentifier
-        _suspended = false
+        suspendReasons.removeAll()
         lock.unlock()
         guard let process, process.isRunning else { return }
         if suspended, let pid {
@@ -161,26 +174,40 @@ public final class WatchServer: @unchecked Sendable {
         process.terminate()
     }
 
-    /// Freeze watch so a tree-writing job can own `dist/` / `.boris`.
-    /// The helper URL and bound port stay valid.
-    public func suspend() {
+    /// Freeze watch for `reason` so the owner can own `dist/` / `.boris`.
+    /// Reasons compose: the child stays SIGSTOP'd until every reason lifts.
+    /// The helper URL and bound port stay valid while parked.
+    public func suspend(reason: WatchSuspendReason) {
         lock.lock()
         let pid = process?.isRunning == true ? process?.processIdentifier : nil
-        let already = _suspended
+        let already = !suspendReasons.isEmpty
+        if pid != nil {
+            suspendReasons.insert(reason)
+        }
         lock.unlock()
         guard let pid, !already else { return }
-        guard ChildProcessControl.suspend(pid: pid) else { return }
-        lock.lock()
-        _suspended = true
-        lock.unlock()
+        _ = ChildProcessControl.suspend(pid: pid)
     }
 
-    /// Continue a frozen watch. No-op if it already exited.
-    public func resume() {
+    /// Lift one suspend reason. The child is SIGCONT'd only when the last
+    /// reason lifts. No-op if the process already exited.
+    public func resume(reason: WatchSuspendReason) {
         lock.lock()
+        suspendReasons.remove(reason)
+        let empty = suspendReasons.isEmpty
         let pid = process?.isRunning == true ? process?.processIdentifier : nil
-        let was = _suspended
-        _suspended = false
+        lock.unlock()
+        guard empty, let pid else { return }
+        ChildProcessControl.resume(pid: pid)
+    }
+
+    /// Lift every suspend reason at once (teardown path: a superseded server
+    /// is about to be stopped anyway, so its owners no longer matter).
+    public func resumeAll() {
+        lock.lock()
+        let was = !suspendReasons.isEmpty
+        suspendReasons.removeAll()
+        let pid = process?.isRunning == true ? process?.processIdentifier : nil
         lock.unlock()
         guard was, let pid else { return }
         ChildProcessControl.resume(pid: pid)
@@ -190,7 +217,7 @@ public final class WatchServer: @unchecked Sendable {
     public func forceKill() {
         lock.lock()
         let pid = process?.isRunning == true ? process?.processIdentifier : nil
-        _suspended = false
+        suspendReasons.removeAll()
         lock.unlock()
         guard let pid else { return }
         ChildProcessControl.forceKill(pid: pid)
@@ -253,7 +280,7 @@ public final class WatchServer: @unchecked Sendable {
         let onExit = self.onExit
         finishedExit = exit
         self.process = nil
-        _suspended = false
+        suspendReasons.removeAll()
         lock.unlock()
         onExit?(exit)
     }

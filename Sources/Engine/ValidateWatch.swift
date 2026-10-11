@@ -13,7 +13,7 @@ import Foundation
 /// tree-write suspend/resume the preview watch does.
 ///
 /// The stream is the A1 protocol with `mode: "validate"` (probed at
-/// `bf464a0`): `hello` (schema 1) → `build-started` →
+/// `3ab19ad`, schema unchanged): `hello` (schema 1) → `build-started` →
 /// `build-succeeded` / `build-failed` (with the `html-build-report`
 /// `diagnostics` shape) → `watcher-started`; rebuild cycles carry
 /// `changed`; SIGTERM → graceful `watch-stopped reason:"signal"`, exit 0
@@ -106,7 +106,7 @@ public final class ValidateWatch: @unchecked Sendable {
         }
     }
 
-    /// SIGTERM the daemon (afterparty exits 0 gracefully — A12). Cannot be
+    /// SIGTERM the daemon (boris exits 0 gracefully — A12). Cannot be
     /// restarted; create a new `ValidateWatch` instead.
     public func stop() {
         lock.lock()

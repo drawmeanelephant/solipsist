@@ -1,37 +1,6 @@
 import Foundation
 import Observation
 
-/// Auto-reconnect policy for spontaneous `boris-editor` crashes (#232): up
-/// to three restarts inside a 30s sliding window, backing off 2s × attempt.
-/// Pure so the cap/window arithmetic is unit-testable without a clock.
-enum EditorAutoReconnect {
-    static let maxAttempts = 3
-    static let window: Duration = .seconds(30)
-    static let baseDelay: Duration = .seconds(2)
-
-    enum Decision: Equatable {
-        /// Schedule the next automatic restart; payload is the 1-based
-        /// attempt number (delay = baseDelay × attempt).
-        case retry(attempt: Int)
-        /// Cap reached within the window — manual restart required.
-        case giveUp
-    }
-
-    /// Drops crash instants that aged out of the sliding window.
-    static func prune(_ crashes: [ContinuousClock.Instant], now: ContinuousClock.Instant) -> [ContinuousClock.Instant] {
-        let cutoff = now - window
-        return crashes.filter { $0 >= cutoff }
-    }
-
-    /// Decides what to do given the number of crashes recorded in the
-    /// window, including the one that just happened.
-    static func decision(crashesInWindow count: Int) -> Decision {
-        count > maxAttempts ? .giveUp : .retry(attempt: count)
-    }
-
-    static let windowDescription = "\(window.components.seconds)s"
-}
-
 /// #280: typed reasons an editor host lifecycle fails. `Phase.failed`
 /// carries one of these instead of a raw message, so chrome mapping is
 /// compiler-checked (`EditorFailureGuidance`) rather than substring
@@ -157,6 +126,12 @@ final class EditorSession {
         }
     }
 
+    /// While the host is connected to a project it holds that project's
+    /// dist-writer seat (editor-host.md §7.4). The session parks the app's
+    /// own preview watch on connect and frees the seat on teardown/exit —
+    /// parked through auto-reconnect gaps too, where no writer exists.
+    weak var previewSession: PreviewSession?
+
     private let makeHost: HostFactory
     private var server: (any EditorHost)?
     private var lifecycleID = UUID()
@@ -167,6 +142,9 @@ final class EditorSession {
     private var lastEngine: BorisEngine?
     private var reconnectCrashes: [ContinuousClock.Instant] = []
     private var reconnectTask: Task<Void, Never>?
+    /// The project this session parked the preview for — cleared when the
+    /// seat frees so a restart on a new root never lifts a stale claim.
+    private var parkedContentRoot: URL?
 
     var canRestart: Bool {
         lastContentRoot != nil
@@ -309,6 +287,8 @@ final class EditorSession {
             self.server = nil
         }
         rootPath = nil
+        previewSession?.unparkForEditor(contentRoot: parkedContentRoot)
+        parkedContentRoot = nil
         setPhase(.idle)
     }
 
@@ -324,6 +304,10 @@ final class EditorSession {
             transientNotice = "Editor host restarted"
         }
         reconnectCrashes.removeAll()
+        if let lastContentRoot {
+            parkedContentRoot = lastContentRoot
+            previewSession?.parkForEditor(contentRoot: lastContentRoot)
+        }
     }
 
     private func handleExit(_ exit: EditorExit) {
@@ -333,6 +317,10 @@ final class EditorSession {
         guard server != nil else { return }
         lifecycleID = UUID()
         server = nil
+        // The host died, so its watch daemon died with it — the seat is
+        // free until a restarted host claims it again on reconnect.
+        previewSession?.unparkForEditor(contentRoot: parkedContentRoot)
+        parkedContentRoot = nil
         timeoutTask?.cancel()
         timeoutTask = nil
         rootPath = nil

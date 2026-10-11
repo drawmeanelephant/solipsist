@@ -2,13 +2,13 @@ import Foundation
 
 /// Helper parser for Boris editor token launch lines.
 ///
-/// The afterparty Svelte shell reads the fragment with `URLSearchParams`
-/// and takes only `token`. Extra keys are ignored today. A15
-/// ([boris#649](https://github.com/drawmeanelephant/boris/issues/649))
-/// proposes an optional `open=<project-relative path>` key that the
-/// shell would feed to its own `openFile`. This parser matches that
-/// `URLSearchParams` shape so a second fragment key is not rejected,
-/// and `opening(_:sourcePath:)` is how the companion appends `open=`.
+/// The shipped Svelte shell reads the fragment with `URLSearchParams`:
+/// `token` authenticates, and the optional `open=<project-relative path>`
+/// key (A15 / boris#649) lands the editor on that file — unsafe paths are
+/// ignored and missing ones open an editor error while the shell still
+/// boots. This parser matches that shape so a second fragment key is not
+/// rejected, and `opening(_:sourcePath:)` is how the companion appends
+/// `open=`.
 public enum EditorURL {
     public enum ParseError: LocalizedError, Equatable {
         case empty
@@ -151,7 +151,7 @@ public enum EditorURL {
         return components.percentEncodedQuery ?? ""
     }
 
-    /// afterparty `editor/src/file_api.zig` `validatePath`: no leading `/`,
+    /// `editor/src/file_api.zig` `validatePath`: no leading `/`,
     /// no empty/`.`/`..` segments, author-owned roots only.
     private static func isAuthorOwned(_ path: String) -> Bool {
         if path.isEmpty || path.count > 4096 { return false }

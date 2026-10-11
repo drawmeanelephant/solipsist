@@ -20,11 +20,6 @@ public enum SourceRagBinary {
             fm.isExecutableFile(atPath: url.path)
         }
 
-        if let custom = UserDefaults.standard.string(forKey: "customSourceRagBinaryPath"), !custom.isEmpty {
-            let url = URL(fileURLWithPath: custom)
-            if isExecutable(url) { return url }
-        }
-
         if let override = environment["SOLIPSIST_SOURCE_RAG_BIN"], !override.isEmpty {
             let url = URL(fileURLWithPath: override)
             if isExecutable(url) { return url }
