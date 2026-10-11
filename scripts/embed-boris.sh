@@ -216,6 +216,18 @@ write_provenance() {
   boris_repo="$(resolve_boris_repo)" || true
   oliver_repo="$(resolve_oliver_repo)" || true
 
+  # Drift visibility: a source checkout whose HEAD differs from the kit
+  # pin bundles a different engine than the metadata records — say so in
+  # the build log instead of letting it ship silently.
+  local pin_commit="" head_commit=""
+  if [[ -f "$SRCROOT/vendor/boris-agent-kit/MANIFEST.json" ]]; then
+    pin_commit="$(sed -n 's/.*"commit": *"\([^"]*\)".*/\1/p' "$SRCROOT/vendor/boris-agent-kit/MANIFEST.json" | head -1)"
+  fi
+  head_commit="$(repo_commit "$boris_repo")"
+  if [[ -n "$head_commit" && -n "$pin_commit" && "$head_commit" != "$pin_commit" ]]; then
+    echo "embed-boris: WARNING: boris checkout HEAD ${head_commit:0:12} != pin ${pin_commit:0:12} (vendor/boris-agent-kit/MANIFEST.json)" >&2
+  fi
+
   local boris_info=""
   if [[ -x "$DEST_DIR/boris" ]]; then
     boris_info="$("$DEST_DIR/boris" --build-info 2>/dev/null | head -1 || true)"
@@ -533,7 +545,14 @@ if [[ "${SKIP_EMBED_BORIS:-}" == "1" ]]; then
   exit 0
 fi
 
-BORIS_REPO="${BORIS_REPO_DIR:-$SRCROOT/../boris}"
+# The source-build fallback resolves the checkout the same way the
+# editor/oliver lookups do — BORIS_REPO_DIR, SOLIPSIST_BORIS_BIN-derived,
+# then depth siblings — so worktree layouts find ../../boris too.
+BORIS_REPO="$(resolve_boris_repo)" || {
+  echo "embed-boris: FAILED to find a boris checkout" >&2
+  echo "embed-boris: set SOLIPSIST_BORIS_BIN or BORIS_REPO_DIR, or place the agent kit under SUPPORT-NOT-FOR-GITHUB/" >&2
+  exit 1
+}
 BIN="$BORIS_REPO/zig-out/bin/boris"
 
 if [[ ! -x "$BIN" ]]; then
