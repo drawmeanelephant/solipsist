@@ -12,7 +12,12 @@
     {
       "name": "site",
       "output": "dist",
-      "public": true
+      "public": true,
+      "layout_rules": [
+        { "selector": "id:index", "layout": "themes/boris/layouts/home.html" }
+      ],
+      "sitemap": { "path": "sitemap.xml" },
+      "static": { "dir": "static" }
     }
   ]
 }

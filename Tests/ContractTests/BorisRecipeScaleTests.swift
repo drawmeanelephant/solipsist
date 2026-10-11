@@ -98,13 +98,41 @@ final class BorisRecipeScaleTests: XCTestCase {
     }
 
     func testValidSubprocessRecipeIsReturnedUnchangedNotRescaledInSwift() async throws {
-        let json = try XCTUnwrap(String(data: JSONEncoder().encode(recipe), encoding: .utf8))
-        let fixture = try makeFixture(stdout: json, exit: 0)
+        // The verified `boris-recipe-scale` 0.2.0 envelope: quantity.amount
+        // is an object ({class, original, scaled}), unlike the graph facet's
+        // string amount. `scaled` is what the UI shows — the response
+        // belongs to Boris, even if it differs from Swift's expected factor.
+        let envelope = """
+        {
+          "format": "boris-recipe-scale",
+          "schemaVersion": "0.2.0",
+          "compiler": "boris/0.8.2+cooklang",
+          "vcsRevision": "3ab19ad",
+          "factor": { "num": 4, "den": 1 },
+          "page": "soup",
+          "ingredients": [
+            { "name": "water",
+              "quantity": { "amount": { "class": "scalable", "original": "2", "scaled": "8" }, "unit": "cups" },
+              "preparation": "", "recipeRef": null }
+          ],
+          "cookware": [
+            { "name": "pot",
+              "quantity": { "amount": { "class": "empty", "original": "1", "scaled": "" }, "unit": "" } }
+          ],
+          "timers": [
+            { "name": "simmer",
+              "quantity": { "amount": { "class": "scalable", "original": "10", "scaled": "40" }, "unit": "minutes" },
+              "scaling": "proportional" }
+          ]
+        }
+        """
+        let fixture = try makeFixture(stdout: envelope, exit: 0)
         defer { try? FileManager.default.removeItem(at: fixture.root) }
         let result = try await fixture.engine.recipeScale(contentRoot: fixture.contentRoot, pageID: "soup", factor: 4, workingDirectory: fixture.root)
         XCTAssertEqual(result.exitCode, 0)
-        XCTAssertEqual(result.recipe, recipe, "the response belongs to Boris, even if it differs from Swift's expected factor")
-        XCTAssertEqual(result.recipe?.ingredients.first?.quantity.amount, "2")
+        XCTAssertEqual(result.recipe?.ingredients.first?.quantity.amount, "8")
+        XCTAssertEqual(result.recipe?.cookware.first?.quantity.amount, "1", "empty scaled amounts fall back to original")
+        XCTAssertEqual(result.recipe?.timers.first?.quantity.amount, "40")
     }
 
     func testCancelledCallCannotBecomeRecipeFallbackSuccess() async throws {

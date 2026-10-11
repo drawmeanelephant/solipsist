@@ -1,6 +1,7 @@
 {
-  "schemaVersion": "html-build-report-0.1.0",
-  "compilerId": "boris/0.8.1",
+  "schemaVersion": "html-build-report-0.2.0",
+  "compilerId": "boris/0.8.2",
+  "vcsRevision": "3ab19ad",
   "ok": true,
   "contentRoot": "content",
   "outDir": "dist",

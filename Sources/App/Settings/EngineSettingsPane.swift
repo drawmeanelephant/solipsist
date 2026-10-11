@@ -8,6 +8,7 @@ import SwiftUI
 /// `SOLIPSIST_BORIS_EDITOR_BIN`.
 struct EngineSettingsPane: View {
     @Environment(AppRuntime.self) private var runtime
+    @State private var provenance = EngineProvenance.load()
 
     private var borisURL: URL? {
         runtime.enginePath.map(URL.init(fileURLWithPath:)) ?? BorisBinary.locate()
@@ -104,6 +105,44 @@ struct EngineSettingsPane: View {
                 }
             } header: {
                 Text("Boris Editor Host")
+            }
+
+            if let provenance {
+                Section {
+                    if let vcs = provenance.boris?.buildInfo?.vcsRevision, !vcs.isEmpty {
+                        LabeledContent("Boris Revision") {
+                            Text(vcs)
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                        }
+                    }
+                    if let commit = provenance.boris?.repoCommit, !commit.isEmpty {
+                        LabeledContent("Boris Checkout") {
+                            Text(String(commit.prefix(12)))
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                        }
+                    }
+                    if let version = provenance.oliver?.version, !version.isEmpty {
+                        LabeledContent("Oliver Version") {
+                            Text(version)
+                                .font(.caption)
+                        }
+                    }
+                    if let commit = provenance.oliver?.repoCommit, !commit.isEmpty {
+                        LabeledContent("Oliver Checkout") {
+                            Text(String(commit.prefix(12)))
+                                .font(.system(.caption, design: .monospaced))
+                                .textSelection(.enabled)
+                        }
+                    }
+                } header: {
+                    Text("Build Provenance")
+                } footer: {
+                    Text("Recorded at bundle time from `boris --build-info` and the resolved source checkouts (engine-provenance.json).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section {

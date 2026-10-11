@@ -12,6 +12,8 @@ public enum EngineBinaryDefaults {
         "customBorisBinaryPath",
         "customOliverBinaryPath",
         "customBorisEditorBinaryPath",
+        "customSourceRagBinaryPath",
+        "customContentAuditBinaryPath",
     ]
 
     public static func removeLegacyCustomPaths(defaults: UserDefaults = .standard) {

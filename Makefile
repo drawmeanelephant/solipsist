@@ -13,7 +13,7 @@ PROJECT  := Solipsist.xcodeproj
 SPIKE_CONTENT ?=
 SPIKE_PAGE ?=
 
-.PHONY: tools generate build install-app spike run-spike test-spike test test-doctor lint doctor harvest-fixtures site check-site clean fart
+.PHONY: tools generate build install-app spike run-spike test-spike test test-doctor lint doctor harvest-fixtures site check-site editor-ui clean fart
 
 tools:
 	@mkdir -p .tools
@@ -87,25 +87,39 @@ test-doctor:
 harvest-fixtures:
 	bash scripts/harvest-stunt-fixtures.sh
 
-# SITE_FLAGS mirror the deploy-site.yml workflow: the single public target is
-# synthesized as "default", the home layout is selected per-page, and
-# --site-url feeds sitemap.xml.
-SITE_FLAGS := --layout-rule default id:index themes/boris/layouts/home.html --sitemap --site-url https://solipsist.filed.fyi
+# Builds the compiled editor shell (editor/ui/dist) inside the resolved
+# boris checkout so `make build` can bundle it. Needs node + npm; the embed
+# script deliberately never runs this — run it after touching editor/ui/src.
+editor-ui:
+	bash scripts/build-editor-ui.sh
 
+# SITE_FLAGS are gone: site/boris.json declares the layout rule, sitemap,
+# site URL, and static dir itself, and `build --profile` executes them
+# (boris ≥ 0.8.2, profile-driven HTML execution). Passing the old explicit
+# selectors now hits the consistency-check refusal — don't re-add them.
 site:
-	@if [ -n "$$SOLIPSIST_BORIS_BIN" ] && [ -x "$$SOLIPSIST_BORIS_BIN" ]; then \
-		(cd site && "$$SOLIPSIST_BORIS_BIN" build --profile boris.json $(SITE_FLAGS)); \
+	@SITE_BORIS=""; \
+	if [ -n "$$SOLIPSIST_BORIS_BIN" ] && [ -x "$$SOLIPSIST_BORIS_BIN" ]; then \
+		SITE_BORIS="$$SOLIPSIST_BORIS_BIN"; \
+	elif [ -n "$$BORIS_REPO_DIR" ] && [ -x "$$BORIS_REPO_DIR/zig-out/bin/boris" ]; then \
+		SITE_BORIS="$$BORIS_REPO_DIR/zig-out/bin/boris"; \
 	elif [ -x "../boris/zig-out/bin/boris" ]; then \
-		(cd site && ../boris/zig-out/bin/boris build --profile boris.json $(SITE_FLAGS)); \
-	elif command -v boris >/dev/null 2>&1; then \
-		(cd site && boris build --profile boris.json $(SITE_FLAGS)); \
-	else \
+		SITE_BORIS="../boris/zig-out/bin/boris"; \
+	fi; \
+	if [ -z "$$SITE_BORIS" ]; then \
 		echo "error: boris binary not found. Set SOLIPSIST_BORIS_BIN or build ../boris" >&2; \
+		echo "(PATH boris is deliberately not used — the site's profile" >&2; \
+		echo " semantics must come from a verified engine; see vendor/boris-agent-kit/MANIFEST.json)" >&2; \
 		exit 1; \
-	fi
+	fi; \
+	SITE_REV="$$("$$SITE_BORIS" --build-info 2>/dev/null | sed -n 's/.*"vcsRevision": *"\([^"]*\)".*/\1/p')"; \
+	PIN_REV="$$(sed -n 's/.*"vcs_revision": *"\([^"]*\)".*/\1/p' vendor/boris-agent-kit/MANIFEST.json)"; \
+	if [ -n "$$SITE_REV" ] && [ -n "$$PIN_REV" ] && [ "$$SITE_REV" != "$$PIN_REV" ]; then \
+		echo "warn: site engine vcsRevision $$SITE_REV != pin $$PIN_REV — output may drift" >&2; \
+	fi; \
+	(cd site && "$$SITE_BORIS" build --profile boris.json)
 
 check-site: site
-	cp site/robots.txt site/dist/robots.txt
 	python3 scripts/check-site-links.py --root site/dist --base-url https://solipsist.filed.fyi
 
 clean:

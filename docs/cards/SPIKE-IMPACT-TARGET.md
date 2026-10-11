@@ -20,5 +20,5 @@ Makefile, and the existing spike CI job.
 Run contract regressions, `make test-spike`, and live smoke tests against
 temporary copies of namespaced and `getting-started` corpora. The local
 engine is unpinned Boris 0.8.2; report that limitation. The existing CI
-spike job builds `bf464a0` / Boris 0.8.1 and exercises the pin. Never patch
+spike job builds `3ab19ad` / Boris 0.8.2 and exercises the pin. Never patch
 Boris or run build/watch against a user's original content tree.

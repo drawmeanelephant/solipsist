@@ -61,20 +61,58 @@ public struct BuildReport: Codable, Sendable {
     public var errors: [Diagnostic] { diagnostics.filter(\.isError) }
 }
 
-// MARK: - HTML build report (`html-build-report-0.1.0`)
+// MARK: - HTML build report (`html-build-report-0.2.0`)
 
 /// Written by `boris build --report PATH` and `boris validate --report PATH`
 /// on success and failure. No `pageCount` — only errors/diagnostics.
+/// 0.2.0 added `vcsRevision` and `proofPack`; both decode as `nil` against
+/// a 0.1.0 report (D8 additive).
 public struct HTMLBuildReport: Codable, Sendable {
     public var schemaVersion: String
     public var compilerId: String?
+    /// Build provenance (#776): the VCS revision the producing binary was
+    /// compiled from; `""` when undetectable. Absent on 0.1.0 reports.
+    public var vcsRevision: String?
     public var ok: Bool
     public var contentRoot: String?
     public var outDir: String?
     public var errorCount: Int?
+    /// Publication-check verdicts mirrored from `<outDir>/_boris/proof/
+    /// checks.json`. Present only for a single-output build that committed
+    /// evidence; absent for multi-target builds, validate, and failures.
+    public var proofPack: HTMLReportProofPack?
     public var diagnostics: [Diagnostic]
 
     public var errors: [Diagnostic] { diagnostics.filter(\.isError) }
+}
+
+/// The `proofPack` mirror inside `html-build-report-0.2.0`. A failing check
+/// never fails the committed target — `allPassed == false` means inspect
+/// `checks` (or the proof tree), not rebuild.
+public struct HTMLReportProofPack: Codable, Sendable {
+    public var path: String
+    public var allPassed: Bool
+    public var checks: [HTMLReportProofCheck]
+}
+
+public struct HTMLReportProofCheck: Codable, Sendable {
+    public var id: String
+    /// `passed` / `failed` / `incomplete` / `not-applicable`.
+    public var status: String
+}
+
+// MARK: - Build info (`boris-build-info`, schemaVersion "1")
+
+/// One-line provenance document from `boris --build-info` (#776). Lets the
+/// app name the exact revision a bundled engine was compiled from.
+public struct BorisBuildInfo: Codable, Sendable {
+    public var format: String
+    /// Integer-as-string ("1"), matching the emitted document.
+    public var schemaVersion: String?
+    /// Compiler id, e.g. `boris/0.8.2`.
+    public var version: String?
+    /// Opaque VCS token, e.g. `3ab19ad` or `3ab19ad.dirty`.
+    public var vcsRevision: String?
 }
 
 // MARK: - Manifest
@@ -215,6 +253,85 @@ public struct CookQuantity: Codable, Sendable, Equatable {
     }
 }
 
+// MARK: - Recipe scale view (`boris-recipe-scale`, schemaVersion "0.2.0")
+
+/// Stdout envelope of `boris recipe-scale --input DIR --id PAGE --factor
+/// TEXT [--cooklang]`. Verified against `boris/0.8.2` at pin `3ab19ad`:
+/// quantities carry `amount` as an *object* (`class`/`original`/`scaled`),
+/// unlike the graph.json recipe facet where `amount` is a string — the
+/// two shapes are deliberately decoded by different types.
+public struct RecipeScaleEnvelope: Codable, Sendable {
+    public var format: String
+    public var schemaVersion: String
+    public var compiler: String?
+    public var vcsRevision: String?
+    public var factor: RecipeScaleFactor?
+    public var page: String?
+    public var ingredients: [ScaledCookItem]
+    public var cookware: [ScaledCookItem]
+    public var timers: [ScaledCookTimer]
+
+    public struct RecipeScaleFactor: Codable, Sendable {
+        public var num: Int
+        public var den: Int
+    }
+
+    /// A scaled quantity amount: `class` is `scalable`/`empty`/`text`,
+    /// `scaled` is the rendered amount at the requested factor.
+    public struct ScaledAmount: Codable, Sendable {
+        public var `class`: String
+        public var original: String
+        public var scaled: String
+    }
+
+    public struct ScaledQuantity: Codable, Sendable {
+        public var amount: ScaledAmount
+        public var unit: String
+    }
+
+    public struct ScaledCookItem: Codable, Sendable {
+        public var name: String
+        public var quantity: ScaledQuantity
+        public var preparation: String?
+        public var recipeRef: String?
+    }
+
+    public struct ScaledCookTimer: Codable, Sendable {
+        public var name: String
+        public var quantity: ScaledQuantity
+        /// "locked" timers do not scale; "proportional" do.
+        public var scaling: String?
+    }
+
+    /// Collapses the scaled view into the shared recipe model so UI keeps
+    /// one rendering path: `amount` shows the scaled figure (falling back
+    /// to `original` for classes that produce no scaled text).
+    public func recipe() -> CookRecipe {
+        func amount(_ q: ScaledQuantity) -> CookQuantity {
+            CookQuantity(
+                amount: q.amount.scaled.isEmpty ? q.amount.original : q.amount.scaled,
+                unit: q.unit
+            )
+        }
+        return CookRecipe(
+            ingredients: ingredients.map {
+                CookIngredient(
+                    name: $0.name,
+                    quantity: amount($0.quantity),
+                    preparation: $0.preparation ?? "",
+                    recipeRef: $0.recipeRef
+                )
+            },
+            cookware: cookware.map {
+                CookCookware(name: $0.name, quantity: amount($0.quantity))
+            },
+            timers: timers.map {
+                CookTimer(name: $0.name, quantity: amount($0.quantity))
+            }
+        )
+    }
+}
+
 public struct GraphEndpoint: Codable, Sendable {
     /// "page" or "source".
     public var type: String
@@ -291,6 +408,29 @@ public struct AnalysisSummary: Codable, Sendable {
     public var sourceEndpoints: Int
     public var unreferencedPages: Int
     public var hotspots: Int
+    /// Doc-intel 0.2.0: incoming/outgoing edge counts by edge kind,
+    /// split by endpoint class. Absent on 0.1.0 reports.
+    public var edgeCounts: AnalysisEdgeCounts?
+}
+
+/// `summary.edgeCounts` in a `boris-documentation-intelligence` 0.2.0
+/// report: per-direction, per-endpoint-class counts keyed by the closed
+/// edge-kind set.
+public struct AnalysisEdgeCounts: Codable, Sendable {
+    public var incoming: AnalysisDirectionEdgeCounts
+    public var outgoing: AnalysisDirectionEdgeCounts
+}
+
+public struct AnalysisDirectionEdgeCounts: Codable, Sendable {
+    public var pages: AnalysisEdgeKindCounts
+    public var sources: AnalysisEdgeKindCounts
+}
+
+/// Zero-filled fixed keys for the closed edge-kind set.
+public struct AnalysisEdgeKindCounts: Codable, Sendable {
+    public var parent: Int
+    public var include: Int
+    public var reference: Int
 }
 
 public struct AnalysisPage: Codable, Sendable {
@@ -466,6 +606,14 @@ public struct PublicationTarget: Codable, Sendable, Equatable {
     public var sitemap: PublicationPathOutput?
     public var rss: PublicationPathOutput?
     public var llms: PublicationPathOutput?
+    /// `static.dir` (#804): a project-relative input directory copied
+    /// byte-identically into the target root.
+    public var `static`: PublicationStaticDir?
+    /// Closed opt-in head-metadata declaration (head-metadata.md). Presence
+    /// negotiates plan schema 3.
+    public var head: PublicationHeadDeclaration?
+    /// `html` / `xhtml` / `html4_strict`; omitted means the HTML default.
+    public var html_profile: String?
 
     public init(
         name: String,
@@ -476,7 +624,10 @@ public struct PublicationTarget: Codable, Sendable, Equatable {
         layout_rules: [PublicationLayoutRule]? = nil,
         sitemap: PublicationPathOutput? = nil,
         rss: PublicationPathOutput? = nil,
-        llms: PublicationPathOutput? = nil
+        llms: PublicationPathOutput? = nil,
+        `static`: PublicationStaticDir? = nil,
+        head: PublicationHeadDeclaration? = nil,
+        html_profile: String? = nil
     ) {
         self.name = name
         self.output = output
@@ -487,6 +638,101 @@ public struct PublicationTarget: Codable, Sendable, Equatable {
         self.sitemap = sitemap
         self.rss = rss
         self.llms = llms
+        self.static = `static`
+        self.head = head
+        self.html_profile = html_profile
+    }
+}
+
+/// A target's `static` object — exactly one field, `dir`.
+public struct PublicationStaticDir: Codable, Sendable, Equatable {
+    public var dir: String
+
+    public init(dir: String) {
+        self.dir = dir
+    }
+}
+
+/// A target's closed `head` declaration (head-metadata.md). Mirrored
+/// for plan/profile decode fidelity; the app does not author it.
+public struct PublicationHeadDeclaration: Codable, Sendable, Equatable {
+    public var enabled: Bool?
+    public var base_url: String?
+    /// `optional` (default) or `required`.
+    public var ogp: String?
+    public var defaults: PublicationHeadValues?
+    /// Exact entity-id overrides, sorted by id in the normalized plan.
+    public var pages: [PublicationHeadPage]?
+
+    public init(
+        enabled: Bool? = nil,
+        base_url: String? = nil,
+        ogp: String? = nil,
+        defaults: PublicationHeadValues? = nil,
+        pages: [PublicationHeadPage]? = nil
+    ) {
+        self.enabled = enabled
+        self.base_url = base_url
+        self.ogp = ogp
+        self.defaults = defaults
+        self.pages = pages
+    }
+}
+
+/// `defaults` or a page's `values`: exactly the optional fields the closed
+/// grammar allows.
+public struct PublicationHeadValues: Codable, Sendable, Equatable {
+    public var title: String?
+    public var description: String?
+    public var image: PublicationHeadImage?
+    /// `website` / `article`.
+    public var type: String?
+    /// `summary` / `summary_large_image`.
+    public var twitter_card: String?
+
+    public init(
+        title: String? = nil,
+        description: String? = nil,
+        image: PublicationHeadImage? = nil,
+        type: String? = nil,
+        twitter_card: String? = nil
+    ) {
+        self.title = title
+        self.description = description
+        self.image = image
+        self.type = type
+        self.twitter_card = twitter_card
+    }
+}
+
+/// A head image: exactly `source`, `path`, `alt`.
+public struct PublicationHeadImage: Codable, Sendable, Equatable {
+    /// `theme` / `static` / `content`.
+    public var source: String?
+    public var path: String
+    public var alt: String?
+
+    public init(source: String? = nil, path: String, alt: String? = nil) {
+        self.source = source
+        self.path = path
+        self.alt = alt
+    }
+}
+
+/// One exact-page head override.
+public struct PublicationHeadPage: Codable, Sendable, Equatable {
+    public var id: String
+    public var values: PublicationHeadValues?
+    public var modified_time: String?
+
+    public init(
+        id: String,
+        values: PublicationHeadValues? = nil,
+        modified_time: String? = nil
+    ) {
+        self.id = id
+        self.values = values
+        self.modified_time = modified_time
     }
 }
 
@@ -549,9 +795,11 @@ public struct PublicationEditions: Codable, Sendable, Equatable {
     }
 }
 
-// MARK: - Publication plan (`boris-publication-plan`, schema v1)
+// MARK: - Publication plan (`boris-publication-plan`, schema v1–v3)
 
 /// Normalized declaration emitted on stdout by `boris plan --profile PATH`.
+/// `nostr.auth` negotiates schema 2; target `head`/`html_profile`
+/// declarations negotiate schema 3 — all additive over schema 1 (D8).
 public struct PublicationPlan: Codable, Sendable {
     public var format: String
     public var schema_version: Int?
@@ -561,6 +809,23 @@ public struct PublicationPlan: Codable, Sendable {
     public var publication: PublicationDeclaration?
     public var targets: [PublicationPlanTarget]?
     public var editions: PublicationEditions?
+    /// Closed Nostr surface declaration (schema 2+), emitted only when the
+    /// profile configures it.
+    public var nostr: PublicationPlanNostr?
+}
+
+/// The plan's closed `nostr` object — every key always present when the
+/// object is emitted (nostr-publication.md).
+public struct PublicationPlanNostr: Codable, Sendable {
+    public var enabled: Bool
+    /// Always the NIP-23 long-form kind `30023`.
+    public var kind: Int
+    /// Normalized 64-char lowercase hex author key.
+    public var pubkey: String
+    public var articles: [String]
+    public var relays: [String]
+    public var timeout_ms: Int
+    public var retries: Int
 }
 
 public struct PublicationPlanTarget: Codable, Sendable {
@@ -571,6 +836,10 @@ public struct PublicationPlanTarget: Codable, Sendable {
     public var layout: String?
     public var layout_rules: [PublicationLayoutRule]?
     public var projections: PublicationProjections?
+    /// Schema-3 echoes of the profile target's closed declarations.
+    /// `static` is a build-time copy directive and is not echoed in the plan.
+    public var head: PublicationHeadDeclaration?
+    public var html_profile: String?
 }
 
 public struct PublicationProjections: Codable, Sendable {

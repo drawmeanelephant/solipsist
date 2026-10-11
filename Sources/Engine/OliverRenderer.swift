@@ -7,10 +7,13 @@ public enum OliverFrontend: String, Sendable {
     case cooklang
 }
 
-/// `--to` render profile: HTML (default) or the XML-compatible fragment.
+/// `--to` render profile: HTML (default), the XML-compatible fragment, or
+/// the HTML 4.01 Strict output (oliver ≥ 1.1.0; boris `--target-profile`
+/// spells the same surface `html4_strict`).
 public enum OliverRenderProfile: String, Sendable {
     case html
     case xhtml
+    case html4Strict = "html4-strict"
 }
 
 /// `--raw-html` policy for raw HTML/HTML blocks.

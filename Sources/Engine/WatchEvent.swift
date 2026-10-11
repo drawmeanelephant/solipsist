@@ -3,11 +3,11 @@ import Foundation
 /// One line of the A1 `--watch-json` NDJSON stream (boris#648; contract
 /// `docs/issues/boris-A1-watch-events.md`). The pinned kit emits
 /// `watch_events_schema: 1`; the A5 `validate --watch` daemon (boris#647)
-/// reuses the same protocol with `mode: "validate"` (probed at `bf464a0`).
+/// reuses the same protocol with `mode: "validate"` (probed at `3ab19ad`).
 ///
 /// Additive decode: unknown fields are ignored, unknown `event` values
 /// decode as `.unknown` and are skipped — never fatal (D8). `build-failed`
-/// carries the same `diagnostics` array as `html-build-report-0.1.0`, so it
+/// carries the same `diagnostics` array as `html-build-report`, so it
 /// decodes straight into `[Diagnostic]` (A5; the HTML watch ignores them —
 /// the string summary is unchanged).
 enum WatchEvent: Decodable {
@@ -86,7 +86,7 @@ enum WatchEvent: Decodable {
 /// The last completed build cycle, for the A5 validate daemon (#161):
 /// `.succeeded` clears the problems pane, `.failed(diagnostics)` replaces
 /// it (the diagnostics decode straight from the stream — the same shape as
-/// `html-build-report-0.1.0`). The HTML watch does not use this; its string
+/// `html-build-report`). The HTML watch does not use this; its string
 /// `problems` surface is unchanged. Public because `ValidateWatch`'s
 /// `onBuild` carries it.
 public enum WatchBuildOutcome: Equatable, Sendable {

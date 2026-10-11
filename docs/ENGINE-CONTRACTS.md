@@ -1,11 +1,27 @@
-# Engine Contracts — probed hands-on against afterparty (M2–M8 design input)
+# Engine Contracts — probed hands-on (M2–M8 design input, re-pinned)
 
-**Date:** 2026-08-17 · **Engine:** afterparty, `boris/0.8.1` (kit pin
-was `b82e9e2` when these tables were probed; current pin is `bf464a0`,
-which contains A1/A14/A7 + A3/A4/A13 + A15 `open=` + A5
-`validate --watch` — record only, tables not re-probed)
+**Date:** 2026-08-17, updated at re-pin · **Engine:** `main`,
+`boris/0.8.2` — current pin `3ab19ad` (the `afterparty` line landed via
+boris PR #790). §1–§9 were probed at earlier pins (`b82e9e2`/`bf464a0`,
+`boris/0.8.1`) and are annotated where the contract has since moved;
+§10 was re-probed at the current pin.
 · **Content:** the afterparty dogfood site (25 pages, /tmp/apws)
 for §1–§4; the in-repo `Stunts/happy` corpus for §5–§7.
+
+**What moved at the current pin:** `html-build-report-0.2.0` (additive
+`vcsRevision` + `proofPack`), publication-plan **schema 3** (target
+`head`/`html_profile`; `nostr` object at schema 2), `--build-info`
+provenance, **profile-driven execution** (`build`/`watch`/`validate
+--profile` run the declared config; explicit selectors now trigger a
+consistency check that refuses unselected declarations), `static.dir` /
+`--static-dir`, `edgeCounts` in doc-intel summaries, `boris graph`,
+`boris proof verify`, `init --type`, `--target-profile html4-strict`,
+new diagnostic codes (`EFRAGMENTMISSING`, `EHTML4STRICT`, `EHEAD`,
+`WHEADOGP`, `ELAYOUTUNKNOWNMARKER`, `ELAYOUTNAVDEPTH`). Watch NDJSON
+schema stays **1**. The editor host gained a normative contract
+(`editor-host.md`): managed validate + watch daemons, a token-gated
+preview origin, and a **dist-writer seat** — while it is connected to a
+project the app's own `watch --serve` parks (see `PreviewSession`).
 
 Everything here was verified by running the binary and reading the real
 responses/artifacts. It is the concrete contract surface the app's M3
@@ -113,7 +129,8 @@ Consumes the same NDJSON protocol with `mode: "validate"` (events on
 Probe corrections vs the RFC draft: `build-succeeded` carries
 `pages_written: null` (validate writes nothing) and **no** `errors`
 key; rebuild cycles carry `changed`; `build-failed` diagnostics are
-the `html-build-report-0.1.0` shape with `recoverable`; the daemon
+the `html-build-report` diagnostic shape with `recoverable` (0.1.0 at
+probe time; 0.2.0 at the current pin — additive); the daemon
 keeps watching after a failed build. The consumption design below
 holds as written.
 
@@ -133,8 +150,8 @@ holds as written.
   versions degrade (D8). Additive addition only: a
   `buildSucceeded` case (currently `.unknown`-skipped for the HTML
   watch) so the pane can clear on success. The `build-failed`
-  `diagnostics` array is byte-identical to
-  `html-build-report-0.1.0`, so it decodes straight into
+  `diagnostics` array is byte-identical to the
+  `html-build-report` diagnostics, so it decodes straight into
   `[Diagnostic]` and maps with the existing
   `CoordinatorProblems.from(diagnostic:)` — no new problem shape.
 - **Coordinator** — register the validate watch like the preview
@@ -268,17 +285,23 @@ report carries only errors/diagnostics.
   location; the located diagnostic is usually right behind it). The
   problems panel must tolerate nulls.
 - Codes are the closed set (`EFRONTMATTER`, `EDUPLICATEID`, `ELAYOUT*`,
-  `EROUTE*`, `EUNICODE`, `ECOOKLANG`, `EIO`, …) plus `I*` info findings.
+  `EROUTE*`, `EUNICODE`, `ECOOKLANG`, `EIO`, `EFRAGMENTMISSING`,
+  `EHTML4STRICT`, `EHEAD`, …) plus `W*` warnings (`WHEADOGP`) and `I*`
+  info findings.
 - Exit mapping: 0 success, 1 content, 2 usage, 3 I/O — unchanged.
-- Schema twins: `docs/contracts/schemas/html-build-report-0.1.0.schema.json`
+- **At pin `3ab19ad` the report is `html-build-report-0.2.0`**: additive
+  `vcsRevision` and a `proofPack` verdicts mirror (single-output builds).
+  The decoder treats both as optional, so 0.1.0 reports still decode.
+- Schema twins: `docs/contracts/schemas/html-build-report-0.2.0.schema.json`
   (HTML) and `docs/contracts/schemas/ir-build-report-0.2.0.schema.json` (IR).
 
 ### App implications (M5)
 
-- Problems panel = decode `html-build-report-0.1.0` after each save-triggered
-  one-shot `build` (or `validate`), plus the IR `build-report.json` for
-  graph-level diagnostics. `ok` + `errorCount` + sorted, located
-  diagnostics render directly.
+- Problems panel = decode `html-build-report` (0.2.0 at the current pin;
+  0.1.0 still decodes) after each save-triggered one-shot `build` (or
+  `validate`), plus the IR `build-report.json` for graph-level
+  diagnostics. `ok` + `errorCount` + sorted, located diagnostics render
+  directly.
 - **Watch-mode diagnostics remain a gap**: `--report` is rejected on watch,
   and SSE carries only the reload counter — so live-while-editing
   diagnostics need the A1 (`--watch-json`) / A5 (`validate --watch`) work
@@ -292,7 +315,7 @@ report carries only errors/diagnostics.
 |---------|----------------|--------------------------|
 | Preview | `watch --serve` → `/`, `/__boris/`, `/__boris/events` | `docs/contracts/cli.md` |
 | Completion | `.boris/completion.json` | `docs/contracts/schemas/boris-completion-1.schema.json` |
-| HTML diagnostics | `--report` → `html-build-report-0.1.0` | `docs/contracts/schemas/html-build-report-0.1.0.schema.json` |
+| HTML diagnostics | `--report` → `html-build-report-0.2.0` | `docs/contracts/schemas/html-build-report-0.2.0.schema.json` |
 | IR diagnostics | `.boris/build-report.json` | `docs/contracts/schemas/ir-build-report-0.2.0.schema.json` |
 | Frontmatter | `boris-frontmatter-1.schema.json` | `docs/contracts/schemas/boris-frontmatter-1.schema.json` |
 
@@ -359,7 +382,11 @@ boris build --target public=dist/public --target preview=dist/preview
 boris plan --profile boris.json
 ```
 
-✅ exit 0, stdout-only `boris-publication-plan` v1. Verified shape:
+✅ exit 0, stdout-only `boris-publication-plan`. Verified shape at schema
+v1 (the pin negotiates **schema 3** when a target declares `head` /
+`html_profile`, and **schema 2** for a `nostr` section — the decoder
+accepts the negotiated `schema_version` and treats all new fields as
+optional):
 
 ```json
 {
@@ -660,25 +687,58 @@ root keeps only `INDEX.md` (a router over the packs) and
 
 ---
 
-## 10. Recipe scaling — unavailable pending a pinned contract (#308)
+## 10. Recipe scaling — `boris-recipe-scale` 0.2.0 (probed at pin `3ab19ad`)
 
-**2026-10-04:** the archived pin remains `bf464a0` / Boris 0.8.1, but
-its binary is unavailable in this environment. The installed executable
-reports Boris 0.8.2 and has SHA-256
-`0c657d81652a1381c76a9864c3dc055ac53c64354cb4f231d63a1754b09e6d39`.
-That is a compatibility observation, not a probe of the documented pin.
+**Verified live** against `boris/0.8.2` on the contract fixture
+`docs/contracts/fixtures/cooklang-compatibility/` (#308 unblocked).
 
-Its help names `recipe-scale --input DIR --id PAGE --factor TEXT`,
-not the app's previously assumed positional ID / `--scale` invocation.
-No recipe-scale stdout schema has been verified against the pin.
-App scaling is therefore explicitly unavailable. The inspector displays
-the `graph.json` recipe facet unchanged, or an unavailable message when
-recipe data is missing. Tags and file names never manufacture a recipe.
+### Invocation
 
-The engine transport no longer rescues failure by reading graph artifacts
-or doing Swift arithmetic. Nonzero exits keep stdout/stderr and have no
-recipe result. Launch/cancellation failures propagate. An exit-0 response
-that cannot decode as recipe data is an explicit decode failure, not
-success. Re-enabling scaling requires probing the pinned invocation and
-versioned response first; the remaining transport is not a verified
-recipe-scale contract.
+```
+boris recipe-scale --input DIR --id PAGE --factor TEXT [--cooklang] [--quiet]
+```
+
+- `--id`, not a positional; `--factor TEXT` (decimal or fraction), not
+  `--scale`. `--cooklang` is required for `.cook`-only trees — the engine
+  refuses mixed/wrong-mode trees with `ECOOKLANG` exit 1.
+- Exit 0 → the envelope below on stdout. Nonzero → diagnostics on
+  stderr, no recipe result.
+
+### Envelope shape (verified)
+
+```json
+{
+  "format": "boris-recipe-scale",
+  "schemaVersion": "0.2.0",
+  "compiler": "boris/0.8.2+cooklang",
+  "vcsRevision": "3ab19ad",
+  "factor": { "num": 2, "den": 1 },
+  "page": "carbonara",
+  "ingredients": [
+    { "name": "spaghetti",
+      "quantity": { "amount": { "class": "scalable",
+        "original": "400", "scaled": "800" }, "unit": "g" },
+      "preparation": "", "recipeRef": null }
+  ],
+  "cookware": [ { "name": "large pot",
+      "quantity": { "amount": { "class": "empty",
+        "original": "", "scaled": "" }, "unit": "" } } ],
+  "timers": [ { "name": "pasta",
+      "quantity": { "amount": { "class": "scalable",
+        "original": "9", "scaled": "9" }, "unit": "minutes" },
+      "scaling": "locked" } ]
+}
+```
+
+**The amount shape differs from the graph facet.** In `graph.json`'s IR
+0.4 recipe facet `quantity.amount` is a plain string (`"400"`); in the
+scale view it is `{class, original, scaled}` — `scalable` / `empty` /
+`text`, with `scaled` rendered at the factor and `scaling: "locked"` on
+timers that must not scale. Solipsist decodes the two shapes with
+different types (`CookQuantity` vs `RecipeScaleEnvelope.ScaledAmount`)
+and collapses the scaled view into `CookRecipe` for display — `amount`
+shows `scaled`, falling back to `original` for empty classes.
+
+The transport never rescues failure by reading graph artifacts or doing
+Swift arithmetic; nonzero exits keep stdout/stderr and an exit-0 body
+that fails to decode is an explicit decode failure.

@@ -31,13 +31,18 @@
 # The editor binary builds from source when the checkout has none
 # (zig build --build-file editor/build.zig). The editor UI is NEVER npm-built
 # here (needs node + network): a missing editor/ui/dist is a hard error with
-# remediation instructions.
+# remediation instructions (make editor-ui), and a stale one earns a warning.
 #
 # Oliver (compose preview renderer) is embedded alongside boris so the
 # release app renders previews without SOLIPSIST_OLIVER_BIN. Provenance:
 # oliver is NOT shipped by the boris agent kit — source it from the oliver
 # repo's own build (../oliver/zig-out/bin/oliver) or a kit that carries it.
 # Search order: SOLIPSIST_OLIVER_BIN, kit bin dirs, oliver repo zig-out.
+#
+# Provenance: after bundling, an `engine-provenance.json` is written next
+# to the binaries — `boris --build-info` (compiler id + vcsRevision), the
+# resolved source checkouts' git revisions, and each companion's version
+# line. The app surfaces it in Settings → Engine.
 #
 # Usage: embed-boris.sh SRCROOT DEST_DIR
 
@@ -172,6 +177,89 @@ bundle_and_sign() {
   bundle_oliver "$sign_identity"
   bundle_editor "$sign_identity"
   bundle_editor_ui
+  write_provenance
+}
+
+# --- engine-provenance.json ------------------------------------------------
+# Records what the bundle was built from: the boris build-info document
+# (compiler id + vcsRevision), each binary's version line, and the git
+# revision of the resolved source checkouts. Additive and defensive — a
+# binary that cannot answer --version just records its path.
+
+json_str() {
+  # Escape a string for embedding inside a JSON string literal.
+  printf '%s' "$1" | python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.stdin.read()))' 2>/dev/null \
+    || printf '"%s"' "$(printf '%s' "$1" | tr -d '"\\')"
+}
+
+repo_commit() {
+  # HEAD of a git checkout, or "" when unavailable/removed (e.g. a worktree
+  # without .git, or a binary from a kit).
+  local dir="${1:-}"
+  if [[ -n "$dir" && -d "$dir" ]]; then
+    git -C "$dir" rev-parse HEAD 2>/dev/null || true
+  fi
+}
+
+bin_version() {
+  # `<tool>/<release>` for standalone binaries that answer --version;
+  # empty when the flag is unsupported (boris-editor's closed flag surface).
+  local bin="${1:-}"
+  if [[ -x "$bin" ]]; then
+    "$bin" --version 2>/dev/null | head -1 || true
+  fi
+}
+
+write_provenance() {
+  local out="$DEST_DIR/engine-provenance.json"
+  local boris_repo="" oliver_repo=""
+  boris_repo="$(resolve_boris_repo)" || true
+  oliver_repo="$(resolve_oliver_repo)" || true
+
+  local boris_info=""
+  if [[ -x "$DEST_DIR/boris" ]]; then
+    boris_info="$("$DEST_DIR/boris" --build-info 2>/dev/null | head -1 || true)"
+  fi
+
+  local ui_src=""
+  if [[ -f "$DEST_DIR/editor-ui/index.html" ]]; then
+    if [[ -n "$boris_repo" && -f "$boris_repo/editor/ui/dist/index.html" ]]; then
+      ui_src="$boris_repo/editor/ui/dist"
+    else
+      ui_src="${SOLIPSIST_EDITOR_UI_DIR:-}"
+    fi
+  fi
+
+  {
+    printf '{\n'
+    printf '  "format": "solipsist-engine-provenance",\n'
+    printf '  "schema_version": 1,\n'
+    printf '  "generatedBy": "scripts/embed-boris.sh",\n'
+    printf '  "boris": {\n'
+    printf '    "buildInfo": %s,\n' "${boris_info:-null}"
+    printf '    "version": %s,\n' "$(json_str "$(bin_version "$DEST_DIR/boris")")"
+    printf '    "repoCommit": %s\n' "$(json_str "$(repo_commit "$boris_repo")")"
+    printf '  },\n'
+    printf '  "borisEditor": {\n'
+    printf '    "version": %s,\n' "$(json_str "$(bin_version "$DEST_DIR/boris-editor")")"
+    printf '    "repoCommit": %s\n' "$(json_str "$(repo_commit "$boris_repo")")"
+    printf '  },\n'
+    printf '  "editorUI": {\n'
+    printf '    "sourcePath": %s,\n' "$(json_str "$ui_src")"
+    printf '    "repoCommit": %s\n' "$(json_str "$(repo_commit "$boris_repo")")"
+    printf '  },\n'
+    printf '  "oliver": {\n'
+    printf '    "version": %s,\n' "$(json_str "$(bin_version "$DEST_DIR/oliver")")"
+    printf '    "repoCommit": %s\n' "$(json_str "$(repo_commit "$oliver_repo")")"
+    printf '  },\n'
+    printf '  "companions": {\n'
+    printf '    "borisPackage": %s,\n' "$(json_str "$(bin_version "$DEST_DIR/boris-package")")"
+    printf '    "borisSourceRag": %s,\n' "$(json_str "$(bin_version "$DEST_DIR/boris-source-rag")")"
+    printf '    "borisContentAudit": %s\n' "$(json_str "$(bin_version "$DEST_DIR/boris-content-audit")")"
+    printf '  }\n'
+    printf '}\n'
+  } > "$out"
+  echo "embed-boris: wrote $out"
 }
 
 # Resolves the boris source checkout: BORIS_REPO_DIR first, then derived
@@ -198,6 +286,7 @@ resolve_boris_repo() {
 
   local candidates=(
     "$SRCROOT/../boris"
+    "$SRCROOT/boris"
     "$SRCROOT/../../boris"
     "$SRCROOT/../../../boris"
   )
@@ -293,8 +382,7 @@ find_editor_ui() {
       return 0
     fi
     echo "embed-boris: FAILED: editor UI not built in $repo" >&2
-    echo "embed-boris: build it once with:" >&2
-    echo "embed-boris:   cd $repo/editor/ui && npm ci && npm run build" >&2
+    echo "embed-boris: build it with 'make editor-ui' (or: cd $repo/editor/ui && npm ci && npm run build)" >&2
     return 1
   fi
   return 1
@@ -335,6 +423,19 @@ bundle_editor_ui() {
   mkdir -p "$DEST_DIR/editor-ui"
   cp -R "$ui/." "$DEST_DIR/editor-ui/"
   echo "embed-boris: bundled editor-ui (provenance: $ui)"
+  # Freshness check: warn when the compiled shell predates the newest
+  # ui/src file — a stale bundle ships the old editor silently. Not fatal:
+  # an intentionally pinned dist is legitimate, a forgotten rebuild is not.
+  local repo=""
+  repo="$(resolve_boris_repo)" || true
+  if [[ -n "$repo" && -d "$repo/editor/ui/src" && "$ui" == "$repo/editor/ui/dist" ]]; then
+    local newest_src=""
+    newest_src="$(find "$repo/editor/ui/src" -type f -newer "$ui/index.html" -print -quit 2>/dev/null)"
+    if [[ -n "$newest_src" ]]; then
+      echo "embed-boris: WARNING: editor-ui/dist is older than editor UI sources" >&2
+      echo "embed-boris:   (e.g. $newest_src) — rebuild with 'make editor-ui'" >&2
+    fi
+  fi
 }
 
 find_oliver() {

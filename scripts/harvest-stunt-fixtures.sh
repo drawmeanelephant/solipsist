@@ -115,7 +115,7 @@ wait 2>/dev/null || true
 if [[ -s "$TMP/validate-watch.ndjson" ]]; then
   head -n 20 "$TMP/validate-watch.ndjson" > "$FIX/validate-watch/validate-watch.ndjson"
 else
-  # Fallback probe-shaped fixture (still bf464a0-accurate) if live capture raced
+  # Fallback probe-shaped fixture (schema-1 watch events) if live capture raced
   cat > "$FIX/validate-watch/validate-watch.ndjson" <<'NDJSON'
 {"event":"hello","watch_events_schema":1,"compiler":"boris/0.8.1"}
 {"event":"build-started","phase":"initial","mode":"validate","targets":["default"]}

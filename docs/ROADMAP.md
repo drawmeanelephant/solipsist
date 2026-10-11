@@ -33,10 +33,13 @@ Compose window we author: native buffer (`⌘⇧C`) + Oliver preview (#106)
 M2–M8 shipped a flatter cut (source list + tabbed play). M10 is the
 recut to the diagram above. Spatial detail: [`HARNESS.md`](HARNESS.md).
 
-**Engine baseline:** afterparty `boris/0.8.1`. **Pinned kit:** `bf464a0`
-(`bf464a02883d1dce1d9f990739183c248e68c5c3`). Contains A1/A14/A7 +
-A3/A4/A13 (boris#648 / #643 / #642 / #641) **plus A15 `open=`
-(boris#649) and A5 `validate --watch` (boris#647)** — both consumed:
+**Engine baseline:** `main` `boris/0.8.2`. **Pinned kit:** `3ab19ad`
+(`3ab19adf4d57e9061d880288ec1a2774ffa46a8c`; `afterparty` landed via
+boris PR #790). Everything the old pin carried (A1/A14/A7 + A3/A4/A13 +
+A15 `open=` + A5 `validate --watch`) plus `html-build-report-0.2.0`,
+`--build-info`, profile-driven `build`/`watch`/`validate --profile`,
+`static.dir`, plan schema 3, `boris graph`, `proof verify`, and the
+editor-host daemon layer — both older consumptions still shipped:
 #160 (A15 `open=`) and #161 (A5 live problems daemon) shipped
 (PRs #198/#199).
 
@@ -571,7 +574,7 @@ within a second, no re-select.
 
 ## 6. Capability coverage
 
-Every afterparty surface we intend to harness, and when. If it is not
+Every engine surface we intend to harness, and when. If it is not
 here, it is not a v1 promise.
 
 | Boris capability | Milestone | How Solipsist uses it |

@@ -13,7 +13,9 @@ DEST_DIR="${1:?usage: populate-universal-companions.sh DEST_DIR}"
 
 mkdir -p "$DEST_DIR"
 
-TOOLS="boris-editor boris-package boris-source-rag boris-content-audit"
+# boris-content-audit graduated to drawmeanelephant/boris-content-audit
+# (boris#834) — no longer built from the boris checkout.
+TOOLS="boris-editor boris-package boris-source-rag"
 bundled=0
 for tool in $TOOLS; do
   universal="/tmp/boris-universal-$tool"

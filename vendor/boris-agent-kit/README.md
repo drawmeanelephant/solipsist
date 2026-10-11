@@ -1,55 +1,59 @@
-# Boris Agent Kit — archived pin (metadata only)
+# Boris Agent Kit — engine pin (metadata only)
 
-The original `boris-agent-kit/` folder (a sibling of this repo) was a
-**temporary transport artifact** — a set of 10 prebuilt Darwin-arm64
-binaries handed off for agent work. It may not exist in future
-environments. **The binaries are not committed here**; what this folder
-preserves is the *pin* — the exact provenance and SHA-256 fingerprints of
-that kit — so work off the branch never depends on a folder that could
-vanish.
-
-## What's here
-
-- `MANIFEST.json` — commit `bf464a02883d1dce1d9f990739183c248e68c5c3`,
-  branch `afterparty`, platform `Darwin-arm64`, Zig 0.16.0, `dirty: false`,
-  per-binary sha256. Engine sha256 is a local `zig build` of that commit;
-  the other nine fingerprints remain the archived `b82e9e2` kit (those
-  tools were not rebuilt for this pin — the app and release workflow
-  consume the engine only).
-- `SHA256SUMS` — engine line updated with the rebuilt `bin/boris`; the
-  rest is the archived kit.
+This folder preserves the *pin* — the exact provenance and SHA-256
+fingerprints of the engine build the app is developed and released
+against. **The binaries are not committed here**; they are rebuilt from
+the pinned commit or supplied by an agent kit (see "Reproducing" below).
 
 ## The pinned engine
 
 | Field | Value |
 |-------|-------|
-| Commit | `bf464a0` (`boris/0.8.1`, afterparty; A1/A14/A7 + A3/A4/A13 + **A15 `open=`** (boris#649) + **A5 `validate --watch`** (boris#647) + editor validation #652/#654/#656/#658/#659) |
-| Engine binary sha256 | `f6d17ad1792c1a62922c11c2775646e0ef07756bcaf05e3c8b802eab938f5519` |
-| Behavior | local spike decodes IR via `SOLIPSIST_BORIS_BIN` |
+| Commit | `3ab19adf4d57e9061d880288ec1a2774ffa46a8c` |
+| Line | `main` — the integration line since `afterparty` landed via boris PR #790 |
+| Compiler id | `boris/0.8.2` (`--build-info` vcsRevision `3ab19ad`) |
+| Toolchain | Zig **0.17** (was 0.16 at the previous pin) |
+| Engine sha256 | `bb49bc14…0d96eaef` (debug `zig build`; see `SHA256SUMS`) |
 
-## Reproducing the binaries (if the kit is gone)
+## What the pin carries (vs the previous `bf464a0` / `boris/0.8.1` pin)
 
-The kit was built from the pinned commit. The engine and the toolchain
-binaries rebuild from the boris source checkout at that commit:
+- `html-build-report-0.2.0` — additive `vcsRevision` + `proofPack` mirror.
+- `boris --build-info` — one-line `boris-build-info` provenance document
+  (#776); embedded into the app bundle by `scripts/embed-boris.sh` as
+  `engine-provenance.json`.
+- Publication plan schema 3 — target `head` / `html_profile` declarations
+  (head-metadata.md); `nostr` object at schema 2.
+- **Profile-driven HTML execution** — `build` / `watch` / `validate
+  --profile PATH` execute the declared targets, layout rules, static
+  dir, sitemap, and site URL. Explicit selectors alongside `--profile`
+  now run a consistency check and refuse unselected declarations.
+- `--static-dir` / per-target `static.dir` (#804).
+- `boris graph`, `boris proof verify`, `check --fail-on-*` classes,
+  `edgeCounts` in doc-intel reports, `init --type` archetypes,
+  `oliver --to html4-strict` / `--target-profile NAME=html4_strict`.
+- Editor host (`boris-editor`) grew a normative contract
+  (`docs/contracts/editor-host.md`): managed validate + watch daemons, a
+  token-gated preview origin, a nine-mode command allowlist including
+  `proof_verify`, and a dist-writer seat. `open=` (A15) is consumed by
+  the shipped shell.
+- `watch_events_schema` remains **1** — the hello handshake is unchanged.
+- `boris-content-audit` graduated to `drawmeanelephant/boris-content-audit`
+  (boris#834); `boris-migration-lab` likewise left the repo. Solipsist's
+  content-audit verb still works via `SOLIPSIST_CONTENT_AUDIT_BIN`, a kit
+  binary, or a `../boris-content-audit` sibling checkout.
+
+## Reproducing the binaries
 
 ```bash
-cd <boris-repo>          # checkout at bf464a0
-zig build               # installs: boris, boris-source-rag, boris-package, boris-job-runner
-# the standalone tools each build from their own build.zig:
-zig build --build-file tools/search-index/build.zig       # boris-search-index
-zig build --build-file tools/content-audit/build.zig      # boris-content-audit
-zig build --build-file tools/github-pages-audit/build.zig # boris-github-pages-audit
-zig build --build-file tools/docs-maintenance/build.zig   # boris-docs-maintenance
-zig build --build-file tools/migration-lab/build.zig      # boris-migration-lab
-zig build --build-file tools/scale-smoke/build.zig        # boris-scale-smoke
-zig build --build-file tools/testdata-generator/build.zig # boris-testdata
+cd <boris-repo>   # checkout at 3ab19adf…
+zig build                                        # boris, boris-package, boris-source-rag, boris-job-runner
+zig build --build-file editor/build.zig          # boris-editor (+ contract probe)
+cd editor/ui && npm ci && npm run build          # editor-ui dist (or `make editor-ui` here)
 ```
 
-Note: a locally rebuilt binary will have a **different sha256 than the
-kit** (build-config differences — the kit was a specific release build),
-but behavior is what's pinned and verified. When you have a rebuilt
-`bin/boris`, point the app at it via `SOLIPSIST_BORIS_BIN` or the
-`../boris/zig-out/bin/boris` fallback — the engine location order in
-`AGENTS.md` covers both.
+A rebuilt binary's sha256 differs across build configs — behavior is
+what's pinned and verified. Point the app at a rebuilt engine via
+`SOLIPSIST_BORIS_BIN` or the `../boris/zig-out/bin/boris` fallback.
 
-Full review and probe results: [`docs/AGENT-KIT-REVIEW.md`](../docs/AGENT-KIT-REVIEW.md).
+Full contract surface: [`docs/BORIS-CAPABILITIES.md`](../../docs/BORIS-CAPABILITIES.md)
+and [`docs/ENGINE-CONTRACTS.md`](../../docs/ENGINE-CONTRACTS.md).

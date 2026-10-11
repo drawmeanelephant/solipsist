@@ -11,7 +11,7 @@ public struct EditorExit: Sendable {
 ///
 /// Runs `boris-editor <projectRoot> --boris <engineBinary> --port 0` with
 /// `cwd = projectRoot`. DIR must be the project folder (the one that
-/// contains `content/`) — afterparty `project.discover` rejects a
+/// contains `content/`) — boris `project.discover` rejects a
 /// content-tree path with "has no content directory". The startup line
 /// on stderr:
 ///

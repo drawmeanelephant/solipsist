@@ -71,7 +71,7 @@ final class Coordinator: PreviewWatchCoordinating {
 
     func registerWatch(_ server: WatchServer) {
         if let old = activeWatch, old !== server {
-            old.resume()
+            old.resumeAll()
             old.stop()
         }
         activeWatch = server
@@ -94,11 +94,13 @@ final class Coordinator: PreviewWatchCoordinating {
     }
 
     /// Pause watch for any tree-writing invocation, including play's
-    /// implicit IR build. Nested; resume when the last writer ends.
+    /// implicit IR build. Nested; resume when the last writer ends. Other
+    /// suspend reasons (a connected editor companion) are unaffected —
+    /// `WatchServer` holds the reasons side by side.
     func beginTreeWrite() {
         watchSuspends += 1
         if watchSuspends == 1 {
-            activeWatch?.suspend()
+            activeWatch?.suspend(reason: .treeWrite)
         }
     }
 
@@ -106,7 +108,7 @@ final class Coordinator: PreviewWatchCoordinating {
         guard watchSuspends > 0 else { return }
         watchSuspends -= 1
         if watchSuspends == 0 {
-            activeWatch?.resume()
+            activeWatch?.resume(reason: .treeWrite)
         }
     }
 
@@ -833,6 +835,7 @@ final class Coordinator: PreviewWatchCoordinating {
                     contentRoot: source.contentRoot(),
                     pageID: pageID,
                     factor: 1.0,
+                    cooklang: noun?.sourcePath?.hasSuffix(".cook") == true,
                     workingDirectory: try source.workspaceRoot(),
                     knobs: knobs
                 )

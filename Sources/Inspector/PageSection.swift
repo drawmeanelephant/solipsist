@@ -93,10 +93,12 @@ struct PageSection: View {
     private func recipeSection(_ recipe: CookRecipe) -> some View {
         Section("Recipe") {
             VStack(alignment: .leading, spacing: 6) {
-                Text(RecipeScaleSupport.unavailableMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if !RecipeScaleSupport.isAvailable {
+                    Text(RecipeScaleSupport.unavailableMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 if !recipe.ingredients.isEmpty {
                     VStack(alignment: .leading, spacing: 2) {

@@ -264,7 +264,7 @@ cut wrong — stop and recut.
 | **Filter letters** (M13-2) | `Sources/Play/Local/` | `SourceSidebar.swift`, Engine, `MainWindow.swift` | Selecting a trunk mailbox filters the list; Pages still means all |
 | **A1 consume** (M14-1) | `Sources/Engine/WatchServer.swift` (+ Engine watch start), `Companions/Preview/` port wiring | Play list internals, `MainWindow.swift` | `--watch-json` / `serve-started` is how we learn the port |
 | **Letter SSE** (M14-2) | reading pane only; observe existing session | `WatchServer` argv, Engine start line | Letter reloads on `event: reload`. No second watch. |
-| **Issues** | `docs/issues/` | `Sources/` | Draft fact-checked against afterparty, then filed |
+| **Issues** | `docs/issues/` | `Sources/` | Draft fact-checked against the pinned engine, then filed |
 | **Design** | `docs/*.md` except `issues/` | `Sources/` | Decisions recorded; no silent contradiction with this file |
 
 ### Sequence

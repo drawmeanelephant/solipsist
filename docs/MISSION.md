@@ -28,12 +28,13 @@ Pages, Standard.site/AT Protocol, Nostr). Its identity, quoted from its own
 > contracted projections. HTML `dist/` is the default target, not the whole
 > product."
 
-**We harness the `afterparty` integration line — v0.8.1 candidate
-(`boris/0.8.1`), NOT `main`.** `main` is frozen; `afterparty` is where
-everything current lives (the command-based CLI, `validate`, `watch
---serve`, `--timings`, `--version`, completion IR, publication targets,
-themes, and the compiler's own editor). The boris repo is read-only for us:
-we vendor its binary and file issues against it, nothing more.
+**We harness `main` — `boris/0.8.2` at pin `3ab19ad`.** `main` became the
+integration line when `afterparty` landed via boris PR #790: the
+command-based CLI, `validate`, `watch --serve`, `--timings`, `--version`,
+`--build-info`, completion IR, profile-driven `build`/`watch`, publication
+targets, themes, and the compiler's own editor all live there. The boris
+repo is read-only for us: we vendor its binary and file issues against it,
+nothing more.
 
 ## Why a Mac app at all (when boris now ships its own editor)
 
@@ -81,8 +82,9 @@ compiler repo. Solipsist is the complementary **native desktop citizen**:
   (#236 + children #239–#243) are merged. The tracker is empty;
   next-layer candidates are the named-but-unscheduled items in
   [ROADMAP.md](ROADMAP.md) §3. Sequence: [ROADMAP.md](ROADMAP.md) §8.
-- **Engine baseline:** afterparty `boris/0.8.1`. Kit pin `bf464a0`
-  (contains A1/A14/A7 + A3/A4/A13 + A15 `open=` + A5 `validate --watch`).
+- **Engine baseline:** `main` `boris/0.8.2`. Kit pin `3ab19ad`
+  (watch schema 1, `validate --watch`, `open=`, `--build-info`,
+  profile-driven execution, editor-host daemon layer).
 - Roadmap **P** is withdrawn — the public site ships via Cloudflare
   Pages (`site/`).
 

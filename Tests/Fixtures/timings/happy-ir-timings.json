@@ -3,10 +3,10 @@
   "schemaVersion": "1",
   "mode": "ir",
   "phases": {
-    "scan": 366625,
-    "parse": 1026583,
-    "graph_validate": 754208,
-    "dependency_resolve": 949250
+    "scan": 376958,
+    "parse": 1072375,
+    "graph_validate": 701041,
+    "dependency_resolve": 1204542
   },
   "counters": {
     "page_reads": 3,
@@ -15,5 +15,5 @@
     "link_resolutions": 0,
     "fast_path_hits": 0
   },
-  "totalNs": 12723417
+  "totalNs": 11177458
 }

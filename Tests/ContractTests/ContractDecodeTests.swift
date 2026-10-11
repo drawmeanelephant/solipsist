@@ -33,7 +33,9 @@ final class ContractDecodeTests: XCTestCase {
     func testHappyValidateReport() throws {
         let report = try decode(HTMLBuildReport.self, "validate-happy", "html-build-report.json")
         XCTAssertTrue(report.ok)
-        XCTAssertEqual(report.schemaVersion, "html-build-report-0.1.0")
+        XCTAssertEqual(report.schemaVersion, "html-build-report-0.2.0")
+        // 0.2.0 additive fields: vcsRevision present on live reports.
+        XCTAssertEqual(report.vcsRevision, "3ab19ad")
     }
 
     func testHappyPlan() throws {
@@ -151,11 +153,11 @@ final class ContractDecodeTests: XCTestCase {
 
     func testHappyCheck() throws {
         let report = try decode(AnalysisReport.self, "check-happy", "analysis-report.json")
-        XCTAssertEqual(report.format, "boris-analysis-report")
+        XCTAssertEqual(report.format, "boris-documentation-intelligence")
         XCTAssertEqual(report.schemaVersion, "0.2.0")
-        XCTAssertEqual(report.summary.pages, 5)
+        XCTAssertEqual(report.summary.pages, 3)
         XCTAssertEqual(report.summary.unreferencedPages, 1)
-        XCTAssertTrue(report.findings.contains { $0.code == "WUNREFERENCED" })
+        XCTAssertTrue(report.findings.contains { $0.code == "unreferenced_page" })
     }
 
     func testGraphDecodesRelations() throws {
@@ -204,12 +206,17 @@ final class ContractDecodeTests: XCTestCase {
     func testAnalysisReport02FullShape() throws {
         let report = try decode(AnalysisReport.self, "check-happy", "analysis-report.json")
         XCTAssertEqual(report.schemaVersion, "0.2.0")
-        XCTAssertEqual(report.summary.pages, 5)
-        XCTAssertEqual(report.nodes?.count, 5)
+        XCTAssertEqual(report.summary.pages, 3)
+        XCTAssertEqual(report.nodes?.count, 3)
         XCTAssertEqual(report.edges?.count, 5)
-        XCTAssertEqual(report.sourceLocations?.first?.value, "orphan")
-        XCTAssertEqual(report.sourceLocations?.first?.sourcePath, "orphan.md")
+        XCTAssertEqual(report.sourceLocations?.first?.value, "guides/getting-started")
+        XCTAssertEqual(report.sourceLocations?.first?.sourcePath, "guides/getting-started.md")
         XCTAssertEqual(report.diagnostics?.isEmpty, true)
+        // 0.2.0 edgeCounts: incoming/outgoing × pages/sources × kind.
+        XCTAssertEqual(report.summary.edgeCounts?.incoming.pages.reference, 3)
+        XCTAssertEqual(report.summary.edgeCounts?.incoming.pages.parent, 2)
+        XCTAssertEqual(report.summary.edgeCounts?.outgoing.pages.reference, 3)
+        XCTAssertEqual(report.summary.edgeCounts?.incoming.sources.reference, 0)
     }
 
     func testSchemaPolicyUnknownVersion() throws {
