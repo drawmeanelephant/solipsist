@@ -2,10 +2,10 @@ import SwiftUI
 
 /// Height of the main window's floating glass toolbar band (#130).
 ///
-/// The main window uses `.fullSizeContentView` + `.glassEffect()`, so the
-/// toolbar floats *over* the content and is deliberately absent from the
-/// SwiftUI safe area (a `GeometryReader` in the detail column reports
-/// `top == 0`). AppKit still reserves the band in `contentLayoutRect`, so
+/// On macOS 27 the unified toolbar floats *over* the content and is
+/// deliberately absent from the SwiftUI safe area (a `GeometryReader` in
+/// the detail column reports `top == 0`). AppKit still reserves the band
+/// in `contentLayoutRect`, so
 /// `frame.height - contentLayoutRect.maxY` is the exact band. Mailbox lists
 /// inset their scroll content by this measured value instead of a hardcoded
 /// spacer.
