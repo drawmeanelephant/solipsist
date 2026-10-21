@@ -34,7 +34,7 @@ struct PlanPane: View {
     }
 
     private var activePlan: PublicationPlan? {
-        runtime.coordinator.latestPlan ?? plan
+        runtime.coordinator.latestPlan(for: source.id) ?? plan
     }
 
     private func planDocument(_ plan: PublicationPlan) -> some View {
@@ -149,7 +149,7 @@ struct PlanPane: View {
     }
 
     private func loadIfPossible() {
-        if runtime.coordinator.latestPlan == nil,
+        if runtime.coordinator.latestPlan(for: source.id) == nil,
            runtime.coordinator.canRunVerb,
            source.profileURL() != nil {
             runtime.coordinator.run(.plan, store: store, runtime: runtime)

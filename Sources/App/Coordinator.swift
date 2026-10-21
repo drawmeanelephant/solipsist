@@ -15,12 +15,18 @@ final class Coordinator: PreviewWatchCoordinating {
     private(set) var exitCode: Int32?
     private(set) var problems: [ProblemItem] = []
     private(set) var activityHistory: [CoordinatorActivity] = []
-    private(set) var latestPlan: PublicationPlan?
-    /// Timestamp of the last successful Plan verb — used by Outputs to
-    /// show a stale-plan dot when boris.json mtime exceeds it.
-    private(set) var planTimestamp: Date?
+    /// Per-source job results. A plan, its timestamp, or `check` findings
+    /// computed for one project must never annotate another source's UI —
+    /// an unscoped result read as an orphaned dot/badge on a project that
+    /// never ran the verb. Read through the `for:` accessors.
+    private(set) var latestPlans: [SourceID: PublicationPlan] = [:]
+    /// Timestamp of the last successful Plan per source — Outputs shows
+    /// the stale-plan dot when boris.json mtime exceeds it.
+    private(set) var planTimestamps: [SourceID: Date] = [:]
     private(set) var latestCheckReport: AnalysisReport?
-    private(set) var checkFindings: [AnalysisFinding] = []
+    private(set) var checkFindingsBySource: [SourceID: [AnalysisFinding]] = [:]
+    /// Source of the in-flight job; `finish` attributes results with it.
+    private var jobSourceID: SourceID?
     private var jobStartTime: ContinuousClock.Instant?
     private var task: Task<Void, Never>?
     private var reapTask: Task<Void, Never>?
@@ -57,12 +63,31 @@ final class Coordinator: PreviewWatchCoordinating {
         activityHistory.removeAll()
     }
 
-    /// Returns the most recent activity whose summary starts with the
-    /// given target or edition name, or nil if none have run yet.
-    func lastActivity(for targetName: String) -> CoordinatorActivity? {
+    /// Returns the most recent activity for `sourceID` whose summary
+    /// starts with the given target or edition name, or nil if none have
+    /// run against that source.
+    func lastActivity(for targetName: String, in sourceID: SourceID) -> CoordinatorActivity? {
         activityHistory.first { activity in
-            activity.verb == .buildThis && activity.summary.hasPrefix(targetName)
+            activity.sourceID == sourceID
+                && activity.verb == .buildThis
+                && activity.summary.hasPrefix(targetName)
         }
+    }
+
+    /// The last plan computed for `id` this session, if any.
+    func latestPlan(for id: SourceID) -> PublicationPlan? {
+        latestPlans[id]
+    }
+
+    /// When `id` last had a successful Plan, if any.
+    func planTimestamp(for id: SourceID) -> Date? {
+        planTimestamps[id]
+    }
+
+    /// `check` findings for `id` — empty when the latest run belonged to
+    /// another source.
+    func checkFindings(for id: SourceID) -> [AnalysisFinding] {
+        checkFindingsBySource[id] ?? []
     }
 
     var canRunVerb: Bool { state == .idle || state == .watching }
@@ -159,6 +184,9 @@ final class Coordinator: PreviewWatchCoordinating {
               let engine = runtime.engine
         else {
             stopValidateWatch()
+            // The old source is gone — its findings must not linger on
+            // whatever is selected now.
+            problems = []
             return
         }
         if validateWatchSourceID == folder.id, validateWatchContentRoot == root,
@@ -167,6 +195,9 @@ final class Coordinator: PreviewWatchCoordinating {
             return
         }
         stopValidateWatch()
+        // Rebinding to a different source: the previous source's problems
+        // are foreign here; the daemon's next build outcome repopulates.
+        problems = []
         validateWatchSourceID = folder.id
         validateWatchContentRoot = root
         do {
@@ -374,6 +405,7 @@ final class Coordinator: PreviewWatchCoordinating {
             debounceTask = nil
         }
 
+        jobSourceID = source.id
         isRunning = true
         state = verb.writesTree ? .building : .validating
         self.verb = verb
@@ -525,15 +557,15 @@ final class Coordinator: PreviewWatchCoordinating {
             self.summary = summary
             self.problems = problems
         }
-        if let plan = result?.plan {
-            self.latestPlan = plan
+        if let plan = result?.plan, let jobSourceID {
+            self.latestPlans[jobSourceID] = plan
             if verb == .plan, exit == 0 {
-                self.planTimestamp = Date()
+                self.planTimestamps[jobSourceID] = Date()
             }
         }
-        if let checkReport = result?.checkReport {
+        if let checkReport = result?.checkReport, let jobSourceID {
             self.latestCheckReport = checkReport
-            self.checkFindings = checkReport.findings
+            self.checkFindingsBySource[jobSourceID] = checkReport.findings
         }
 
         let activity = CoordinatorActivity(
@@ -543,12 +575,14 @@ final class Coordinator: PreviewWatchCoordinating {
             timestamp: Date(),
             durationNs: durationNs,
             timings: result?.timings,
-            problemsCount: self.problems.count
+            problemsCount: self.problems.count,
+            sourceID: jobSourceID
         )
         activityHistory.insert(activity, at: 0)
         if activityHistory.count > 50 {
             activityHistory.removeLast(activityHistory.count - 50)
         }
+        jobSourceID = nil
 
         task = nil
         state = (activeWatch?.isRunning == true) ? .watching : .idle

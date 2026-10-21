@@ -10,6 +10,9 @@ struct CoordinatorActivity: Identifiable, Sendable {
     let durationNs: Int?
     let timings: TimingsReport?
     let problemsCount: Int
+    /// The source the job ran against — nil for jobs that never got a
+    /// source (guard-failed starts). Callers scope per-source reads on it.
+    let sourceID: SourceID?
 
     init(
         id: UUID = UUID(),
@@ -19,7 +22,8 @@ struct CoordinatorActivity: Identifiable, Sendable {
         timestamp: Date = Date(),
         durationNs: Int? = nil,
         timings: TimingsReport? = nil,
-        problemsCount: Int = 0
+        problemsCount: Int = 0,
+        sourceID: SourceID? = nil
     ) {
         self.id = id
         self.verb = verb
@@ -29,6 +33,7 @@ struct CoordinatorActivity: Identifiable, Sendable {
         self.durationNs = durationNs
         self.timings = timings
         self.problemsCount = problemsCount
+        self.sourceID = sourceID
     }
 
     var isSuccess: Bool {
