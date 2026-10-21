@@ -23,13 +23,16 @@ struct SourceSidebar: View {
             }
         }
         .listStyle(.sidebar)
-        .searchable(
-            text: $folderFilter,
-            placement: .sidebar,
-            prompt: "Filter folders"
-        )
         .navigationTitle("Mailboxes")
-        .safeAreaPadding(.top, max(toolbarBand, 62))
+        // The filter field is an explicit top accessory — not
+        // `.searchable(placement: .sidebar)`. On macOS 27 the searchable
+        // field hoists into the titlebar strip of this fullSizeContentView
+        // + glass window, landing under the traffic lights; the measured
+        // band padding never reaches it. An accessory we pad ourselves can
+        // never overlap the window controls.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            filterField
+        }
         .background(ToolbarBandReader { toolbarBand = $0 })
         .overlay {
             if store.sources.isEmpty {
@@ -50,6 +53,41 @@ struct SourceSidebar: View {
                 .help("Open a local folder")
             }
         }
+    }
+
+    /// The mailbox filter field, pinned above the list rows. Its top
+    /// padding is the measured floating-toolbar band (floor 62pt), so the
+    /// field always lands below the traffic lights instead of inside the
+    /// titlebar strip. `.bar` keeps rows scrolling under it legible.
+    private var filterField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField("Filter folders", text: $folderFilter)
+                .textFieldStyle(.plain)
+                .font(.callout)
+                .accessibilityLabel("Filter folders")
+            if !folderFilter.isEmpty {
+                Button {
+                    folderFilter = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.callout)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("Clear folder filter")
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .padding(.horizontal, 12)
+        .padding(.top, max(toolbarBand, 62) + 8)
+        .padding(.bottom, 6)
+        .background(.bar)
     }
 
     private func isExpanded(for sourceID: SourceID) -> Binding<Bool> {
