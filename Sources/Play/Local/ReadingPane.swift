@@ -228,12 +228,22 @@ struct ReadingPane: View {
                 }
 
                 if caption == nil, !isBoundToThisSource || !isServing {
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "safari")
-                            .foregroundStyle(.tertiary)
-                        Text(isServing ? "Preview is serving another source. Switch source or stop the other preview." : "Preview is not running. Open Preview to read the served page here.")
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "safari")
+                                .foregroundStyle(.tertiary)
+                            Text(previewNote)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        // Not a dead end: the verb starts (or rebinds) the
+                        // shared watch session — the same one the Preview
+                        // companion drives, never a second watch.
+                        Button(previewActionTitle) {
+                            startPreview()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
                     .font(.callout)
                     .padding(.top, 4)
@@ -451,6 +461,50 @@ struct ReadingPane: View {
         model.retry(url: url)
     }
 
+    /// The note under the contract summary when the letter can't be
+    /// served. Failures and the editor-parked pause come through the
+    /// session's `statusText` verbatim — never swallowed (D11).
+    private var previewNote: String {
+        if isServing, !isBoundToThisSource {
+            return "Preview is serving another source."
+        }
+        if session.editorParked || session.isFailure {
+            return session.statusText
+        }
+        return "Preview is not running."
+    }
+
+    private var previewActionTitle: String {
+        if isServing, !isBoundToThisSource {
+            return "Switch Preview to This Source"
+        }
+        if session.isFailure {
+            return "Restart Preview"
+        }
+        return "Start Preview"
+    }
+
+    /// Starts (or rebinds) the shared watch session for this source — the
+    /// same `PreviewSession.start` the Preview companion calls. A start
+    /// for a different root hands the session over; a start while the
+    /// editor companion owns this project's dist seat defers until the
+    /// seat frees. Play never spawns `boris` itself.
+    private func startPreview() {
+        guard
+            let contentRoot = try? source.contentRoot(),
+            let projectRoot = try? source.workspaceRoot()
+        else {
+            session.fail("could not resolve the project folder for '\(source.title)'")
+            return
+        }
+        session.start(
+            contentRoot: contentRoot,
+            projectRoot: projectRoot,
+            engine: runtime.engine,
+            coordinator: runtime.coordinator
+        )
+    }
+
     private func headerCaption(for page: PlayPage) -> String {
         var parts: [String] = []
         let path = page.sourcePath.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -486,23 +540,67 @@ struct ReadingPane: View {
     }
 }
 
-/// Compact wrapping chips for graph tags.
+/// Compact wrapping chips for graph tags. A real flow layout — an
+/// adaptive `LazyVGrid` stretches each capsule to its column width, so
+/// short tags rendered as wide, empty pills.
 private struct FlowTags: View {
     let tags: [String]
 
     var body: some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 52), spacing: 6, alignment: .leading)],
-            alignment: .leading,
-            spacing: 6
-        ) {
+        FlowLayout(spacing: 6) {
             ForEach(tags, id: \.self) { tag in
                 Text(tag)
                     .font(.caption2.weight(.medium))
+                    .lineLimit(1)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(.quaternary, in: Capsule())
             }
         }
+    }
+}
+
+/// Minimal left-to-right wrapping layout: each child gets its ideal size
+/// and wraps to the next row when the proposed width runs out.
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 6
+    /// Vertical gap between rows; defaults to `spacing`.
+    var rowSpacing: CGFloat? = nil
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let (_, height) = self.layout(width: proposal.width ?? .infinity, subviews: subviews)
+        return CGSize(width: proposal.width ?? 0, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let (offsets, _) = self.layout(width: bounds.width, subviews: subviews)
+        for (subview, offset) in zip(subviews, offsets) {
+            subview.place(
+                at: CGPoint(x: bounds.minX + offset.x, y: bounds.minY + offset.y),
+                anchor: .topLeading,
+                proposal: .unspecified
+            )
+        }
+    }
+
+    /// Shared wrap math: topLeading offset per subview plus total height.
+    private func layout(width maxWidth: CGFloat, subviews: Subviews) -> ([CGPoint], CGFloat) {
+        let lineSpacing = rowSpacing ?? spacing
+        var offsets: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                x = 0
+                y += rowHeight + lineSpacing
+                rowHeight = 0
+            }
+            offsets.append(CGPoint(x: x, y: y))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return (offsets, y + rowHeight)
     }
 }
