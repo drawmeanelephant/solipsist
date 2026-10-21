@@ -26,9 +26,9 @@ struct SourceSidebar: View {
         .navigationTitle("Mailboxes")
         // The filter field is an explicit top accessory — not
         // `.searchable(placement: .sidebar)`. On macOS 27 the searchable
-        // field hoists into the titlebar strip of this fullSizeContentView
-        // + glass window, landing under the traffic lights; the measured
-        // band padding never reaches it. An accessory we pad ourselves can
+        // field hoists into the titlebar strip of this floating-toolbar
+        // window, landing under the traffic lights; the measured band
+        // padding never reaches it. An accessory we pad ourselves can
         // never overlap the window controls.
         .safeAreaInset(edge: .top, spacing: 0) {
             filterField
@@ -56,9 +56,9 @@ struct SourceSidebar: View {
     }
 
     /// The mailbox filter field, pinned above the list rows. Its top
-    /// padding is the measured floating-toolbar band (floor 62pt), so the
-    /// field always lands below the traffic lights instead of inside the
-    /// titlebar strip. `.bar` keeps rows scrolling under it legible.
+    /// padding is the measured floating-toolbar band (measured 52pt on
+    /// macOS 27; floor 44 keeps it under the traffic lights before the
+    /// first measure lands). `.bar` keeps rows scrolling under it legible.
     private var filterField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
@@ -85,7 +85,7 @@ struct SourceSidebar: View {
         .padding(.vertical, 4)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .padding(.horizontal, 12)
-        .padding(.top, max(toolbarBand, 62) + 8)
+        .padding(.top, max(toolbarBand, 44) + 4)
         .padding(.bottom, 6)
         .background(.bar)
     }
