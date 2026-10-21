@@ -377,7 +377,7 @@ struct LocalPlay: PlaySurface {
                 List(filtered, selection: selectedPageID) { page in
                     PageRow(
                         page: page,
-                        findings: runtime.coordinator.checkFindings,
+                        findings: runtime.coordinator.checkFindings(for: source.id),
                         isSelected: store.selection.noun?.id == page.id
                     )
                     .tag(page.id)

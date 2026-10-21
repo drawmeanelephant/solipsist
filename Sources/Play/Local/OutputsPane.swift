@@ -45,9 +45,11 @@ struct OutputsPane: View {
         }
     }
 
-    /// True when boris.json was modified after the last successful Plan.
+    /// True when boris.json was modified after the last successful Plan
+    /// *for this source* — a plan run against another project never
+    /// raises the dot here.
     private var isStalePlan: Bool {
-        guard let planTime = runtime.coordinator.planTimestamp else { return false }
+        guard let planTime = runtime.coordinator.planTimestamp(for: source.id) else { return false }
         guard let root = try? source.workspaceRoot() else { return false }
         let profileURL = root.appendingPathComponent("boris.json")
         guard let mtime = (try? FileManager.default.attributesOfItem(atPath: profileURL.path))?[.modificationDate] as? Date else { return false }
@@ -61,7 +63,7 @@ struct OutputsPane: View {
                     ForEach(targets, id: \.name) { target in
                         TargetRow(
                             target: target,
-                            activity: runtime.coordinator.lastActivity(for: target.name),
+                            activity: runtime.coordinator.lastActivity(for: target.name, in: source.id),
                             isBusy: runtime.coordinator.isRunning,
                             onBuild: { requestBuild(kind: "target", id: target.name, title: target.name) }
                         )
@@ -71,7 +73,7 @@ struct OutputsPane: View {
                     let defaultTarget = PublicationTarget(name: "default", output: "dist")
                     TargetRow(
                         target: defaultTarget,
-                        activity: runtime.coordinator.lastActivity(for: "default"),
+                        activity: runtime.coordinator.lastActivity(for: "default", in: source.id),
                         isBusy: runtime.coordinator.isRunning,
                         onBuild: { requestBuild(kind: "target", id: "default", title: "default") }
                     )
@@ -103,7 +105,7 @@ struct OutputsPane: View {
                             name: "IR (.boris)",
                             output: ir.output,
                             kind: "ir",
-                            activity: runtime.coordinator.lastActivity(for: "ir"),
+                            activity: runtime.coordinator.lastActivity(for: "ir", in: source.id),
                             isBusy: runtime.coordinator.isRunning,
                             onBuild: { requestBuild(kind: "edition", id: "ir", title: "IR") }
                         )
@@ -114,7 +116,7 @@ struct OutputsPane: View {
                             name: "RAG",
                             output: rag.output,
                             kind: "rag",
-                            activity: runtime.coordinator.lastActivity(for: "rag"),
+                            activity: runtime.coordinator.lastActivity(for: "rag", in: source.id),
                             isBusy: runtime.coordinator.isRunning,
                             onBuild: { requestBuild(kind: "edition", id: "rag", title: "RAG") }
                         )
@@ -125,7 +127,7 @@ struct OutputsPane: View {
                             name: "Context",
                             output: context.output,
                             kind: "context",
-                            activity: runtime.coordinator.lastActivity(for: "context"),
+                            activity: runtime.coordinator.lastActivity(for: "context", in: source.id),
                             isBusy: runtime.coordinator.isRunning,
                             onBuild: { requestBuild(kind: "edition", id: "context", title: "Context") }
                         )
