@@ -13,7 +13,7 @@ import WebKit
 /// missing ones degrade to the shell's restore/default open). The header
 /// names the selected page and its `sourcePath`. Manual URL paste and
 /// "Open in Browser" stay as the loopback fallback.
-struct EditorWindow: View { // swiftlint:disable:this type_body_length
+struct EditorWindow: View {
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
 
@@ -36,7 +36,7 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
                         EditorWebView(model: model)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
-                        idleState(for: source)
+                        EditorHostStateView(session: session, model: model)
                     }
                 }
                 .task(id: source.id) {
@@ -103,53 +103,6 @@ struct EditorWindow: View { // swiftlint:disable:this type_body_length
             return "Editor — \(noun.title)"
         }
         return "Editor"
-    }
-
-    private func idleState(for source: SourceItem) -> some View {
-        ContentUnavailableView {
-            Label("Editor Host Not Running", systemImage: "square.and.pencil")
-        } description: {
-            VStack(alignment: .leading, spacing: 8) {
-                if let guidance = errorGuidance {
-                    Text(guidance.headline)
-                        .font(.body)
-                    Text(guidance.detail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("The Boris editor connects when the host process is running.")
-                    // #267: lead with the action; manual connect is the
-                    // last-resort sentence, matching #237's collapsed field.
-                    Text(EditorIdleCopy.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        } actions: {
-            Button("Restart Host") {
-                session.restart()
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .disabled(!session.canRestart)
-
-            Button("Open in Browser") {
-                if let url = session.editorURL ?? model.currentURL {
-                    NSWorkspace.shared.open(url)
-                }
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .disabled(session.editorURL == nil && model.currentURL == nil)
-        }
-    }
-
-    /// #280: Maps typed failures from the session to actionable guidance;
-    /// the case-to-copy switch lives in `EditorFailureGuidance` where it is
-    /// compiler-checked against `EditorSessionError`.
-    private var errorGuidance: EditorFailureGuidance.Guidance? {
-        guard case .failed(let error) = session.phase else { return nil }
-        return EditorFailureGuidance.guidance(for: error)
     }
 
     private func header(for source: SourceItem) -> some View {
