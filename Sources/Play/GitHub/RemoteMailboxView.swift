@@ -63,7 +63,7 @@ struct RemoteMailboxView: View {
                 Button(action: openOnGitHub) {
                     Label("Open on GitHub", systemImage: "arrow.up.right.square")
                 }
-                .help("Open \\(source.owner)/\\(source.repository) in your browser")
+                .help("Open \(source.owner)/\(source.repository) in your browser")
             }
         }
         .sheet(isPresented: $showCommitSheet) {

@@ -3,7 +3,7 @@ import SwiftUI
 /// Form over `boris.json`. Every control maps 1:1 to a profile key; Save
 /// writes the file. Execution knobs do not live here.
 struct ProfileSection: View {
-    let source: LocalSource
+    let source: any PlayFolderSource
 
     @State private var fields = InspectorProfileFields.empty
     @State private var loaded = InspectorProfileFields.empty

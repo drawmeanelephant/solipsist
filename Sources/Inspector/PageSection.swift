@@ -4,14 +4,19 @@ import SwiftUI
 /// Fields come from the selected noun plus `.boris/completion.json` / `.boris/graph.json`.
 /// Frontmatter is not parsed out of markdown.
 struct PageSection: View {
-    let source: LocalSource
+    let source: any PlayFolderSource
     let noun: WorkspaceNoun
+    var cachedCompletion: Completion?
+    var cachedGraph: Graph?
 
     @Environment(\.openWindow) private var openWindow
 
-    @State private var completion: Completion?
-    @State private var graph: Graph?
+    @State private var loadedCompletion: Completion?
+    @State private var loadedGraph: Graph?
     @State private var note: String?
+
+    private var completion: Completion? { cachedCompletion ?? loadedCompletion }
+    private var graph: Graph? { cachedGraph ?? loadedGraph }
 
     var body: some View {
         Group {
@@ -47,7 +52,7 @@ struct PageSection: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Relations")
                         .foregroundStyle(.secondary)
-                    ForEach(relations, id: \.target) { rel in
+                    ForEach(Array(relations.enumerated()), id: \.offset) { _, rel in
                         Text("\(rel.kind): \(rel.target)")
                     }
                 }
@@ -64,8 +69,8 @@ struct PageSection: View {
             }
         }
         .textSelection(.enabled)
-        .task(id: taskID) {
-            load()
+        .task(id: source.id) {
+            await load()
         }
     }
 
@@ -105,7 +110,7 @@ struct PageSection: View {
                         Text("Ingredients (\(recipe.ingredients.count))")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        ForEach(recipe.ingredients, id: \.name) { ing in
+                        ForEach(Array(recipe.ingredients.enumerated()), id: \.offset) { _, ing in
                             HStack(alignment: .top, spacing: 4) {
                                 Text("•")
                                     .foregroundStyle(.secondary)
@@ -121,7 +126,7 @@ struct PageSection: View {
                         Text("Cookware")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        ForEach(recipe.cookware, id: \.name) { cw in
+                        ForEach(Array(recipe.cookware.enumerated()), id: \.offset) { _, cw in
                             HStack(alignment: .top, spacing: 4) {
                                 Text("•")
                                     .foregroundStyle(.secondary)
@@ -137,7 +142,7 @@ struct PageSection: View {
                         Text("Timers")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        ForEach(recipe.timers, id: \.name) { tm in
+                        ForEach(Array(recipe.timers.enumerated()), id: \.offset) { _, tm in
                             HStack(alignment: .top, spacing: 4) {
                                 Text("•")
                                     .foregroundStyle(.secondary)
@@ -217,22 +222,28 @@ struct PageSection: View {
         openWindow(id: CompanionID.editor)
     }
 
-    private func load() {
-        completion = nil
-        graph = nil
+    private func load() async {
+        loadedCompletion = nil
+        loadedGraph = nil
         note = nil
         guard source.isAvailable else {
             note = "This folder is no longer reachable."
             return
         }
+        if cachedCompletion != nil, cachedGraph != nil {
+            return
+        }
         do {
             let root = try source.resolve().url
-            if let index = InspectorCompletion.load(from: root) {
-                completion = index
-            }
-            if let gr = InspectorGraph.load(from: root) {
-                graph = gr
-            }
+            let result = await Task.detached {
+                (
+                    completion: InspectorCompletion.load(from: root),
+                    graph: InspectorGraph.load(from: root)
+                )
+            }.value
+            guard !Task.isCancelled else { return }
+            loadedCompletion = result.completion
+            loadedGraph = result.graph
             if completion == nil && graph == nil {
                 note = "Completion arrives when the IR build writes .boris/completion.json."
             }

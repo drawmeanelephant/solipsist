@@ -14,7 +14,14 @@ struct ReadingPane: View {
     @Environment(\.openWindow) private var openWindow
 
     @State private var model = ReadingWebModel()
-    @State private var relations: [CompletionRelation] = []
+
+    private var relations: [CompletionRelation] {
+        guard let pageID = page?.id,
+              let completion = store.cachedCompletion(for: source.id),
+              let entity = completion.entities.first(where: { $0.id == pageID })
+        else { return [] }
+        return entity.relations
+    }
 
     var body: some View {
         Group {
@@ -36,8 +43,8 @@ struct ReadingPane: View {
         .task(id: letterIdentity) {
             await refreshLetter()
         }
-        .task(id: completionIdentity) {
-            relations = Self.loadRelations(source: source, pageID: page?.id)
+        .task(id: source.id) {
+            store.requestCompletion(for: source.id)
         }
         .task(id: reloadChannelIdentity) {
             if let url = reloadEventsURL {
@@ -85,7 +92,11 @@ struct ReadingPane: View {
             Spacer(minLength: 12)
 
             if isShowingServedPage {
-                servedBadge
+                if model.isStale {
+                    staleBadge
+                } else {
+                    servedBadge
+                }
             } else if isServing, !isBoundToThisSource {
                 foreignBadge
             }
@@ -289,6 +300,25 @@ struct ReadingPane: View {
         .accessibilityAddTraits(.isStaticText)
     }
 
+    private var staleBadge: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(Color.orange)
+                .frame(width: 7, height: 7)
+            Text("Stale")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Color.orange.opacity(0.14), in: Capsule())
+        .overlay(Capsule().stroke(Color.orange.opacity(0.28), lineWidth: 0.5))
+        .help(model.staleMessage ?? "The latest rebuild failed — showing the last valid build.")
+        .padding(.trailing, 4)
+        .accessibilityLabel("Stale preview")
+        .accessibilityAddTraits(.isStaticText)
+    }
+
     private var foreignBadge: some View {
         HStack(spacing: 5) {
             Circle()
@@ -327,13 +357,29 @@ struct ReadingPane: View {
         let target = relation.target.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !target.isEmpty else { return }
         let graph = store.graph(for: source.id)
-        if let resolution = ProblemResolver.resolve(path: target, source: source, graph: graph) {
+        if let node = graph?.nodes.first(where: { $0.id == target }) {
+            store.select(mailbox: WorkspaceMailbox.pages)
+            store.select(
+                noun: WorkspaceNoun(
+                    kind: "page",
+                    id: node.id,
+                    title: node.title,
+                    sourcePath: node.sourcePath
+                )
+            )
+        } else if let resolution = ProblemResolver.resolve(path: target, source: source, graph: graph) {
             switch resolution {
-            case .page(let id, _):
-                if let noun = WorkspaceNoun(kind: "page", id: id, title: target, sourcePath: target) as WorkspaceNoun? {
-                    store.select(noun: noun)
-                }
+            case .page(let id, let title):
+                let matched = graph?.nodes.first(where: { $0.id == id })
                 store.select(mailbox: WorkspaceMailbox.pages)
+                store.select(
+                    noun: WorkspaceNoun(
+                        kind: "page",
+                        id: id,
+                        title: matched?.title ?? title,
+                        sourcePath: matched?.sourcePath
+                    )
+                )
             case .revealFile(let url):
                 NSWorkspace.shared.activateFileViewerSelecting([url])
             }
@@ -426,10 +472,6 @@ struct ReadingPane: View {
         reloadEventsURL?.absoluteString ?? "off"
     }
 
-    private var completionIdentity: String {
-        "\(source.id.raw.uuidString)|\(page?.id ?? "")"
-    }
-
     @MainActor
     private func refreshLetter() async {
         guard let page else {
@@ -517,26 +559,6 @@ struct ReadingPane: View {
     private func display(_ value: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "—" : trimmed
-    }
-
-    /// Decode `.boris/completion.json` the same way Play reads `graph.json`.
-    /// Failure omits relations (D8). Does not import Inspector.
-    private static func loadRelations(source: any PlayFolderSource, pageID: String?) -> [CompletionRelation] {
-        guard
-            let pageID,
-            source.isAvailable,
-            let root = try? source.resolve().url
-        else { return [] }
-        let url = root
-            .appendingPathComponent(".boris", isDirectory: true)
-            .appendingPathComponent("completion.json")
-        guard
-            FileManager.default.fileExists(atPath: url.path),
-            let data = try? Data(contentsOf: url),
-            let completion = try? JSONDecoder().decode(Completion.self, from: data),
-            let entity = completion.entities.first(where: { $0.id == pageID })
-        else { return [] }
-        return entity.relations
     }
 }
 

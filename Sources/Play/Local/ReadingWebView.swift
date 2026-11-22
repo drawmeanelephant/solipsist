@@ -18,6 +18,8 @@ enum ReadingLoadOutcome: Equatable {
 final class ReadingWebModel: NSObject {
     let webView: WKWebView
     private(set) var outcome: ReadingLoadOutcome = .idle
+    private(set) var isStale = false
+    private(set) var staleMessage: String?
 
     /// SSE listener on the existing watch helper's `/__boris/events`.
     /// One session — the letter never spawns a second watch.
@@ -35,7 +37,13 @@ final class ReadingWebModel: NSObject {
     /// source and a page is showing.
     func connectReload(to eventsURL: URL) {
         reloadClient.onReload = { [weak self] in
+            self?.isStale = false
+            self?.staleMessage = nil
             self?.reloadServedPage()
+        }
+        reloadClient.onStale = { [weak self] detail in
+            self?.isStale = true
+            self?.staleMessage = detail
         }
         reloadClient.connect(to: eventsURL)
     }
@@ -43,6 +51,8 @@ final class ReadingWebModel: NSObject {
     /// Stop listening (watch down, source switched, or row changed).
     func disconnectReload() {
         reloadClient.disconnect()
+        isStale = false
+        staleMessage = nil
     }
 
     func load(url: URL) {
@@ -50,12 +60,16 @@ final class ReadingWebModel: NSObject {
             outcome = .failed("Only loopback URLs are allowed.")
             return
         }
+        isStale = false
+        staleMessage = nil
         outcome = .loading
         webView.stopLoading()
         webView.load(URLRequest(url: url))
     }
 
     func reset() {
+        isStale = false
+        staleMessage = nil
         outcome = .idle
         webView.stopLoading()
     }

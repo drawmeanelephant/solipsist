@@ -33,7 +33,15 @@ struct PlayHost: View {
                 EmptyStateView(
                     title: "No Source Selected",
                     systemImage: "sidebar.left",
-                    message: "Select an account in the mailbox sidebar, or add one from Settings → Sources or File → Open…."
+                    message: "Select an account in the mailbox sidebar, or add one from Settings → Sources or File → Open….",
+                    actionTitle: store.sources.first.map { "Select \($0.title)" } ?? "Open…",
+                    action: {
+                        if let first = store.sources.first {
+                            store.select(first.id)
+                        } else {
+                            store.presentOpenPanel()
+                        }
+                    }
                 )
             }
         }
