@@ -28,7 +28,7 @@ recut to the diagram above.
 ## Engine Integration
 
 - `BorisEngine` actor manages single-process execution and signal handling (`SIGTERM`).
-- Contract models decode normative Boris JSON formats.
+- Contract models decode normative Boris JSON formats (see [Outputs](https://drawmeanelephant.github.io/boris/reference/outputs.html) and [Diagnostics](https://drawmeanelephant.github.io/boris/reference/diagnostics.html) in the Boris docs).
 - `Coordinator` maps UI verbs to engine invocations, reporting timings and problems in real-time.
 
 ## Process boundaries
