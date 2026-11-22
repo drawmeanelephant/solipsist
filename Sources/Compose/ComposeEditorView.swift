@@ -28,6 +28,7 @@ struct ComposeEditorView: View {
     /// External line-jump from ProblemsPane (M11 #207): when set, the editor
     /// jumps to this absolute character offset.
     var externalJump: Int?
+    var externalJumpNonce: Int = 0
     /// #264: reading-comfort state (type ladder + gutter toggle). The host
     /// passes the shared instance so View-menu commands drive this window.
     var typography: ComposeTypography = .init()
@@ -138,8 +139,11 @@ struct ComposeEditorView: View {
             }
         }
         .navigationTitle(document.statusText)
-        .onChange(of: externalJump) { _, newValue in
-            if let newValue { jumpToCharacter = newValue }
+        .onChange(of: externalJumpNonce) { _, _ in
+            if let externalJump {
+                jumpToCharacter = nil
+                jumpToCharacter = externalJump
+            }
         }
         .task(id: externalJump) {
             if let externalJump { jumpToCharacter = externalJump }
@@ -297,12 +301,14 @@ struct ComposeEditorView: View {
         .padding(12)
         .frame(width: 280, alignment: .leading)
     }
+}
 
+private extension ComposeEditorView {
     /// Author-facing extension surface, mirroring Oliver's `ParseOptions`:
     /// all extensions off by default; profile / frontmatter / raw-HTML
     /// policies map 1:1 to Oliver's CLI flags.
     @ViewBuilder
-    private var previewOptionsContent: some View {
+    var previewOptionsContent: some View {
         Menu("Markdown Extensions") {
             Toggle("Wikilinks", isOn: $previewOptions.wikilinks)
             Toggle("Callouts", isOn: $previewOptions.callouts)

@@ -43,10 +43,7 @@ public enum EditorURL {
         guard !trimmed.isEmpty else {
             throw ParseError.empty
         }
-        guard let components = URLComponents(string: trimmed), let url = components.url else {
-            throw ParseError.invalidURL
-        }
-        guard let scheme = components.scheme?.lowercased(), scheme == "http" else {
+        guard let components = URLComponents(string: trimmed), let url = components.url, let scheme = components.scheme?.lowercased(), scheme == "http" else {
             throw ParseError.invalidURL
         }
         guard let host = components.host?.lowercased(), host == "127.0.0.1" || host == "localhost" || host == "::1" || host == "[::1]" else {
@@ -66,8 +63,7 @@ public enum EditorURL {
     /// a graph `sourcePath`. Returns `url` unchanged when the path is
     /// missing or would fail `file_api.validatePath`.
     public static func opening(_ url: URL, sourcePath: String?) -> URL {
-        guard let project = projectPath(fromSourcePath: sourcePath) else { return url }
-        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        guard let project = projectPath(fromSourcePath: sourcePath), var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         var items = fragmentItems(components.fragment).filter { $0.name != "open" }
         items.append(URLQueryItem(name: "open", value: project))
         components.fragment = encodedFragment(items)

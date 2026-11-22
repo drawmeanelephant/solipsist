@@ -69,6 +69,9 @@ enum LetterReloadPolicy {
 @MainActor
 final class LetterSSEClient {
     var onReload: (() -> Void)?
+    /// Fired when Boris watch `--serve` emits `event: stale` after a failed
+    /// rebuild (boris#1119); cleared on the next `event: reload`.
+    var onStale: ((String?) -> Void)?
 
     private(set) var isConnected = false
     private var task: Task<Void, Never>?
@@ -129,6 +132,11 @@ final class LetterSSEClient {
     }
 
     private func handle(_ event: SSEEvent) {
+        if event.name == "stale" {
+            let detail = event.data.trimmingCharacters(in: .whitespacesAndNewlines)
+            onStale?(detail.isEmpty ? nil : detail)
+            return
+        }
         guard event.name == "reload", let generation = Int(event.data) else { return }
         let (reload, next) = Self.shouldReload(generation: generation, lastGeneration: lastGeneration)
         lastGeneration = next

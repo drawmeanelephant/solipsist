@@ -3,7 +3,7 @@ import SwiftUI
 /// Inspector section for an individual HTML target (M7 / #76).
 /// Displays target details and lets the author pick from the `ThemeCatalog`.
 struct TargetSection: View {
-    let source: LocalSource
+    let source: any PlayFolderSource
     let targetName: String
 
     @State private var target: PublicationTarget?
@@ -48,6 +48,12 @@ struct TargetSection: View {
                 }
                 if let llms = target.llms {
                     LabeledContent("LLMs.txt", value: llms.path)
+                }
+                if let staticDir = target.static?.dir, !staticDir.isEmpty {
+                    LabeledContent("Static Dir", value: staticDir)
+                }
+                if let htmlProfile = target.html_profile, !htmlProfile.isEmpty {
+                    LabeledContent("HTML Profile", value: htmlProfile)
                 }
 
                 if !availableThemes.isEmpty {

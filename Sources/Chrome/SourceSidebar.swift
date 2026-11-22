@@ -10,6 +10,7 @@ struct SourceSidebar: View {
     /// #276: sidebar filter — case-insensitive trunk-title substring,
     /// in-session only (never persisted).
     @State private var folderFilter = ""
+    @FocusState private var filterFocused: Bool
 
     var body: some View {
         List(selection: selectedRow) {
@@ -68,7 +69,22 @@ struct SourceSidebar: View {
             TextField("Filter folders", text: $folderFilter)
                 .textFieldStyle(.plain)
                 .font(.callout)
+                .focused($filterFocused)
                 .accessibilityLabel("Filter folders")
+                .onKeyPress(.escape) {
+                    if !folderFilter.isEmpty {
+                        folderFilter = ""
+                        return .handled
+                    }
+                    if filterFocused {
+                        filterFocused = false
+                        return .handled
+                    }
+                    return .ignored
+                }
+                .onChange(of: store.filterFoldersRequestCount) {
+                    filterFocused = true
+                }
             if !folderFilter.isEmpty {
                 Button {
                     folderFilter = ""

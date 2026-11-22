@@ -17,6 +17,7 @@ struct LocalPlay: PlaySurface {
     @Environment(WorkspaceStore.self) private var store
     @Environment(AppRuntime.self) private var runtime
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     @State private var state: LoadState = .idle
     @State private var searchText = ""
@@ -85,6 +86,13 @@ struct LocalPlay: PlaySurface {
         .environment(\.toolbarBand, toolbarBand)
         .task(id: source.id) {
             await load()
+        }
+        .onChange(of: runtime.coordinator.problems.isEmpty) { wasEmpty, isEmpty in
+            // #322: when a broken corpus heals and ValidateWatch clears
+            // problems, automatically rebuild and show the recovered graph.
+            if !wasEmpty, isEmpty, case .failed = state {
+                reload()
+            }
         }
     }
 
@@ -209,6 +217,10 @@ struct LocalPlay: PlaySurface {
                 Label("No Pages", systemImage: "doc.text")
             } description: {
                 Text("This source has no pages. Add Stunts/happy from Settings → Sources or File → Open… to see a working publication.")
+            } actions: {
+                Button("Open…") {
+                    store.presentOpenPanel()
+                }
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("No Pages")
@@ -218,6 +230,10 @@ struct LocalPlay: PlaySurface {
                 Label("No Pages in This Folder", systemImage: "folder")
             } description: {
                 Text("This folder has no pages in the current graph.")
+            } actions: {
+                Button("Show All Pages") {
+                    store.select(mailbox: WorkspaceMailbox.pages)
+                }
             }
             .accessibilityLabel("No Pages in This Folder")
         case .noRecipes:
@@ -225,6 +241,10 @@ struct LocalPlay: PlaySurface {
                 Label("No Recipes", systemImage: "fork.knife")
             } description: {
                 Text("This source's graph has no Cooklang recipe pages.")
+            } actions: {
+                Button("Show All Pages") {
+                    store.select(mailbox: WorkspaceMailbox.pages)
+                }
             }
             .accessibilityElement(children: .combine)
             .accessibilityLabel("No Recipes")
@@ -233,12 +253,30 @@ struct LocalPlay: PlaySurface {
     }
 
     private func failedContent(_ message: String) -> some View {
-        ContentUnavailableView {
-            Label("Graph Unavailable", systemImage: "exclamationmark.triangle")
+        let engineMissing = runtime.engine == nil
+        return ContentUnavailableView {
+            Label(
+                engineMissing ? "Boris Engine Unavailable" : "Graph Unavailable",
+                systemImage: "exclamationmark.triangle"
+            )
         } description: {
-            Text(message)
+            Text(
+                engineMissing
+                    ? "\(message)\n\nCheck Settings → Engine to verify the bundled Boris binary or set SOLIPSIST_BORIS_BIN."
+                    : message
+            )
         } actions: {
-            Button("Try Again") { reload() }
+            Button(engineMissing ? "Reload Engine" : "Try Again") {
+                if engineMissing {
+                    runtime.reloadEngine()
+                }
+                reload()
+            }
+            if engineMissing {
+                Button("Open Engine Settings…") {
+                    openSettings()
+                }
+            }
         }
     }
 
@@ -398,17 +436,15 @@ struct LocalPlay: PlaySurface {
                 }
                 .listStyle(.inset)
                 .safeAreaPadding(.top, toolbarBand)
-                // #233: keyboard navigation — Return (Compose), ⌘Return (Editor),
+                // #233 / #320: keyboard navigation — Return (Compose), ⌘Return (Editor),
                 // Escape (deselect), Page Up/Down (scroll by page), Home/End.
-                .onKeyPress(.return) {
+                .onKeyPress(keys: [.return]) { press in
                     guard store.selection.canEditPage else { return .ignored }
-                    openWindow(id: CompanionID.compose)
-                    return .handled
-                }
-                .onKeyPress(.return) {
-                    guard NSEvent.modifierFlags.contains(.command),
-                          store.selection.canEditPage else { return .ignored }
-                    openWindow(id: CompanionID.editor)
+                    if press.modifiers.contains(.command) {
+                        openWindow(id: CompanionID.editor)
+                    } else {
+                        openWindow(id: CompanionID.compose)
+                    }
                     return .handled
                 }
                 .onKeyPress(.escape) {
@@ -419,11 +455,11 @@ struct LocalPlay: PlaySurface {
                     return .ignored
                 }
                 .onKeyPress(.pageUp) {
-                    scrollList(by: -pageScrollCount(filtered))
+                    scrollList(by: -pageScrollCount(filtered), in: filtered)
                     return .handled
                 }
                 .onKeyPress(.pageDown) {
-                    scrollList(by: pageScrollCount(filtered))
+                    scrollList(by: pageScrollCount(filtered), in: filtered)
                     return .handled
                 }
                 .onKeyPress(.home) {
@@ -443,12 +479,9 @@ struct LocalPlay: PlaySurface {
         )
     }
 
-    /// #233: Scroll the Pages list by approximately one visible page height.
-    /// The estimate uses a fixed row height (28pt, matching `PageRow`'s
-    /// compact layout) and the list's frame height minus chrome.
-    private func scrollList(by offset: Int) {
-        guard !loadedPages.isEmpty else { return }
-        let filtered = LocalPlayGraph.filter(pages: loadedPages, query: searchText)
+    /// #233 / #320: Scroll the current mailbox's filtered list by approximately
+    /// one visible page height (respects trunk folder / Recipes filters).
+    private func scrollList(by offset: Int, in filtered: [PlayPage]) {
         guard !filtered.isEmpty else { return }
         let currentID = store.selection.noun?.id
         let currentIndex = currentID.flatMap { id in filtered.firstIndex(where: { $0.id == id }) } ?? 0
@@ -529,10 +562,22 @@ struct LocalPlay: PlaySurface {
             .appendingPathComponent(".boris", isDirectory: true)
             .appendingPathComponent("graph.json")
 
+        if let cached = store.cachedGraph(for: source.id),
+           FileManager.default.fileExists(atPath: graphURL.path)
+        {
+            apply(cached)
+            return
+        }
+
         if FileManager.default.fileExists(atPath: graphURL.path) {
             do {
-                apply(try decodeGraph(at: graphURL))
+                let decoded = try await Task.detached {
+                    try Self.decodeGraph(at: graphURL)
+                }.value
+                guard !Task.isCancelled else { return }
+                apply(decoded)
             } catch {
+                guard !Task.isCancelled else { return }
                 state = .failed("Could not read graph.json: \(error.localizedDescription)")
             }
             return
@@ -620,7 +665,7 @@ struct LocalPlay: PlaySurface {
             + "Refusing to render an unknown shape."
     }
 
-    private func decodeGraph(at url: URL) throws -> Graph {
+    private nonisolated static func decodeGraph(at url: URL) throws -> Graph {
         let data = try Data(contentsOf: url)
         return try JSONDecoder().decode(Graph.self, from: data)
     }
@@ -709,8 +754,12 @@ private struct FindingBadge: View {
 
     private var badgeLabel: String {
         switch finding.code {
-        case "WUNREFERENCED":
+        case "WUNREFERENCED", "unreferenced_page":
             return "unreferenced"
+        case "unlinked_page":
+            return "unlinked"
+        case "draft_page":
+            return "draft"
         default:
             return finding.code
         }

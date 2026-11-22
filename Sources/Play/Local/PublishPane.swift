@@ -36,6 +36,10 @@ struct PublishPane: View {
                 githubPagesPlanSection
             }
 
+            if let nostr = profile?.nostr {
+                nostrConfigSection(nostr)
+            }
+
             actionsSection
 
             if let nostr = nostrReport, let relays = nostr.relays, !relays.isEmpty {
@@ -122,6 +126,22 @@ struct PublishPane: View {
                 }
                 LabeledContent("Staging Output", value: "dist/")
                 LabeledContent("Evidence Root", value: "_boris/proof/")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func nostrConfigSection(_ nostr: PublicationNostrDeclaration) -> some View {
+        Section("Nostr Publication Surface (NIP-23)") {
+            LabeledContent("Enabled", value: nostr.enabled == true ? "Yes" : "No")
+            if let pubkey = nostr.pubkey, !pubkey.isEmpty {
+                LabeledContent("Author Pubkey", value: pubkey)
+            }
+            if let articles = nostr.articles, !articles.isEmpty {
+                LabeledContent("Articles", value: "\(articles.count) allowlisted")
+            }
+            if let relays = nostr.relays, !relays.isEmpty {
+                LabeledContent("Relays", value: relays.joined(separator: ", "))
             }
         }
     }
@@ -226,6 +246,19 @@ struct PublishPane: View {
                             }
                         }
 
+                        if profile?.nostr?.enabled == true, profile?.publication?.target != "nostr" {
+                            Button("Publish to Nostr…") {
+                                runtime.coordinator.run(
+                                    .publishNostr,
+                                    store: store,
+                                    runtime: runtime
+                                )
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .disabled(!runtime.coordinator.canRunVerb)
+                        }
+
                         Button("Package Archive") {
                             runtime.coordinator.run(.package, store: store, runtime: runtime)
                         }
@@ -246,7 +279,7 @@ struct PublishPane: View {
     @ViewBuilder
     private func nostrVerdictsSection(report: NostrPublishReport, relays: [NostrRelayVerdict]) -> some View {
         Section("Nostr Relay Publication Verdicts") {
-            if let verdict = report.verdict {
+            if let verdict = report.displayVerdict {
                 HStack {
                     Text("Overall Verdict")
                     Spacer()
@@ -381,7 +414,7 @@ struct PublishPane: View {
                     if let compiler = ver.displayCompiler {
                         LabeledContent("Compiler ID", value: compiler)
                     }
-                    if let ir = ver.ir_version {
+                    if let ir = ver.displayIRVersion {
                         LabeledContent("IR Version", value: ir)
                     }
                 }
@@ -467,11 +500,13 @@ struct PublishPane: View {
     }
 
     private var credentialTarget: String? {
-        switch profile?.publication?.target {
-        case "standard-site": PublishTargets.standardSite
-        case "nostr": PublishTargets.nostr
-        default: nil
+        if profile?.publication?.target == "standard-site" {
+            return PublishTargets.standardSite
         }
+        if profile?.nostr?.enabled == true || profile?.publication?.target == "nostr" {
+            return PublishTargets.nostr
+        }
+        return nil
     }
 
     private var credentialStatus: String {
@@ -512,14 +547,23 @@ struct PublishPane: View {
     }
 
     private func scanProofFiles(in root: URL) {
-        let proofDir = root.appendingPathComponent("_boris/proof", isDirectory: true)
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: proofDir,
-            includingPropertiesForKeys: [.fileSizeKey],
-            options: [.skipsHiddenFiles]
-        ) else {
+        guard let proofDir = PublishEvidenceLocator.activeProofDirectory(workspaceRoot: root, profile: profile),
+              let contents = try? FileManager.default.contentsOfDirectory(
+                  at: proofDir,
+                  includingPropertiesForKeys: [.fileSizeKey],
+                  options: [.skipsHiddenFiles]
+              )
+        else {
             proofFiles = []
             return
+        }
+
+        let relPrefix: String
+        let stdRoot = root.standardizedFileURL.path
+        if proofDir.path.hasPrefix(stdRoot + "/") {
+            relPrefix = String(proofDir.path.dropFirst(stdRoot.count + 1))
+        } else {
+            relPrefix = "_boris/proof"
         }
 
         var items: [ProofFileItem] = []
@@ -528,7 +572,7 @@ struct PublishPane: View {
             items.append(ProofFileItem(
                 id: file.lastPathComponent,
                 name: file.lastPathComponent,
-                path: "_boris/proof/\(file.lastPathComponent)",
+                path: "\(relPrefix)/\(file.lastPathComponent)",
                 size: ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
             ))
         }
@@ -536,7 +580,12 @@ struct PublishPane: View {
     }
 
     private func loadProofArtifacts(in root: URL) {
-        let proofDir = root.appendingPathComponent("_boris/proof", isDirectory: true)
+        guard let proofDir = PublishEvidenceLocator.activeProofDirectory(workspaceRoot: root, profile: profile) else {
+            proofPack = nil
+            claimsDoc = nil
+            checksDoc = nil
+            return
+        }
 
         let proofPackURL = proofDir.appendingPathComponent("proof-pack.json")
         if let data = try? Data(contentsOf: proofPackURL) {
@@ -570,32 +619,41 @@ struct PublishPane: View {
     }
 
     private func loadPackageMetadata(in root: URL) {
-        // Look for MACHINE-READABLE-VERSION.json in packages/ or _boris/ or root
-        let candidates = [
-            root.appendingPathComponent("packages/MACHINE-READABLE-VERSION.json"),
-            root.appendingPathComponent("_boris/MACHINE-READABLE-VERSION.json"),
-            root.appendingPathComponent("MACHINE-READABLE-VERSION.json"),
-            root.appendingPathComponent("vendor/boris-agent-kit/MANIFEST.json"),
-        ]
+        let packageArchives = packageTarArchives(in: root)
+
+        // Look for MACHINE-READABLE-VERSION.json inside packages/*.tar first,
+        // then loose files in packages/ or _boris/ or root.
         machineVersion = nil
-        for candidate in candidates {
-            if let data = try? Data(contentsOf: candidate),
-               let decoded = try? JSONDecoder().decode(MachineReadableVersion.self, from: data) {
+        for archive in packageArchives {
+            if let data = PackageArchiveReader.readEntry(
+                endingWith: "MACHINE-READABLE-VERSION.json",
+                fromArchiveAt: archive
+            ), let decoded = try? JSONDecoder().decode(MachineReadableVersion.self, from: data) {
                 machineVersion = decoded
                 break
             }
         }
+        if machineVersion == nil {
+            let candidates = [
+                root.appendingPathComponent("packages/MACHINE-READABLE-VERSION.json"),
+                root.appendingPathComponent("_boris/MACHINE-READABLE-VERSION.json"),
+                root.appendingPathComponent("MACHINE-READABLE-VERSION.json"),
+                root.appendingPathComponent("vendor/boris-agent-kit/MANIFEST.json"),
+            ]
+            for candidate in candidates {
+                if let data = try? Data(contentsOf: candidate),
+                   let decoded = try? JSONDecoder().decode(MachineReadableVersion.self, from: data) {
+                    machineVersion = decoded
+                    break
+                }
+            }
+        }
 
-        // Look for SHA256SUMS in packages/ or _boris/ or root
-        let checksumCandidates = [
-            root.appendingPathComponent("packages/SHA256SUMS"),
-            root.appendingPathComponent("_boris/SHA256SUMS"),
-            root.appendingPathComponent("SHA256SUMS"),
-            root.appendingPathComponent("vendor/boris-agent-kit/SHA256SUMS"),
-        ]
+        // Look for SHA256SUMS inside packages/*.tar first, then loose files.
         checksumEntries = []
-        for candidate in checksumCandidates {
-            if let text = try? String(contentsOf: candidate, encoding: .utf8) {
+        for archive in packageArchives {
+            if let data = PackageArchiveReader.readEntry(endingWith: "SHA256SUMS", fromArchiveAt: archive),
+               let text = String(data: data, encoding: .utf8) {
                 let parsed = PackageChecksumEntry.parse(from: text)
                 if !parsed.isEmpty {
                     checksumEntries = parsed
@@ -603,6 +661,39 @@ struct PublishPane: View {
                 }
             }
         }
+        if checksumEntries.isEmpty {
+            let checksumCandidates = [
+                root.appendingPathComponent("packages/SHA256SUMS"),
+                root.appendingPathComponent("_boris/SHA256SUMS"),
+                root.appendingPathComponent("SHA256SUMS"),
+                root.appendingPathComponent("vendor/boris-agent-kit/SHA256SUMS"),
+            ]
+            for candidate in checksumCandidates {
+                if let text = try? String(contentsOf: candidate, encoding: .utf8) {
+                    let parsed = PackageChecksumEntry.parse(from: text)
+                    if !parsed.isEmpty {
+                        checksumEntries = parsed
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    private func packageTarArchives(in root: URL) -> [URL] {
+        let dir = root.appendingPathComponent("packages", isDirectory: true)
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: dir,
+            includingPropertiesForKeys: [.contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else { return [] }
+        return entries
+            .filter { $0.pathExtension.lowercased() == "tar" }
+            .sorted { lhs, rhs in
+                let lm = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+                let rm = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+                return lm > rm
+            }
     }
 }
 

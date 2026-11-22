@@ -493,6 +493,7 @@ public struct PublicationProfile: Codable, Sendable, Equatable {
     public var publication: PublicationDeclaration?
     public var targets: [PublicationTarget]?
     public var editions: PublicationEditions?
+    public var nostr: PublicationNostrDeclaration?
 
     public init(
         format: String = "boris-publication-profile",
@@ -502,7 +503,8 @@ public struct PublicationProfile: Codable, Sendable, Equatable {
         site: PublicationSite? = nil,
         publication: PublicationDeclaration? = nil,
         targets: [PublicationTarget]? = nil,
-        editions: PublicationEditions? = nil
+        editions: PublicationEditions? = nil,
+        nostr: PublicationNostrDeclaration? = nil
     ) {
         self.format = format
         self.schema_version = schema_version
@@ -512,6 +514,33 @@ public struct PublicationProfile: Codable, Sendable, Equatable {
         self.publication = publication
         self.targets = targets
         self.editions = editions
+        self.nostr = nostr
+    }
+}
+
+/// Top-level `nostr` section in `boris.json` (`docs/contracts/nostr-publication.md`).
+public struct PublicationNostrDeclaration: Codable, Sendable, Equatable {
+    public var enabled: Bool?
+    public var pubkey: String?
+    public var articles: [String]?
+    public var relays: [String]?
+    public var timeout_ms: Int?
+    public var retries: Int?
+
+    public init(
+        enabled: Bool? = nil,
+        pubkey: String? = nil,
+        articles: [String]? = nil,
+        relays: [String]? = nil,
+        timeout_ms: Int? = nil,
+        retries: Int? = nil
+    ) {
+        self.enabled = enabled
+        self.pubkey = pubkey
+        self.articles = articles
+        self.relays = relays
+        self.timeout_ms = timeout_ms
+        self.retries = retries
     }
 }
 
@@ -965,15 +994,27 @@ public struct ProofChecksDocument: Codable, Sendable {
 
 // MARK: - Nostr Publish Report (`_boris/nostr-publish.json`)
 
-/// Decoded from `_boris/nostr-publish.json` or engine stdout.
+/// Decoded from `_boris/nostr-publish.json` or engine stdout (`boris-nostr-publish-report`).
 public struct NostrPublishReport: Codable, Sendable {
     public var format: String?
     public var schema_version: Int?
+    /// Normative Boris field (`complete` / `partial` / `failed` / `incomplete`).
+    public var classification: String?
     public var verdict: String?
     public var created_at: String?
     public var timestamp: String?
     public var event_id: String?
     public var relays: [NostrRelayVerdict]?
+
+    public var displayVerdict: String? { classification ?? verdict }
+}
+
+/// Per-event relay delivery record inside `boris-nostr-publish-report`.
+public struct NostrRelayEventVerdict: Codable, Sendable {
+    public var entity_id: String?
+    public var event_id: String?
+    public var result: String?
+    public var message: String?
 }
 
 /// Per-relay publication verdict from a Nostr publish run.
@@ -981,6 +1022,10 @@ public struct NostrRelayVerdict: Codable, Sendable, Identifiable {
     public var id: String { url ?? relay ?? UUID().uuidString }
     public var url: String?
     public var relay: String?
+    /// Normative Boris relay outcome (`accepted` / `rejected` / `auth-required` / `timeout` / `closed` / `error`).
+    public var outcome: String?
+    public var attempts: Int?
+    public var events: [NostrRelayEventVerdict]?
     public var verdict: String?
     public var status: String?
     public var ok: Bool?
@@ -991,18 +1036,27 @@ public struct NostrRelayVerdict: Codable, Sendable, Identifiable {
     public var relayURL: String { url ?? relay ?? "unknown" }
     public var isSuccess: Bool {
         if let ok { return ok }
+        if let outcome {
+            let normalized = outcome.lowercased()
+            return normalized == "accepted" || normalized == "complete" || normalized == "ok"
+        }
         if let verdict {
-            let v = verdict.lowercased()
-            return v == "complete" || v == "ok" || v == "success" || v == "published"
+            let normalized = verdict.lowercased()
+            return normalized == "complete" || normalized == "ok" || normalized == "success" || normalized == "published" || normalized == "accepted"
         }
         if let status {
-            let s = status.lowercased()
-            return s == "ok" || s == "success" || s == "complete"
+            let normalized = status.lowercased()
+            return normalized == "ok" || normalized == "success" || normalized == "complete" || normalized == "accepted"
         }
         return false
     }
     public var displayMessage: String {
-        message ?? error ?? verdict ?? status ?? (isSuccess ? "Published successfully" : "Publish failed")
+        if let message, !message.isEmpty { return message }
+        if let error, !error.isEmpty { return error }
+        if let eventNote = events?.compactMap(\.message).first(where: { !$0.isEmpty }) {
+            return outcome.map { "\($0): \(eventNote)" } ?? eventNote
+        }
+        return outcome ?? verdict ?? status ?? (isSuccess ? "Published successfully" : "Publish failed")
     }
 }
 
@@ -1012,7 +1066,9 @@ public struct NostrRelayVerdict: Codable, Sendable, Identifiable {
 public struct MachineReadableVersion: Codable, Sendable {
     public var format: String?
     public var schema_version: Int?
+    public var package_schema_version: Int?
     public var version: String?
+    public var product_version: String?
     public var commit: String?
     public var compiler: String?
     public var compiler_id: String?
@@ -1021,13 +1077,15 @@ public struct MachineReadableVersion: Codable, Sendable {
     public var created_at: String?
     public var platform: String?
     public var ir_version: String?
+    public var ir_schema_version: String?
     public var features: [String]?
     public var sha256: String?
 
-    public var displayVersion: String { version ?? "unknown" }
+    public var displayVersion: String { version ?? product_version ?? "unknown" }
     public var displayCommit: String? { commit }
     public var displayPlatform: String? { platform }
     public var displayCompiler: String? { compiler ?? compiler_id ?? compilerId }
+    public var displayIRVersion: String? { ir_version ?? ir_schema_version }
 }
 
 /// A parsed line from a `SHA256SUMS` file.

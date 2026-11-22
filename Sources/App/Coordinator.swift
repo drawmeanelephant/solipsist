@@ -943,7 +943,21 @@ final class Coordinator: PreviewWatchCoordinating {
                 )
 
             case .standardSiteLogout:
+                let profile = try loadProfile(from: source)
+                let identity = standardSiteIdentity(from: profile?.publication)
+                guard identity.did != nil || identity.handle != nil else {
+                    return JobResult(
+                        exit: 2,
+                        summary: "logout: profile needs publication.did",
+                        problems: CoordinatorProblems.fromFailure(
+                            code: "standard-site",
+                            message: "publication.did (or a handle) is required for standard-site logout"
+                        )
+                    )
+                }
                 let result = try await engine.standardSiteLogout(
+                    did: identity.did,
+                    handle: identity.handle,
                     workingDirectory: try source.workspaceRoot()
                 )
                 let items = CoordinatorProblems.fromCommand(
@@ -958,8 +972,21 @@ final class Coordinator: PreviewWatchCoordinating {
                 )
 
             case .standardSiteSmoke:
+                let profile = try loadProfile(from: source)
+                let identity = standardSiteIdentity(from: profile?.publication)
+                guard identity.did != nil || identity.handle != nil else {
+                    return JobResult(
+                        exit: 2,
+                        summary: "smoke: profile needs publication.did",
+                        problems: CoordinatorProblems.fromFailure(
+                            code: "standard-site",
+                            message: "publication.did (or a handle) is required for standard-site smoke"
+                        )
+                    )
+                }
                 let result = try await engine.standardSiteSmoke(
-                    profileURL: source.profileURL(),
+                    did: identity.did,
+                    handle: identity.handle,
                     workingDirectory: try source.workspaceRoot()
                 )
                 let items = CoordinatorProblems.fromCommand(
@@ -1007,7 +1034,7 @@ final class Coordinator: PreviewWatchCoordinating {
                 let outDir = workspaceRoot.appendingPathComponent("source-rag")
                 let result = try await engine.runTool(
                     binary: tool,
-                    arguments: ["--root", workspaceRoot.path, "--out", outDir.path, "--quiet"],
+                    arguments: ["--root=.", "--out=source-rag", "--quiet"],
                     workingDirectory: workspaceRoot
                 )
                 let items = CoordinatorProblems.fromCommand(
@@ -1128,6 +1155,9 @@ final class Coordinator: PreviewWatchCoordinating {
                 contentRoot: source.contentRoot(),
                 target: target,
                 siteURL: profile?.site?.url,
+                siteTitle: profile?.site?.title,
+                siteDescription: profile?.site?.description,
+                inputFormat: profile?.input_format,
                 workingDirectory: workspaceRoot,
                 timings: true,
                 knobs: knobs
@@ -1324,13 +1354,17 @@ final class Coordinator: PreviewWatchCoordinating {
             )
         }
 
-        let published = try await engine.nostrPublish(bundleURL: bundleURL, reportURL: reportURL)
+        let published = try await engine.nostrPublish(
+            planURL: planURL,
+            bundleURL: bundleURL,
+            reportURL: reportURL
+        )
         var items: [ProblemItem] = []
         var summaryText = "Nostr publish exit \(published.exitCode)"
         let reportData = (try? Data(contentsOf: reportURL)) ?? (published.stdout.isEmpty ? nil : Data(published.stdout.utf8))
         if let reportData,
            let report = try? JSONDecoder().decode(NostrPublishReport.self, from: reportData) {
-            if let verdict = report.verdict {
+            if let verdict = report.displayVerdict {
                 summaryText = "Nostr publish \(verdict) (exit \(published.exitCode))"
             }
             if let relays = report.relays {

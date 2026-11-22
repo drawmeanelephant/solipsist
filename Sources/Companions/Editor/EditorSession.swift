@@ -347,8 +347,7 @@ final class EditorSession {
     private func scheduleAutoReconnect(after delay: Duration) {
         reconnectTask = Task { [weak self] in
             try? await Task.sleep(for: delay)
-            guard !Task.isCancelled else { return }
-            guard let self else { return }
+            guard !Task.isCancelled, let self else { return }
             self.beginRestart(preservingReconnectState: true)
         }
     }
@@ -356,8 +355,7 @@ final class EditorSession {
     private func scheduleTimeout() {
         timeoutTask = Task { [weak self] in
             try? await Task.sleep(for: EditorSession.connectTimeout)
-            guard !Task.isCancelled else { return }
-            guard let self else { return }
+            guard !Task.isCancelled, let self else { return }
             self.failTimeout()
         }
     }

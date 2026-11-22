@@ -68,13 +68,16 @@ public final class WatchServer: @unchecked Sendable {
     private var finishedExit: WatchExit?
 
     public init(binary: URL, contentRoot: URL, workingDirectory: URL, port: Int = 0) {
+        let profile = BorisProfileArgs.loadProfile(in: workingDirectory)
         let process = Process()
         process.executableURL = binary
-        process.arguments = [
+        var args = [
             "watch", "--serve", "--watch-json",
             "--port", String(port),
             "--input", contentRoot.path,
         ]
+        args.append(contentsOf: BorisProfileArgs.defaultTargetFlags(for: profile))
+        process.arguments = args
         // D1: cwd = project folder (layout/theme resolution + output
         // containment); `--input` stays an explicit absolute root.
         process.currentDirectoryURL = workingDirectory

@@ -118,7 +118,11 @@ struct SolipsistCommands: Commands {
                 runtime.coordinator.run(.recipeScale, store: store, runtime: runtime)
             }
             .disabled(!RecipeScaleSupport.isAvailable || !hasPage || !runtime.coordinator.canRunVerb)
-            .help(RecipeScaleSupport.unavailableMessage)
+            .help(
+                RecipeScaleSupport.isAvailable
+                    ? "Scale the selected Cooklang recipe via Boris."
+                    : RecipeScaleSupport.unavailableMessage
+            )
 
             Divider()
 
@@ -284,6 +288,14 @@ struct SolipsistCommands: Commands {
             }
             .keyboardShortcut(.leftArrow, modifiers: [.command, .option])
             .disabled(store.sources.count < 2)
+
+            Divider()
+
+            Button("Filter Folders") {
+                store.filterFoldersRequestCount += 1
+            }
+            .keyboardShortcut("f", modifiers: [.command, .option])
+            .disabled(store.sources.isEmpty)
         }
 
         CommandGroup(replacing: .help) {

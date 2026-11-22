@@ -57,7 +57,7 @@ Every menu verb and keyboard shortcut:
 | Build This | — | Build the selected HTML target or edition (Outputs mailbox). |
 | Check | — | Run static documentation intelligence and reference checks. |
 | Impact | — | Analyze ripple effects of node changes across the graph (enabled when a page is selected). |
-| Recipe Scale | — | Unavailable until the pinned Boris scaling JSON contract is verified. The inspector shows recipe data from `graph.json` unchanged; it never invents ingredients or scales them in Swift. |
+| Recipe Scale | — | Scale the selected Cooklang recipe via `boris recipe-scale` (enabled when a page is selected). The inspector shows recipe data from `graph.json` and scales through Boris — never in Swift. |
 | Publish to Standard.site | — | Prompt for an app password (stdin), `login --app-password`, then `publish`. Optional Keychain remember. |
 | Verify Standard.site | — | Verify the current Standard.site publication (`boris standard-site verify`). |
 | Standard.site Records | — | List Standard.site records for the publication profile. |
@@ -85,8 +85,9 @@ Every menu verb and keyboard shortcut:
 | Content Audit | `⌘6` | Jump the selected source's sidebar to the Content Audit mailbox. |
 | Select Next Source | `⌘⌥→` | Cycle the sidebar selection to the next source (wraps). |
 | Select Previous Source | `⌘⌥←` | Cycle the sidebar selection to the previous source (wraps). |
+| Filter Folders | `⌥⌘F` | Focus the sidebar's Filter folders field (`Escape` clears and leaves it). |
 
-The sidebar also carries a **Filter folders** search field: it narrows trunk folders under Pages by title (case-insensitive) while typed, and resets when cleared. Right-clicking a source offers Reveal in Finder, Copy Path, and Sync Now (GitHub sources).
+The sidebar also carries a **Filter folders** search field (`⌥⌘F`): it narrows trunk folders under Pages by title (case-insensitive) while typed, and resets on clear or `Escape`. In the Pages list, `Return` opens Compose, `⌘Return` opens the hosted Editor, `Escape` clears the selection, and `Home`/`End`/`Page Up`/`Page Down` navigate the list. In the Problems list, `Return` opens the selected diagnostic in Compose at line, `⌘Return` reveals its file in Finder, and `Escape` clears the selection. Right-clicking a source offers Reveal in Finder, Copy Path, and Sync Now (GitHub sources).
 
 ### Format
 

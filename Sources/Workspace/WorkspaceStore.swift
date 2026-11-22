@@ -25,6 +25,14 @@ final class WorkspaceStore {
     /// lookups are never cached, so a later build can make it appear.
     private(set) var graphs: [SourceID: Graph] = [:]
 
+    /// Decoded completion index per source (#321). Cached off-main so
+    /// switching rows in the Pages list never re-reads `completion.json`.
+    private(set) var completions: [SourceID: Completion] = [:]
+
+    /// Incremented by the View → Filter Folders (`⌥⌘F`) command so the
+    /// sidebar focuses its filter field without holding window state here.
+    var filterFoldersRequestCount = 0
+
     /// #274: the sidebar's persisted tree shape. Rules + codec live in
     /// `SidebarExpansionState` (test-target friendly); the store owns the
     /// UserDefaults round-trip.
@@ -436,6 +444,37 @@ final class WorkspaceStore {
     /// the sidebar stays fresh without re-parsing JSON.
     func updateGraph(_ graph: Graph, for id: SourceID) {
         graphs[id] = graph
+        requestCompletion(for: id)
+    }
+
+    func cachedCompletion(for id: SourceID) -> Completion? {
+        completions[id]
+    }
+
+    private var inFlightCompletionDecodes: Set<SourceID> = []
+
+    /// Decodes `<root>/.boris/completion.json` off the main actor and caches
+    /// the result per source so ReadingPane avoids per-row disk reads (#321).
+    func requestCompletion(for id: SourceID) {
+        guard !inFlightCompletionDecodes.contains(id) else { return }
+        guard let url = resolvedURL(for: id) else { return }
+        inFlightCompletionDecodes.insert(id)
+        let fileURL = url
+            .appendingPathComponent(".boris", isDirectory: true)
+            .appendingPathComponent("completion.json")
+        Task.detached { [weak self] in
+            let decoded = try? JSONDecoder().decode(
+                Completion.self,
+                from: Data(contentsOf: fileURL)
+            )
+            await MainActor.run {
+                guard let self else { return }
+                if let decoded {
+                    self.completions[id] = decoded
+                }
+                self.inFlightCompletionDecodes.remove(id)
+            }
+        }
     }
 
     // MARK: - Live sidebar (#275)

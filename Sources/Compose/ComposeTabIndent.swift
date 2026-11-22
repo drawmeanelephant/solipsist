@@ -46,13 +46,11 @@ extension ComposeTextView.Coordinator {
             // No partial word range; check one-character behind the caret
             // is a marker (covers the bare "@" insertion case).
             let caret = textView.selectedRange().location
-            guard caret > 0 else { return false }
-            guard let marker = CookMarkerScanner.marker(before: caret, in: nsText) else { return false }
+            guard caret > 0, let marker = CookMarkerScanner.marker(before: caret, in: nsText) else { return false }
             prefix = ""
             return !completion.suggestions(marker: marker, prefix: prefix).isEmpty
         }
-        guard range.location > 0 else { return false }
-        guard let marker = CookMarkerScanner.marker(before: range.location, in: nsText) else { return false }
+        guard range.location > 0, let marker = CookMarkerScanner.marker(before: range.location, in: nsText) else { return false }
         if range.location + range.length <= nsText.length {
             prefix = nsText.substring(with: range)
         } else {

@@ -46,10 +46,7 @@ struct PreviewWindow: View {
         }
         .frame(minWidth: 480, minHeight: 360)
         .navigationTitle("Preview")
-        .task {
-            model.loadBlank()
-        }
-        .onChange(of: session.serveURL) { _, newURL in
+        .onChange(of: session.serveURL, initial: true) { _, newURL in
             if let newURL {
                 model.load(url: newURL)
             } else {

@@ -38,26 +38,29 @@ struct InspectorDrawer: View {
     private func sectionBody(_ section: InspectorSection) -> some View {
         switch section.id {
         case InspectorSectionID.profile:
-            if let item = store.selectedSource, case .local(let source) = item {
+            if let source = store.selectedSource?.folderSource {
                 ProfileSection(source: source)
             } else {
-                Text("Profile is available for local sources.")
+                Text("Select a source to edit its profile.")
                     .foregroundStyle(.secondary)
             }
         case InspectorSectionID.page:
-            if let item = store.selectedSource,
-               case .local(let source) = item,
+            if let source = store.selectedSource?.folderSource,
                let noun = store.selection.noun,
                noun.kind == InspectorNounKind.page
             {
-                PageSection(source: source, noun: noun)
+                PageSection(
+                    source: source,
+                    noun: noun,
+                    cachedCompletion: store.cachedCompletion(for: source.id),
+                    cachedGraph: store.cachedGraph(for: source.id)
+                )
             } else {
                 Text("Select a page in the reading place.")
                     .foregroundStyle(.secondary)
             }
         case InspectorSectionID.target:
-            if let item = store.selectedSource,
-               case .local(let source) = item,
+            if let source = store.selectedSource?.folderSource,
                let noun = store.selection.noun,
                noun.kind == InspectorNounKind.target
             {

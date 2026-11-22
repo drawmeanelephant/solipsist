@@ -203,10 +203,13 @@ public actor BorisEngine {
         try FileManager.default.createDirectory(
             at: outDir, withIntermediateDirectories: true
         )
+        let cwd = outDir.deletingLastPathComponent()
+        let profile = BorisProfileArgs.loadProfile(in: cwd)
         var arguments = [
             "--out", outDir.lastPathComponent,
             "--input", contentRoot.path,
         ]
+        arguments.append(contentsOf: BorisProfileArgs.inputFormatFlags(for: profile?.input_format))
         if let knobs {
             knobs.apply(to: &arguments, defaultQuiet: true)
         } else {
@@ -217,7 +220,7 @@ public actor BorisEngine {
         }
         let out = try await run(
             arguments: arguments,
-            workingDirectory: outDir.deletingLastPathComponent()
+            workingDirectory: cwd
         )
         let report = try decode(
             BuildReport.self,
@@ -275,10 +278,13 @@ public actor BorisEngine {
         try FileManager.default.createDirectory(
             at: htmlDir, withIntermediateDirectories: true
         )
+        let cwd = htmlDir.deletingLastPathComponent()
+        let profile = BorisProfileArgs.loadProfile(in: cwd)
         var arguments = [
             "--input", contentRoot.path,
             "--html-dir", htmlDir.lastPathComponent,
         ]
+        arguments.append(contentsOf: BorisProfileArgs.defaultTargetFlags(for: profile))
         if let knobs {
             knobs.apply(to: &arguments, defaultQuiet: true)
         } else {
@@ -289,7 +295,7 @@ public actor BorisEngine {
         }
         let out = try await run(
             arguments: arguments,
-            workingDirectory: htmlDir.deletingLastPathComponent()
+            workingDirectory: cwd
         )
         var report: HTMLBuildReport?
         if let reportURL, FileManager.default.fileExists(atPath: reportURL.path) {
@@ -307,11 +313,18 @@ public actor BorisEngine {
         contentRoot: URL,
         target: PublicationTarget,
         siteURL: String? = nil,
+        siteTitle: String? = nil,
+        siteDescription: String? = nil,
+        inputFormat: String? = nil,
         workingDirectory: URL? = nil,
         timings: Bool = false,
         knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisEntryBuildResult {
         let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
+        let loadedProfile = BorisProfileArgs.loadProfile(in: cwd)
+        let formatFlags = BorisProfileArgs.inputFormatFlags(
+            for: inputFormat ?? loadedProfile?.input_format
+        )
         let fm = FileManager.default
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-report-\(UUID().uuidString).json")
@@ -322,6 +335,7 @@ public actor BorisEngine {
             "--target", "\(target.name)=\(target.output)",
             "--report", reportURL.path,
         ]
+        args.append(contentsOf: formatFlags)
         if let knobs {
             knobs.apply(to: &args, defaultQuiet: true)
         } else {
@@ -333,22 +347,23 @@ public actor BorisEngine {
         if let layout = target.layout, !layout.isEmpty {
             args.append(contentsOf: ["--target-layout", "\(target.name)=\(layout)"])
         }
+        if let htmlProfile = BorisProfileArgs.normalizedHTMLProfile(target.html_profile) {
+            args.append(contentsOf: ["--target-profile", "\(target.name)=\(htmlProfile)"])
+        }
         if let rules = target.layout_rules {
             for rule in rules {
                 args.append(contentsOf: ["--layout-rule", target.name, rule.selector, rule.layout])
             }
         }
-        if let siteURL, !siteURL.isEmpty {
-            args.append(contentsOf: ["--site-url", siteURL])
+        if let staticDir = target.static?.dir, !staticDir.isEmpty {
+            args.append(contentsOf: ["--static-dir", staticDir])
+        }
+        let resolvedSiteURL = siteURL ?? loadedProfile?.site?.url
+        if let resolvedSiteURL, !resolvedSiteURL.isEmpty {
+            args.append(contentsOf: ["--site-url", resolvedSiteURL])
         }
         if let sitemap = target.sitemap {
             args.append(contentsOf: ["--sitemap-path", sitemap.path])
-        }
-        if let rss = target.rss {
-            args.append(contentsOf: ["--rss-path", rss.path])
-        }
-        if let llms = target.llms {
-            args.append(contentsOf: ["--llms-path", llms.path])
         }
         if timings {
             args.append("--timings")
@@ -362,15 +377,57 @@ public actor BorisEngine {
             report = decodeJSON(HTMLBuildReport.self, from: reportData)
         }
         let timingsReport = timings ? decodeJSON(TimingsReport.self, from: out.stdout) : nil
+        var combinedStdout = out.stdoutText
+        var combinedStderr = out.stderrText
+        var finalExit = out.exitCode
+
+        // `--llms-path` and `--rss-path` are standalone projections in Boris
+        // that conflict with `--target` / HTML mode (ENGINE-CONTRACTS §5.2)
+        // and require a cwd-relative `--input` path.
+        let projectionInput = BorisProfileArgs.inputArgument(contentRoot: contentRoot, relativeTo: cwd)
+        if finalExit == 0, let llms = target.llms {
+            var llmsArgs = ["--input", projectionInput, "--llms-path", llms.path, "--quiet"]
+            llmsArgs.append(contentsOf: formatFlags)
+            let llmsOut = try await run(arguments: llmsArgs, workingDirectory: cwd)
+            if !llmsOut.stderrText.isEmpty {
+                combinedStderr += (combinedStderr.isEmpty ? "" : "\n") + llmsOut.stderrText
+            }
+            if llmsOut.exitCode != 0 {
+                finalExit = llmsOut.exitCode
+            }
+        }
+        if finalExit == 0, let rss = target.rss {
+            var rssArgs = ["--input", projectionInput, "--rss-path", rss.path, "--quiet"]
+            rssArgs.append(contentsOf: formatFlags)
+            if let resolvedSiteURL, !resolvedSiteURL.isEmpty {
+                rssArgs.append(contentsOf: ["--site-url", resolvedSiteURL])
+            }
+            let title = siteTitle ?? loadedProfile?.site?.title ?? target.name
+            let desc = siteDescription ?? loadedProfile?.site?.description ?? title
+            rssArgs.append(contentsOf: ["--rss-title", title, "--rss-description", desc])
+            if let limit = rss.limit, limit > 0 {
+                rssArgs.append(contentsOf: ["--rss-limit", "\(limit)"])
+            }
+            let rssOut = try await run(arguments: rssArgs, workingDirectory: cwd)
+            if !rssOut.stderrText.isEmpty {
+                combinedStderr += (combinedStderr.isEmpty ? "" : "\n") + rssOut.stderrText
+            }
+            if !rssOut.stdoutText.isEmpty {
+                combinedStdout += (combinedStdout.isEmpty ? "" : "\n") + rssOut.stdoutText
+            }
+            if rssOut.exitCode != 0 {
+                finalExit = rssOut.exitCode
+            }
+        }
 
         return BorisEntryBuildResult(
             name: target.name,
             kind: "target",
-            exitCode: out.exitCode,
+            exitCode: finalExit,
             report: report,
             timings: timingsReport,
-            stdout: out.stdoutText,
-            stderr: out.stderrText
+            stdout: combinedStdout,
+            stderr: combinedStderr
         )
     }
 
@@ -387,7 +444,9 @@ public actor BorisEngine {
         knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisEntryBuildResult {
         let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
+        let profile = BorisProfileArgs.loadProfile(in: cwd)
         var args = ["--input", contentRoot.path]
+        args.append(contentsOf: BorisProfileArgs.inputFormatFlags(for: profile?.input_format))
         if let knobs {
             knobs.apply(to: &args, defaultQuiet: true)
         } else {
@@ -458,6 +517,9 @@ public actor BorisEngine {
                     contentRoot: contentRoot,
                     target: target,
                     siteURL: profile.site?.url,
+                    siteTitle: profile.site?.title,
+                    siteDescription: profile.site?.description,
+                    inputFormat: profile.input_format,
                     workingDirectory: cwd,
                     timings: timings,
                     knobs: knobs
@@ -658,12 +720,15 @@ public actor BorisEngine {
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-check-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
+        let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
+        let profile = BorisProfileArgs.loadProfile(in: cwd)
         var args = [
             "check",
             "--input", contentRoot.path,
             "--format", "json",
             "--report", reportURL.path,
         ]
+        args.append(contentsOf: BorisProfileArgs.inputFormatFlags(for: profile?.input_format))
         if let knobs {
             knobs.apply(to: &args, defaultQuiet: true)
         } else {
@@ -671,7 +736,7 @@ public actor BorisEngine {
         }
         let out = try await run(
             arguments: args,
-            workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
+            workingDirectory: cwd
         )
         let report = try analysisReport(command: "check", output: out, url: reportURL)
         return BorisAnalysis(exitCode: out.exitCode, report: report, stdout: out.stdoutText, stderr: out.stderrText)
@@ -684,12 +749,15 @@ public actor BorisEngine {
         let reportURL = fm.temporaryDirectory
             .appendingPathComponent("boris-impact-\(UUID().uuidString).json")
         defer { try? fm.removeItem(at: reportURL) }
+        let cwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
+        let profile = BorisProfileArgs.loadProfile(in: cwd)
         var args = [
             "impact", pageID,
             "--input", contentRoot.path,
             "--format", "json",
             "--report", reportURL.path,
         ]
+        args.append(contentsOf: BorisProfileArgs.inputFormatFlags(for: profile?.input_format))
         if let knobs {
             knobs.apply(to: &args, defaultQuiet: true)
         } else {
@@ -697,7 +765,7 @@ public actor BorisEngine {
         }
         let out = try await run(
             arguments: args,
-            workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
+            workingDirectory: cwd
         )
         let report = try analysisReport(command: "impact", output: out, url: reportURL)
         return BorisAnalysis(exitCode: out.exitCode, report: report, stdout: out.stdoutText, stderr: out.stderrText)
@@ -745,15 +813,22 @@ public actor BorisEngine {
         workingDirectory: URL? = nil,
         knobs: BorisExecutionKnobs? = nil
     ) async throws -> BorisValidate {
+        let baseCwd = workingDirectory ?? contentRoot.deletingLastPathComponent()
+        let profile = BorisProfileArgs.loadProfile(in: baseCwd)
+        let effectiveCwd = BorisProfileArgs.validationWorkingDirectory(
+            contentRoot: contentRoot,
+            workingDirectory: baseCwd
+        )
         var args = [
             "validate",
             "--input", contentRoot.path,
             "--report", reportURL.path,
         ]
+        args.append(contentsOf: BorisProfileArgs.defaultTargetFlags(for: profile))
         knobs?.apply(to: &args, defaultQuiet: false)
         let out = try await run(
             arguments: args,
-            workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
+            workingDirectory: effectiveCwd
         )
         var report: HTMLBuildReport?
         if FileManager.default.fileExists(atPath: reportURL.path) {
@@ -846,32 +921,45 @@ public actor BorisEngine {
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
-    /// Runs `boris standard-site logout`.
-    public func standardSiteLogout(workingDirectory: URL? = nil) async throws -> BorisPublishResult {
+    /// Runs `boris standard-site logout (--did DID | --handle HANDLE)`.
+    public func standardSiteLogout(
+        did: String? = nil,
+        handle: String? = nil,
+        workingDirectory: URL? = nil
+    ) async throws -> BorisPublishResult {
+        var args = ["standard-site", "logout"]
+        if let did, !did.isEmpty {
+            args += ["--did", did]
+        } else if let handle, !handle.isEmpty {
+            args += ["--handle", handle]
+        }
         let out = try await run(
-            arguments: ["standard-site", "logout"],
+            arguments: args,
             workingDirectory: workingDirectory
         )
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
-    /// Runs `boris standard-site smoke` (live opt-in interop test).
+    /// Runs `boris standard-site smoke (--did DID | --handle HANDLE)` (live opt-in interop test).
     public func standardSiteSmoke(
-        profileURL: URL? = nil,
+        did: String? = nil,
+        handle: String? = nil,
         workingDirectory: URL? = nil
     ) async throws -> BorisPublishResult {
         var args = ["standard-site", "smoke"]
-        if let profileURL {
-            args.append(contentsOf: ["--profile", profileURL.lastPathComponent])
+        if let did, !did.isEmpty {
+            args += ["--did", did]
+        } else if let handle, !handle.isEmpty {
+            args += ["--handle", handle]
         }
         let out = try await run(
             arguments: args,
-            workingDirectory: workingDirectory ?? profileURL?.deletingLastPathComponent()
+            workingDirectory: workingDirectory
         )
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
-    /// Runs `boris package`: produces `packages/<archive>` containing `MACHINE-READABLE-VERSION.json`, `SHA256SUMS`, etc.
+    /// Runs `boris-package`: produces `packages/<archive>` containing `MACHINE-READABLE-VERSION.json`, `SHA256SUMS`, etc.
     public func package(
         contentRoot: URL,
         packagesDir: URL? = nil,
@@ -879,7 +967,14 @@ public actor BorisEngine {
         withRag: Bool = true,
         workingDirectory: URL? = nil
     ) async throws -> BorisPublishResult {
-        var args = ["package", "--input", contentRoot.path]
+        guard let tool = PackageBinary.locate(borisBinary: binaryURL) else {
+            return BorisPublishResult(
+                exitCode: 3,
+                stdout: "",
+                stderr: "boris-package binary not found (set SOLIPSIST_PACKAGE_BIN)"
+            )
+        }
+        var args = ["--input", contentRoot.path]
         if let packagesDir {
             args.append(contentsOf: ["--packages-dir", packagesDir.path])
         }
@@ -890,6 +985,7 @@ public actor BorisEngine {
         args.append("--quiet")
 
         let out = try await run(
+            binary: tool,
             arguments: args,
             workingDirectory: workingDirectory ?? contentRoot.deletingLastPathComponent()
         )
@@ -926,9 +1022,17 @@ public actor BorisEngine {
         return BorisPublishResult(exitCode: out.exitCode, stdout: out.stdoutText, stderr: out.stderrText)
     }
 
-    /// Runs `boris nostr publish --bundle PATH --out PATH`.
-    public func nostrPublish(bundleURL: URL, reportURL: URL? = nil) async throws -> BorisPublishResult {
-        var args = ["nostr", "publish", "--bundle", bundleURL.path]
+    /// Runs `boris nostr publish --plan PATH --bundle PATH [--out PATH]`.
+    public func nostrPublish(
+        planURL: URL,
+        bundleURL: URL,
+        reportURL: URL? = nil
+    ) async throws -> BorisPublishResult {
+        var args = [
+            "nostr", "publish",
+            "--plan", planURL.path,
+            "--bundle", bundleURL.path,
+        ]
         if let reportURL {
             args.append(contentsOf: ["--out", reportURL.path])
         }
