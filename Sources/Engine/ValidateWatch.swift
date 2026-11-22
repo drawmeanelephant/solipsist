@@ -48,14 +48,21 @@ public final class ValidateWatch: @unchecked Sendable {
     private var deliveredProblemCount = 0
 
     public init(binary: URL, contentRoot: URL, workingDirectory: URL) {
+        let profile = BorisProfileArgs.loadProfile(in: workingDirectory)
+        let effectiveWorkingDirectory = BorisProfileArgs.validationWorkingDirectory(
+            contentRoot: contentRoot,
+            workingDirectory: workingDirectory
+        )
         let process = Process()
         process.executableURL = binary
-        process.arguments = [
+        var args = [
             "validate", "--watch", "--watch-json",
             "--input", contentRoot.path,
         ]
+        args.append(contentsOf: BorisProfileArgs.defaultTargetFlags(for: profile))
+        process.arguments = args
         // D1: cwd = project folder; `--input` stays an explicit absolute root.
-        process.currentDirectoryURL = workingDirectory
+        process.currentDirectoryURL = effectiveWorkingDirectory
         process.standardOutput = FileHandle.nullDevice
         process.standardError = stderrPipe
         self.process = process
