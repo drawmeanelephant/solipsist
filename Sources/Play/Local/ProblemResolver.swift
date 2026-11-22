@@ -57,4 +57,33 @@ enum ProblemResolver {
         }
         return nil
     }
+
+    private static let editableContentExtensions: Set<String> = ["md", "markdown", "textile", "cook"]
+
+    /// Content-relative path for a diagnostic when `graph.json` does not exist
+    /// (for example on a broken corpus where IR freeze failed — #322).
+    /// Returns nil for paths outside `contentRoot`, missing files, or non-content
+    /// files (such as `boris.json` or layout templates).
+    static func editableSourcePath(forPath path: String, source: (any PlayFolderSource)?) -> String? {
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let source, let contentRoot = try? source.contentRoot() else {
+            return nil
+        }
+        let stdRoot = contentRoot.standardizedFileURL
+        let candidate: URL
+        if trimmed.hasPrefix("/") {
+            candidate = URL(fileURLWithPath: trimmed).standardizedFileURL
+        } else {
+            candidate = stdRoot.appendingPathComponent(trimmed).standardizedFileURL
+        }
+        let prefix = stdRoot.path.hasSuffix("/") ? stdRoot.path : stdRoot.path + "/"
+        guard candidate.path.hasPrefix(prefix),
+              editableContentExtensions.contains(candidate.pathExtension.lowercased())
+        else { return nil }
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: candidate.path, isDirectory: &isDir),
+              !isDir.boolValue
+        else { return nil }
+        return String(candidate.path.dropFirst(prefix.count))
+    }
 }

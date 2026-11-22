@@ -55,6 +55,12 @@ struct EditorWindow: View {
                 model.load(url: targeted)
             }
         }
+        .onChange(of: pageSourcePath) { _, newPath in
+            guard let editorURL = session.editorURL, let newPath, !newPath.isEmpty else { return }
+            let targeted = EditorURL.opening(editorURL, sourcePath: newPath)
+            urlText = EditorURL.maskedDisplayString(for: targeted)
+            model.load(url: targeted)
+        }
         .onDisappear {
             session.stop()
         }

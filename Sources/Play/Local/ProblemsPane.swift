@@ -8,6 +8,7 @@ struct ProblemsPane: View {
     @Environment(AppRuntime.self) private var runtime
     @Environment(WorkspaceStore.self) private var store
     @Environment(\.openWindow) private var openWindow
+    @State private var selectedProblemID: String?
 
     var body: some View {
         let hasProblems = !runtime.coordinator.problems.isEmpty
@@ -34,9 +35,14 @@ struct ProblemsPane: View {
 
             if hasProblems {
                 Divider()
-                List(runtime.coordinator.problems, selection: selectedProblem) { item in
+                List(runtime.coordinator.problems, selection: $selectedProblemID) { item in
                     ProblemRow(item: item, pages: pages)
                         .tag(item.id)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedProblemID = item.id
+                            selectProblem(item)
+                        }
                         .contextMenu { contextMenu(for: item) }
                         .accessibilityElement(children: .combine)
                         .accessibilityLabel("\(item.severity) \(item.code) \(item.message)")
@@ -45,22 +51,41 @@ struct ProblemsPane: View {
                 }
                 .listStyle(.inset)
                 .frame(minHeight: 80, idealHeight: 140, maxHeight: 200)
+                .onKeyPress(keys: [.return]) { press in
+                    guard let item = currentSelectedProblem else { return .ignored }
+                    if press.modifiers.contains(.command) {
+                        if let url = revealURL(for: item) {
+                            NSWorkspace.shared.activateFileViewerSelecting([url])
+                            return .handled
+                        }
+                        return .ignored
+                    }
+                    openInCompose(item)
+                    return .handled
+                }
+                .onKeyPress(.escape) {
+                    if selectedProblemID != nil {
+                        selectedProblemID = nil
+                        return .handled
+                    }
+                    return .ignored
+                }
             }
         }
         .background(.bar)
     }
 
-    private var selectedProblem: Binding<String?> {
-        Binding(
-            get: { nil },
-            set: { id in
-                guard
-                    let id,
-                    let item = runtime.coordinator.problems.first(where: { $0.id == id })
-                else { return }
-                selectProblem(item)
-            }
-        )
+    private var currentSelectedProblem: ProblemItem? {
+        guard let selectedProblemID else { return nil }
+        return runtime.coordinator.problems.first(where: { $0.id == selectedProblemID })
+    }
+
+    private var activeFolderSource: (any PlayFolderSource)? {
+        switch store.selectedSource {
+        case .local(let src): return src
+        case .github(let src): return src
+        case nil: return nil
+        }
     }
 
     private func selectProblem(_ item: ProblemItem) {
@@ -68,57 +93,65 @@ struct ProblemsPane: View {
             // No location — still surface as a problem, but nothing to select.
             return
         }
-        let folderSource: (any PlayFolderSource)?
-        switch store.selectedSource {
-        case .local(let src): folderSource = src
-        case .github(let src): folderSource = src
-        case nil: folderSource = nil
-        }
+        let folderSource = activeFolderSource
+        let graph = store.selection.sourceID.flatMap { store.cachedGraph(for: $0) }
 
-        var graph: Graph?
-        if let folderSource, let root = try? folderSource.resolve().url {
-            let graphURL = root
-                .appendingPathComponent(".boris", isDirectory: true)
-                .appendingPathComponent("graph.json")
-            if let data = try? Data(contentsOf: graphURL) {
-                graph = try? JSONDecoder().decode(Graph.self, from: data)
-            }
-        }
-
-        guard let resolution = ProblemResolver.resolve(path: path, source: folderSource, graph: graph) else {
-            return
-        }
-
-        switch resolution {
-        case .page(let pageID, let pageTitle):
-            store.select(mailbox: WorkspaceMailbox.pages)
-            if let page = pages.first(where: { $0.id == pageID })
-                ?? LocalPlayGraph.resolvePage(forSourcePath: path, in: pages)
-            {
-                store.select(
-                    noun: WorkspaceNoun(
-                        kind: "page",
-                        id: page.id,
-                        title: page.title,
-                        sourcePath: page.sourcePath
+        if let resolution = ProblemResolver.resolve(path: path, source: folderSource, graph: graph) {
+            switch resolution {
+            case .page(let pageID, let pageTitle):
+                openPageInCompose(pageID: pageID, pageTitle: pageTitle, path: path, item: item, alwaysOpenCompose: false)
+                return
+            case .revealFile(let url):
+                if let editablePath = ProblemResolver.editableSourcePath(forPath: path, source: folderSource) {
+                    let title = URL(fileURLWithPath: editablePath).lastPathComponent
+                    openPageInCompose(
+                        pageID: editablePath,
+                        pageTitle: title,
+                        path: editablePath,
+                        item: item,
+                        alwaysOpenCompose: true
                     )
-                )
-            } else {
-                store.select(
-                    noun: WorkspaceNoun(kind: "page", id: pageID, title: pageTitle)
-                )
+                    return
+                }
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+                return
             }
-            // If the diagnostic carries a line, remember it for the compose jump.
-            if let line = item.line {
-                runtime.pendingComposeJump = AppRuntime.ComposeJumpRequest(
-                    pageID: pageID,
-                    line: line,
-                    column: item.column
+        }
+    }
+
+    private func openPageInCompose(
+        pageID: String,
+        pageTitle: String,
+        path: String,
+        item: ProblemItem,
+        alwaysOpenCompose: Bool
+    ) {
+        store.select(mailbox: WorkspaceMailbox.pages)
+        if let page = pages.first(where: { $0.id == pageID })
+            ?? LocalPlayGraph.resolvePage(forSourcePath: path, in: pages)
+        {
+            store.select(
+                noun: WorkspaceNoun(
+                    kind: "page",
+                    id: page.id,
+                    title: page.title,
+                    sourcePath: page.sourcePath
                 )
-                openWindow(id: CompanionID.compose)
-            }
-        case .revealFile(let url):
-            NSWorkspace.shared.activateFileViewerSelecting([url])
+            )
+        } else {
+            store.select(
+                noun: WorkspaceNoun(kind: "page", id: pageID, title: pageTitle, sourcePath: path)
+            )
+        }
+        if let line = item.line {
+            runtime.pendingComposeJump = AppRuntime.ComposeJumpRequest(
+                pageID: pageID,
+                line: line,
+                column: item.column
+            )
+            openWindow(id: CompanionID.compose)
+        } else if alwaysOpenCompose {
+            openWindow(id: CompanionID.compose)
         }
     }
 
@@ -156,30 +189,13 @@ struct ProblemsPane: View {
 
     private func revealURL(for item: ProblemItem) -> URL? {
         guard let path = item.path else { return nil }
-        let folderSource: (any PlayFolderSource)?
-        switch store.selectedSource {
-        case .local(let src): folderSource = src
-        case .github(let src): folderSource = src
-        case nil: folderSource = nil
-        }
-        return ProblemResolver.resolveFileURL(path: path, source: folderSource)
+        return ProblemResolver.resolveFileURL(path: path, source: activeFolderSource)
     }
 
     private func openInCompose(_ item: ProblemItem) {
         guard let path = item.path else { return }
-        let folderSource: (any PlayFolderSource)?
-        switch store.selectedSource {
-        case .local(let src): folderSource = src
-        case .github(let src): folderSource = src
-        case nil: folderSource = nil
-        }
-        var graph: Graph?
-        if let folderSource, let root = try? folderSource.resolve().url {
-            let graphURL = root.appendingPathComponent(".boris", isDirectory: true).appendingPathComponent("graph.json")
-            if let data = try? Data(contentsOf: graphURL) {
-                graph = try? JSONDecoder().decode(Graph.self, from: data)
-            }
-        }
+        let folderSource = activeFolderSource
+        let graph = store.selection.sourceID.flatMap { store.cachedGraph(for: $0) }
         guard let resolution = ProblemResolver.resolve(path: path, source: folderSource, graph: graph) else {
             if let url = revealURL(for: item) {
                 NSWorkspace.shared.activateFileViewerSelecting([url])
@@ -187,16 +203,21 @@ struct ProblemsPane: View {
             return
         }
         switch resolution {
-        case .page(let pageID, _):
-            if let line = item.line {
-                runtime.pendingComposeJump = AppRuntime.ComposeJumpRequest(pageID: pageID, line: line, column: item.column)
-            }
-            // Reuse selectProblem's page-selection logic, then open compose.
-            selectProblem(item)
-            // Ensure compose opens even when selectProblem already did.
-            openWindow(id: CompanionID.compose)
+        case .page(let pageID, let pageTitle):
+            openPageInCompose(pageID: pageID, pageTitle: pageTitle, path: path, item: item, alwaysOpenCompose: true)
         case .revealFile(let url):
-            NSWorkspace.shared.activateFileViewerSelecting([url])
+            if let editablePath = ProblemResolver.editableSourcePath(forPath: path, source: folderSource) {
+                let title = URL(fileURLWithPath: editablePath).lastPathComponent
+                openPageInCompose(
+                    pageID: editablePath,
+                    pageTitle: title,
+                    path: editablePath,
+                    item: item,
+                    alwaysOpenCompose: true
+                )
+            } else {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
         }
     }
 

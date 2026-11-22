@@ -104,7 +104,7 @@ final class ComposeBuffer {
         else { return false }
         do {
             let owner = try ComposeSourceBinding(source: request.source.folderSource)
-            guard let node = try ComposePageResolver.page(id: noun.id, workspaceRoot: owner.workspaceRoot) else {
+            guard let resolvedFileURL = try resolveFileURL(for: noun, owner: owner) else {
                 loadError = "No graph node for “\(noun.title)”."
                 return false
             }
@@ -112,7 +112,7 @@ final class ComposeBuffer {
                 owner: owner,
                 selection: request.selection,
                 noun: noun,
-                fileURL: ComposePageResolver.fileURL(contentRoot: owner.contentRoot, sourcePath: node.sourcePath).standardizedFileURL
+                fileURL: resolvedFileURL
             )
             if let page, page.isSameFile(as: next) {
                 loadError = nil
@@ -127,6 +127,29 @@ final class ComposeBuffer {
             loadError = error.localizedDescription
             return false
         }
+    }
+
+    private func resolveFileURL(for noun: WorkspaceNoun, owner: ComposeSourceBinding) throws -> URL? {
+        let graphURL = ComposePageResolver.graphURL(workspaceRoot: owner.workspaceRoot)
+        if !FileManager.default.fileExists(atPath: graphURL.path), let sourcePath = noun.sourcePath, !sourcePath.isEmpty {
+            let candidate = ComposePageResolver.fileURL(
+                contentRoot: owner.contentRoot,
+                sourcePath: sourcePath
+            ).standardizedFileURL
+            let rootPath = owner.contentRoot.standardizedFileURL.path
+            let rootPrefix = rootPath.hasSuffix("/") ? rootPath : rootPath + "/"
+            guard candidate.path.hasPrefix(rootPrefix),
+                  FileManager.default.fileExists(atPath: candidate.path)
+            else { return nil }
+            return candidate
+        }
+        guard let node = try ComposePageResolver.page(id: noun.id, workspaceRoot: owner.workspaceRoot) else {
+            return nil
+        }
+        return ComposePageResolver.fileURL(
+            contentRoot: owner.contentRoot,
+            sourcePath: node.sourcePath
+        ).standardizedFileURL
     }
 
     @discardableResult

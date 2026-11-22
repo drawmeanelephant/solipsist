@@ -28,6 +28,7 @@ struct ComposeWindow: View {
     /// default; survives page switches in-session (in-memory only).
     @State private var showDetailStats = false
     @State private var externalJump: Int?
+    @State private var externalJumpNonce = 0
     /// Cooklang completion vocabulary (LATER-3.4): re-decoded from the
     /// source's `.boris/` artifacts whenever a page is loaded, so a fresh
     /// build reaches the popup without restarting the window.
@@ -47,6 +48,7 @@ struct ComposeWindow: View {
                     cookCompletion: cookCompletion,
                     onSave: { _ = save() },
                     externalJump: externalJump,
+                    externalJumpNonce: externalJumpNonce,
                     typography: runtime.composeTypography
                 )
                 .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -103,6 +105,7 @@ struct ComposeWindow: View {
                 } else {
                     externalJump = 0
                 }
+                externalJumpNonce += 1
                 runtime.pendingComposeJump = nil
             }
         }
@@ -201,6 +204,7 @@ struct ComposeWindow: View {
         if let jump = runtime.pendingComposeJump, jump.pageID == page.noun.id {
             if let offset = characterOffset(for: jump.line, column: jump.column, in: document.text) {
                 externalJump = offset
+                externalJumpNonce += 1
             }
             runtime.pendingComposeJump = nil
         }
