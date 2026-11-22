@@ -732,6 +732,16 @@ a:hover { color: var(--accent-strong); }
 .site-footer__nav a { color: var(--muted); font-size: 0.72rem; text-decoration: none; }
 .site-footer__nav a:hover { color: var(--accent-ink); text-decoration: underline; }
 
+.site-footer__sites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.75rem;
+  order: 1;
+}
+.site-footer__sites a { color: var(--muted); font-size: 0.72rem; text-decoration: none; }
+.site-footer__sites a:hover { color: var(--accent-ink); text-decoration: underline; }
+.site-footer__sites a[aria-current] { color: var(--ink); font-weight: 600; }
+
 .fg-muted { color: var(--muted); }
 
 /* ---------- Responsive ---------- */

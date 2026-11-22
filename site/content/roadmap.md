@@ -7,7 +7,7 @@ tags: [roadmap]
 
 # Roadmap
 
-Solipsist is a **harness**, not a better compiler and not a Markdown IDE. Boris stays a better Boris: we vendor the binary, file issues, render contracts, and host the surfaces we will not rewrite.
+Solipsist is a **harness**, not a better compiler and not a Markdown IDE. [Boris](https://drawmeanelephant.github.io/boris/) stays a better Boris: we vendor the binary, file issues, render contracts, and host the surfaces we will not rewrite.
 
 ## Where we are
 
@@ -41,7 +41,7 @@ M0–M14 shipped as gates; M15–M17 shipped the GitHub source and the
 - Diagnostics as a place: clickable reports, not monospaced dumps
 - Engine-owned preview via `watch --serve` + SSE
 - A hosted editor: `boris-editor` in a companion window, opened from the selected page
-- A native compose window over that page (`⌘⇧C`), previewed through Oliver
+- A native compose window over that page (`⌘⇧C`), previewed through [Oliver](https://drawmeanelephant.github.io/oliver/)
 - Outputs fan-out: every profile target and edition, isolated, reported
 - A publication console: GitHub Pages, Standard.site, Nostr — secrets on stdin
 - Sandboxed, bundled, pinned engine

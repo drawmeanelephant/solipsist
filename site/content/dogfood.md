@@ -11,7 +11,7 @@ Solipsist’s test corpora — the **Stunts** — are tiny Boris trees used to o
 
 ## The happy path: `Stunts/happy`
 
-`happy/` is the shape `boris init` creates: a trunk page, two guides beneath it, wiki links between them, a starter theme, and a `boris.json` publication profile. Open the folder in Solipsist and the play place lists the three pages from `graph.json`; select one and the drawer shows its completion-backed fields.
+`happy/` is the shape `boris init` creates (see [Getting started](https://drawmeanelephant.github.io/boris/getting-started.html) in the Boris docs): a trunk page, two guides beneath it, wiki links between them, a starter theme, and a `boris.json` publication profile. Open the folder in Solipsist and the play place lists the three pages from `graph.json`; select one and the drawer shows its completion-backed fields.
 
 ## The broken stunts
 
