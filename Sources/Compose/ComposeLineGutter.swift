@@ -196,11 +196,11 @@ final class ComposeLineGutter: NSView {
         let lineHeight = layoutManager.defaultLineHeight(for: baseFont)
         // Cull offscreen numbers (gutter's visibleRect is clipped by scrollView)
         let visible = visibleRect
-        if gutterYPos + lineHeight < visible.minY || gutterYPos > visible.maxY + visible.height {
-            // Still draw if within dirtyRect's expansion — keep cheap cull conservative
-            if gutterYPos + lineHeight < bounds.minY || gutterYPos > bounds.maxY {
-                return
-            }
+        let offscreen = gutterYPos + lineHeight < visible.minY || gutterYPos > visible.maxY + visible.height
+        // Still draw if within dirtyRect's expansion — keep cheap cull conservative
+        let outsideDirtyRect = gutterYPos + lineHeight < bounds.minY || gutterYPos > bounds.maxY
+        if offscreen, outsideDirtyRect {
+            return
         }
 
         // Highlight current line background

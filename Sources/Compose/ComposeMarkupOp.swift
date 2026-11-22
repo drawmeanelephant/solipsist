@@ -50,8 +50,7 @@ enum ComposeMarkupOp: Equatable, Sendable {
             // WebKit only guarantees `data` for plain insertText; a nil here
             // means the event carries its payload elsewhere (or none) —
             // unmappable, never guess. The next reconcile restores the DOM.
-            guard let text = event.data else { return nil }
-            guard let bufferAt = blockMap.bufferOffset(renderedOffset: start, in: block) else { return nil }
+            guard let text = event.data, let bufferAt = blockMap.bufferOffset(renderedOffset: start, in: block) else { return nil }
             if start == end {
                 return .insertText(text, offset: bufferAt)
             }

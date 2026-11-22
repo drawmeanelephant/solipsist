@@ -100,9 +100,7 @@ enum EditorServerFactory {
         let sibling = engineBinary.deletingLastPathComponent().appendingPathComponent("editor-ui")
         if isUiDir(sibling) { return sibling }
 
-        if let bundled = Bundle.main.url(forResource: "editor-ui", withExtension: nil) {
-            if isUiDir(bundled) { return bundled }
-        }
+        if let bundled = Bundle.main.url(forResource: "editor-ui", withExtension: nil), isUiDir(bundled) { return bundled }
 
         return nil
     }

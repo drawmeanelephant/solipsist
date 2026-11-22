@@ -271,14 +271,13 @@ extension ComposeTextView {
         /// `textDidChange` delegate path (buffer sync + repaint) runs
         /// unchanged.
         func apply(_ format: ComposeFormat) {
-            guard let textView, document.language.supportsFormatting else { return }
-            guard
-                let edit = ComposeFormat.apply(
-                    format,
-                    to: textView.string,
-                    selectedRange: textView.selectedRange(),
-                    language: document.language
-                )
+            guard let textView, document.language.supportsFormatting,
+                  let edit = ComposeFormat.apply(
+                      format,
+                      to: textView.string,
+                      selectedRange: textView.selectedRange(),
+                      language: document.language
+                  )
             else { return }
             let undoManager = textView.undoManager
             undoManager?.beginUndoGrouping()

@@ -62,9 +62,7 @@ struct ComposeBlockMap: Equatable, Sendable {
     /// The editable-paragraph predicate (WYSIWYG-DESIGN.md): exactly one
     /// line, and none of the marker characters anywhere in it.
     static func isEditableText(_ text: String) -> Bool {
-        guard !text.isEmpty else { return false }
-        guard !text.contains("\n") else { return false }
-        guard !text.contains(where: { markerCharacters.contains($0) }) else { return false }
+        guard !text.isEmpty, !text.contains("\n"), !text.contains(where: { markerCharacters.contains($0) }) else { return false }
         return true
     }
 

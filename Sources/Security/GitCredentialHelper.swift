@@ -41,8 +41,7 @@ enum GitCredentialHelper {
     /// and a token exists; nil otherwise. The loaded token is wiped
     /// after the output string is built.
     static func credentialOutput(input: String, store: GithubTokenStore) -> String? {
-        guard isGitHubHost(input) else { return nil }
-        guard let token = try? store.load() else { return nil }
+        guard isGitHubHost(input), let token = try? store.load() else { return nil }
         let password = String(data: Data(token.copyBytes()), encoding: .utf8) ?? ""
         token.wipe()
         return "username=x-access-token\npassword=\(password)\n"

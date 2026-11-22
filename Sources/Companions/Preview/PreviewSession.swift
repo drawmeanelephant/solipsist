@@ -318,8 +318,7 @@ final class PreviewSession {
     private func scheduleTimeout() {
         timeoutTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(15))
-            guard !Task.isCancelled else { return }
-            guard let self else { return }
+            guard !Task.isCancelled, let self else { return }
             self.failTimeout()
         }
     }
