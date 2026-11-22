@@ -11,7 +11,7 @@ tags: [mission]
 
 ## The engine we harness
 
-[Boris](https://drawmeanelephant.github.io/boris/) is **not a Markdown-to-HTML converter**. It is a compiler: Markdown (or Textile, or Cooklang) in → a validated Trunk/Satellite content graph → deterministic contracted projections (HTML, JSON IR, RAG packs, context bundles, llms.txt, RSS, sitemap, and live publication targets). Solipsist harnesses the `afterparty` integration line — `boris/0.8.1` — and never touches the compiler itself. Boris parses every page through [Oliver](https://drawmeanelephant.github.io/oliver/), its freestanding Zig markup library; the [Boris docs](https://drawmeanelephant.github.io/boris/) cover the compiler, and the [Oliver docs](https://drawmeanelephant.github.io/oliver/) cover the markup.
+[Boris](https://drawmeanelephant.github.io/boris/) is **not a Markdown-to-HTML converter**. It is a compiler: Markdown (or Textile, or Cooklang) in → a validated Trunk/Satellite content graph → deterministic contracted projections (HTML, JSON IR, RAG packs, context bundles, llms.txt, RSS, sitemap, and live publication targets). Solipsist harnesses the `afterparty` integration line — `boris/0.8.1` — and never touches the compiler itself. Boris parses every page through [Oliver](https://drawmeanelephant.github.io/oliver/), its freestanding Zig markup library. The [Boris docs](https://drawmeanelephant.github.io/boris/) cover the compiler, and the [Oliver docs](https://drawmeanelephant.github.io/oliver/) cover the markup.
 
 ## Why a Mac app at all
 

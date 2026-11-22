@@ -39,13 +39,13 @@ Boris is **not a Markdown-to-HTML converter**. It is a compiler: Markdown (or Te
 
 ## The stack
 
-Solipsist is the top of a three-project stack. Each project has its own docs site and repository:
+Solipsist sits at the top of a three-project stack. Each project has its own docs site and repository:
 
 | Project | What it is | Docs | Code |
 |---------|------------|------|------|
-| **Oliver** | Freestanding Zig markup library — Markdown, Textile, and Cooklang into a typed document and deterministic HTML. Library, CLI, and C ABI. | [Oliver docs](https://drawmeanelephant.github.io/oliver/) | [GitHub](https://github.com/drawmeanelephant/oliver) |
-| **Boris** | Graph-native publication compiler built on Oliver — Markdown into a validated Trunk/Satellite graph, then HTML, JSON IR, RAG packs, and publication targets. | [Boris docs](https://drawmeanelephant.github.io/boris/) | [GitHub](https://github.com/drawmeanelephant/boris) |
-| **Solipsist** | Native macOS workstation that drives Boris as a subprocess — this site. | [Solipsist docs](index.html) | [GitHub](https://github.com/drawmeanelephant/solipsist) |
+| **Oliver** | Freestanding Zig markup library that turns Markdown, Textile, and Cooklang into a typed document and deterministic HTML. Ships as a library, CLI, and C ABI. | [Oliver docs](https://drawmeanelephant.github.io/oliver/) | [GitHub](https://github.com/drawmeanelephant/oliver) |
+| **Boris** | Graph-native publication compiler built on Oliver. Turns Markdown into a validated Trunk/Satellite graph, then emits HTML, JSON IR, RAG packs, and publication targets. | [Boris docs](https://drawmeanelephant.github.io/boris/) | [GitHub](https://github.com/drawmeanelephant/boris) |
+| **Solipsist** | Native macOS workstation that drives Boris as a subprocess. This site. | [Solipsist docs](index.html) | [GitHub](https://github.com/drawmeanelephant/solipsist) |
 
 Want to write a site from the command line? Start with [Getting started](https://drawmeanelephant.github.io/boris/getting-started.html) in the Boris docs. Want a markup library to embed? Read the [Oliver docs](https://drawmeanelephant.github.io/oliver/). Want a Mac app around the whole loop? Keep reading here.
 

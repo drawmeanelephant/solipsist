@@ -20,14 +20,14 @@ Pages alias `solipsist.pages.dev`).
   `themes/boris/README.md`.
 - `static/`: copied verbatim to the build root by the profile's
   `static.dir`:
-  - `robots.txt` — allows all crawlers and points at `sitemap.xml`.
-  - `404.html` — self-contained not-found page (absolute links, inline CSS,
-    `noindex`). Cloudflare Pages serves it with a 404 status for any unmatched
-    path; without it Pages falls back to SPA mode and answers every missing
-    URL with the home page and a 200.
+  - `robots.txt`: allows all crawlers and points at `sitemap.xml`.
+  - `404.html`: self-contained not-found page with absolute links, inline CSS,
+    and `noindex`. Cloudflare Pages serves it with a 404 status for any
+    unmatched path. Without it, Pages falls back to SPA mode and answers every
+    missing URL with the home page and a 200.
 - Cross-site links: the footer carries the shared three-site line (Boris docs,
-  Oliver docs, Solipsist) that the Boris and Oliver Pages sites also carry;
-  `content/` links to the live docs sites, not only the repos.
+  Oliver docs, Solipsist) that the Boris and Oliver Pages sites also carry, and
+  `content/` links to the live docs sites instead of only the repos.
 
 ## Building
 
@@ -37,14 +37,13 @@ cd site
 ```
 
 The profile declares the target, home layout rule, sitemap, site URL, and
-static dir; `build --profile` executes all of it (explicit selectors alongside
-`--profile` are refused). The `site` Make target runs the same command.
+static dir. `build --profile` executes all of it, and explicit selectors
+alongside `--profile` are refused. The `site` Make target runs the same command.
 
-`make check-site` builds the site (static files land in `dist/` via
-`static.dir`) and runs
-`scripts/check-site-links.py` — a static check that every internal link and
-anchor resolves and every `sitemap.xml` entry has a published file. CI runs
-the same check before deploying.
+`make check-site` builds the site, with static files landing in `dist/` via
+`static.dir`, and runs `scripts/check-site-links.py`, a static check that every
+internal link and anchor resolves and every `sitemap.xml` entry has a published
+file. CI runs the same check before deploying.
 
 ## Deployment to Cloudflare Pages
 
